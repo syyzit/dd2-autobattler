@@ -2,10 +2,10 @@
 
 A rule ships only if it comes from this stack, in order:
 
-1. Game CSVs / in-game data — the fact
-2. [Official wiki](https://darkestdungeon.wiki.gg/) Strategy — the intent
-3. Grand Slam / Infernal writeups — only when the wiki is thin and they agree
-4. Our logs — only to check we implemented the cited rule
+1. Game CSVs / in-game data - the fact
+2. [Official wiki](https://darkestdungeon.wiki.gg/) Strategy - the intent
+3. Grand Slam / Infernal writeups - only when the wiki is thin and they agree
+4. Our logs - only to check we implemented the cited rule
 
 Do not encode a fallback that only we invented.
 
@@ -26,16 +26,16 @@ Do not encode a fallback that only we invented.
 - **Sources:** [wiki Strategy](https://darkestdungeon.wiki.gg/wiki/The_Shackles_of_Denial#Strategy); [r/darkestdungeon 19348th](https://www.reddit.com/r/darkestdungeon/comments/19348th/tips_to_fight_shackles_of_denial/) (focus one; primary damage type; Stress last; do not finish Health beside a wounded lock). CSV: `lock_*` skill blocks; Health death `m_HealthHealPercent` 0.33; Melee death +20% dmg; Ranged death +10% crit; Stress death 10% Blind/Weak on hit.
 - **Rules encoded:**
   - Focus one lock. Current pick is `must_kill`; others deferred if the pick is a legal attack.
-  - Health (Padlock of Wasting) first — wiki option A. Death heal is wasted while the others are full.
+  - Health (Padlock of Wasting) first - wiki option A. Death heal is wasted while the others are full.
   - Then whichever of Melee / Ranged denies more of *this* party’s attack tags (wiki: “whichever Lock denies the most damage from your team”).
   - Stress (Shackle of Despair) last.
 - **Not encoded:** pass / buff when Health is not a legal target this turn. Sources do not agree on that fallback.
 
 ## Tangle / Lost Battalion mashes
 
-- **Sources:** [The Tangle](https://darkestdungeon.wiki.gg/wiki/The_Tangle) — Bishops resurrect via Benediction; Drummers grant Order and move-resist, “killing the Drummer is a high priority.” CSV: Bishop `serve_once_more`; Drummer `death_before_dishonor`.
+- **Sources:** [The Tangle](https://darkestdungeon.wiki.gg/wiki/The_Tangle) - Bishops resurrect via Benediction; Drummers grant Order and move-resist, “killing the Drummer is a high priority.” CSV: Bishop `serve_once_more`; Drummer `death_before_dishonor`.
 - **Rules encoded:** Bishop `must_kill` first; Drummer `commander` next; Knight / foot / arbalist deferred while either is a legal target.
 
 ## How to add the next boss
 
-Copy the wiki Strategy paragraph into this file, quote the CSV keys that back the numbers, then encode only those sentences. If a live log looks drunk, write the mismatch here — do not invent a new rule from the log.
+Copy the wiki Strategy paragraph into this file, quote the CSV keys that back the numbers, then encode only those sentences. If a live log looks drunk, write the mismatch here - do not invent a new rule from the log.
