@@ -54,7 +54,7 @@ namespace Dd2Autobattler.Combat
             if (HandsOff)
             {
                 HandsOffReason = "story/shrine: " + (fightId ?? "?");
-                DecisionLog.Info("Hands off — " + HandsOffReason);
+                DecisionLog.Info("Hands off - " + HandsOffReason);
             }
         }
 

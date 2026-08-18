@@ -310,7 +310,7 @@ namespace Dd2Autobattler.Combat
 
         // R1 ignore Taproot. Even rounds: once. Odd rounds after 1: one hit per
         // hero with more than one vine. tangle_c (Nightmare lock) forces one hit
-        // so the root still retracts — wiki goal is "Nightmare is almost never seen".
+        // so the root still retracts - wiki goal is "Nightmare is almost never seen".
         private static int DreamingTaprootBudget(int round, int extraVineHeroes, bool anyLocked)
         {
             int budget;
