@@ -1,0 +1,9 @@
+<Project>
+  <Import Project="Directory.Build.props.user" Condition="Exists('$(MSBuildThisFileDirectory)Directory.Build.props.user')" />
+  <PropertyGroup>
+    <GameDir Condition="'$(GameDir)' == ''">$(DD2_GAME_DIR)</GameDir>
+    <GameManaged>$(GameDir)\Darkest Dungeon II_Data\Managed</GameManaged>
+    <BepInExCore>$(GameDir)\BepInEx\core</BepInExCore>
+    <BepInExPlugins>$(GameDir)\BepInEx\plugins</BepInExPlugins>
+  </PropertyGroup>
+</Project>
