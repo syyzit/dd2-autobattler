@@ -1,0 +1,7 @@
+T Assets.Code.Actor.Events.EventSkillSelectionChanged
+T Assets.Code.Actor.Events.EventSkillSelectionHoverChanged
+T Assets.Code.Combat.Events.EventSkillTargetSelected
+T Assets.Code.Skill.Events.EventSkillFinalizeResults
+T Assets.Code.Skill.Events.EventSkillUpgradeCommitted
+T Assets.Code.Skill.Events.EventSkillUpgradeExecuted
+T Assets.Code.UI.Events.EventSkillButtonRepopulate

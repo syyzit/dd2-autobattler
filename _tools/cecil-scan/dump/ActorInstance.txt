@@ -1,0 +1,663 @@
+==== Assets.Code.Actor.ActorInstance : System.Object ====
+  F static String JSON_KEY_MEMORY_INVENTORY
+  F static String JSON_KEY_COMBAT_INVENTORY
+  F static String JSON_KEY_ACTOR_GUID
+  F static String JSON_KEY_QUIRK_CONTAINER
+  F static String JSON_KEY_TRINKET_INVENTORY
+  F static String JSON_KEY_ACTOR_PATH
+  F static String JSON_KEY_ACTOR_MODE
+  F static String JSON_KEY_BOSS_MODIFIER
+  F static String JSON_KEY_AI_RUNNER
+  F static String JSON_KEY_RUN_GOAL_HISTORY
+  F static Int32 RUN_GOAL_HISTORY_SIZE
+  F UInt32 m_ActorGuid
+  F String m_ActorSkinId
+  F String m_ActorWeaponKitId
+  F String m_ActorPaletteId
+  F List`1 m_ActorDataIds
+  F DataContainer m_ActorData
+  F Boolean m_IsActorClassSet
+  F ActorDataClass m_ActorDataClass
+  F ActorDataPath m_ActorDataPath
+  F ActorDataMode m_ActorDataMode
+  F BossModifierDefinition m_BossModifier
+  F String m_DeathActorDataId
+  F Boolean m_IsDeathClassIgnored
+  F DeathsDoorCalculationResult m_LastDeathsDoorCalculationResult
+  F List`1 m_CombatSkills
+  F ActorDataSkill m_RiposteSkill
+  F List`1 m_CombatSkillReplacements
+  F List`1 m_ActOutSkills
+  F CombatItemInventory m_CombatInventory
+  F TrinketItemInventory m_TrinketInventory
+  F String m_ActorName
+  F MemoryItemInventory m_MemoryInventory
+  F Team m_Team
+  F Int32 m_TeamPosition
+  F Int32 m_TargetTeamPositionOffset
+  F SourceType m_TargetTeamPositionSourceType
+  F UInt32 m_TargetTeamPositionSourceActorGuid
+  F Int32 m_SortTeamPosition
+  F Int32 m_SortTargetTeamPositionOffset
+  F Boolean m_IsLockedInTeamPosition
+  F Int32 m_FrontRank
+  F Int32 m_BattleStartTeamPosition
+  F Int32 m_BattleStartFrontRank
+  F Boolean m_ShouldRemoveFromTeam
+  F Boolean m_ShouldDestroy
+  F Boolean m_IsDestroyed
+  F DataContainer m_ClassActorData
+  F DataContainer m_PathActorData
+  F DataContainer m_ModeActorData
+  F DataContainer m_RunActorData
+  F DataContainer m_BossActorData
+  F DataContainer m_SelectedSkillActorData
+  F DataContainer m_RelationshipActorData
+  F DataContainer m_BattleActorData
+  F DataContainer m_ArenaActorData
+  F String m_SelectedSkillId
+  F UInt32 m_SelectedTargetActorGuid
+  F String m_ActOutSelectedSkillId
+  F List`1 m_ActOutBlockedTargetActorGuids
+  F List`1 m_ActOutBlockedSkillIds
+  F List`1 m_ActOutBlockedRestItems
+  F Single m_Hp
+  F Single m_CombinedPreviousClassHpMax
+  F Single m_CombinedNextClassHpMax
+  F Single m_PreviousHpMax
+  F Single m_Stress
+  F Single m_WoundPercent
+  F Single m_CachedStressMax
+  F Boolean m_IsStressMaxCached
+  F OverstressDefinition m_PendingOverstress
+  F SourceType m_LastStressDamageSourceType
+  F String m_LastStressDamageSourceId
+  F UInt32 m_LastStressDamageSourceActorGuid
+  F Int32 m_TurnCount
+  F Int32 m_RoundCount
+  F Boolean m_IsInBattle
+  F Boolean m_IsVisitingInn
+  F Boolean m_IsLiving
+  F Boolean m_IsInParty
+  F Boolean m_IsSpawned
+  F Boolean m_IsCaptured
+  F Boolean m_IsHired
+  F Boolean m_IsInRun
+  F Boolean m_EverCursed
+  F BattleTurnType m_CurrentBattleTurnType
+  F Int32 m_CurrentBattleDeathblowCheckCount
+  F Boolean m_IsRefreshStatsPaused
+  F Boolean[] m_Statuses
+  F DataContainer m_StatusDataContainer
+  F List`1 m_ActorCountInstances
+  F TokenContainer m_TokenContainer
+  F BuffContainer m_BuffContainer
+  F DotContainer m_DotContainer
+  F QuirkContainer m_QuirkContainer
+  F List`1 m_Containers
+  F List`1 m_SkillCooldowns
+  F List`1 m_SkillUseHistory
+  F List`1 m_SkillReceivedHistory
+  F List`1 m_ItemUseHistory
+  F List`1 m_ItemTagUseHistory
+  F ActorControllerBase m_ActorController
+  F ActorStatType m_EditorPrefsTestActorStatType
+  F Single m_EditorPrefsTestActorStatValue
+  F OutputContainer`1 m_ReleaseAppliedEffectsOutputContainer
+  F UnlockContainer m_UnlockContainer
+  F AiRunner m_AiRunner
+  F NodeType m_CalcuatedRouteChoice
+  F Boolean m_ViewedNotificationsInCharacterSheet
+  F Boolean m_ViewedCharacterSheetSkillsTab
+  F Boolean m_DestroyInAutomatedTest
+  F List`1 m_UnviewedRelationshipGuids
+  F List`1 m_UnviewedNewSkillIds
+  F RunGoalDefinition m_RunGoalDefinition
+  F List`1 m_CompletedRunGoalIds
+  F LootPreRoll m_RunGoalLoot
+  F Boolean m_hasUnviewedCompletedRunGoals
+  F List`1 m_RunGoalHistory
+  F UInt32 m_CurrentActorLoadoutGuid
+  F Int32 m_ConsecutiveDaysVisitingInn
+  F Boolean m_HadInitialSkillSet
+  F String m_RespawnActorDataPathId
+  F List`1 m_RespawnBaseCombatSkills
+  P UInt32 ActorGuid
+  P String ActorSkinId
+  P String ActorWeaponKitId
+  P String ActorPaletteId
+  P String ActorDataId
+  P String LogString
+  P String DeathActorDataId
+  P DeathsDoorCalculationResult LastDeathsDoorCalculationResult
+  P ActorDataClass ActorDataClass
+  P ActorDataClass PreviousActorDataClass
+  P ActorDataPath ActorDataPath
+  P ActorDataMode ActorDataMode
+  P BossModifierDefinition BossModifier
+  P Int32 Size
+  P Boolean IsOrdained
+  P Boolean[] Statuses
+  P DataContainer ActorData
+  P DataContainer BattleActorData
+  P Boolean IsLiving
+  P Int32 TeamIndex
+  P Int32 TeamPosition
+  P Int32 TargetTeamPosition
+  P Int32 TargetTeamPositionOffset
+  P Int32 SortTeamPosition
+  P Int32 SortTargetTeamPosition
+  P Single HpRaw
+  P Boolean IsHpScalingRounded
+  P Single HpRounded
+  P Single CurrentHpMax
+  P Single CurrentHpPercent
+  P Single DisplayedHpMax
+  P Boolean IsCurrentHpAtMax
+  P Single DisplayedHpPercent
+  P Single UnwoundedHpPercent
+  P Single WoundPercent
+  P Single DisplayedHp
+  P Single UnwoundedHpMax
+  P Single Stress
+  P Single WoundPercentMax
+  P Single WoundedHp
+  P Boolean IsWounded
+  P Boolean IsWoundable
+  P Single StressMax
+  P Boolean IsAtStressMax
+  P ActorDataSkill RiposteSkill
+  P String SelectedSkillId
+  P String ActOutSelectedSkillId
+  P UnlockContainer UnlockContainer
+  P IReadOnlyList`1 Containers
+  P TokenContainer TokenContainer
+  P BuffContainer BuffContainer
+  P DotContainer DotContainer
+  P QuirkContainer QuirkContainer
+  P Boolean HasEnabledQuirkContainer
+  P IReadOnlyActorContainer`1 ReadOnlyTokenContainer
+  P IReadOnlyActorContainer`1 ReadOnlyBuffContainer
+  P IReadOnlyActorContainer`1 ReadOnlyDotContainer
+  P ActorControllerBase Controller
+  P String ActorName
+  P AiRunner AiRunner
+  P NodeType CalculatedRouteChoice
+  P Boolean ViewedCharacterSheetNotifications
+  P Boolean ViewedCharacterSheetSkillsTab
+  P List`1 UnviewedRelationshipGuids
+  P List`1 UnviewedNewSkills
+  P Int32 CurrentBattleDeathblowCheckCount
+  P RunGoalDefinition RunGoal
+  P LootPreRoll RunGoalLoot
+  P List`1 RunGoalHistory
+  P Boolean IsVisitingInn
+  P Int32 ConsecutiveDaysVisitingInn
+  P Boolean HadInitialSkillSet
+  P Boolean IsSkillLoadoutValid
+  P Boolean IsInParty
+  P Boolean EverCursed
+  M Void ValidateCombatSkills()
+  M Void ValidateActorResourceMode(ActorDataMode actorDataMode, Int32 equippedCombatSkillLimit)
+  M Void PostCreate(Boolean isLoad, ResourceActor actorResource)
+  M static Void ParseActorInfo(JObject data, UInt32& outActorGuid, String& outActorDataId)
+  M Boolean GetShouldSave()
+  M JToken SaveToJson()
+  M Void LoadFromJson(JObject data)
+  M Void AddEventListeners()
+  M Void RemoveEventListeners()
+  M Void AddPartyEventListeners()
+  M Void RemovePartyEventListeners()
+  M Void AddTeamEventListeners()
+  M Void RemoveTeamEventListeners()
+  M Void HandleEventActorChangeClass(EventActorChangeClass actorChangeClassEvent)
+  M Void HandleEventActorChangeMode(EventActorChangeMode actorChangeModeEvent)
+  M Boolean GetIsDeathActorFromEvent(EventActorDeath actorDeathEvent)
+  M Boolean GetIsDeathChainFromEvent(EventActorDeath actorDeathEvent)
+  M Void HandleEventActorDeathLogic(EventActorDeath actorDeathEvent)
+  M Void HandleEventActorDeathEffects(EventActorDeath actorDeathEvent)
+  M Void HandleEventActorRemove(EventActorRemove removeActorEvent)
+  M Void HandleEventInventoryItemQtyChange(EventInventoryItemQtyChange evt)
+  M Void HandleEventActorChangeSkillEquipped(EventActorChangeSkillEquipped actorChangeSkillEquipped)
+  M Void HandleEventRosterEntryStatusChanged(EventRosterEntryStatusChanged rosterEntryStatusChangedEvent)
+  M Void HandleEventSkillSelectionChanged(EventSkillSelectionChanged evt)
+  M Void HandleEventSkillFinalizeResults(EventSkillFinalizeResults skillFinalizeResult)
+  M Void RemoveConsumableItemIfItemCombatSkill(String skillId)
+  M Void HandleEventTestStatusBarChange(EventTestStatusBarChange testStatusBarChangeEvent)
+  M Void HandleEventDebugActorAddToken(EventDebugActorAddToken debugActorAddTokenEvent)
+  M Void HandleEventDebugActorAddBuff(EventDebugActorAddBuff debugActorAddBuffEvent)
+  M Void HandleEventDebugActorAddDot(EventDebugActorAddDot debugActorAddDotEvent)
+  M Void HandleEventDebugActorAddQuirk(EventDebugActorAddQuirk debugActorAddQuirkEvent)
+  M Void HandleEventDebugActorRemoveToken(EventDebugActorRemoveToken debugActorRemoveTokenEvent)
+  M Void HandleEventDebugActorRemoveBuff(EventDebugActorRemoveBuff debugActorRemoveBuffEvent)
+  M Void HandleEventDebugActorRemoveDot(EventDebugActorRemoveDot debugActorRemoveDotEvent)
+  M Void HandleEventDebugActorRemoveQuirk(EventDebugActorRemoveQuirk debugActorRemoveQuirkEvent)
+  M Void HandleEventDebugActorAddCombatItem(EventDebugActorAddCombatItem debugActorAddCombatItem)
+  M Void HandleEventBattleStateChanged(EventBattleStateChanged battleStateChangedEvent)
+  M Void HandleEventBattleStartRound(EventBattleStartRound battleStartRoundEvent)
+  M Void HandleEventBattleEndRound(EventBattleEndRound battleEndRoundEvent)
+  M Void HandleEventAffinityRelationshipApplied(EventAffinityRelationshipApplied affinityRelationshipAppliedEvent)
+  M Void ApplyRelationshipSkillModifier(IReadOnlyList`1 actorGuids, AffinityRelationshipDefinition affinityRelationship)
+  M Void HandleEventAffinityRelationshipCanceled(EventAffinityRelationshipCanceled affinityRelationshipCanceled)
+  M Void HandleEventAffinityConnectionDestroyed(EventAffinityConnectionDestroyed affinityConnectionDestroyedEvent)
+  M Void HandleQueryDeathChainActors(QueryDeathChainActors deathChainActorsQuery)
+  M Void HandleEventQueuePotentialActOuts(EventQueuePotentialActOuts queueActOutEvent)
+  M Void HandleEventActOutApplied(EventActOutApplied actOutAppliedEvent)
+  M Void HandleEventQuirkAdded(EventQuirkAdded quirkAddedEvent)
+  M Void HandleEventDoomResetScreenClosed(EventDoomResetScreenClosed doomResetEvent)
+  M Void HandleEventEnterBiome(EventEnterBiome enterBiomeEvent)
+  M Void HandleCombatEventActorHealthDamage(EventActorHealthDamage actorHealthDamageEvent)
+  M Void HandleCombatEventActorHealthHeal(EventActorHealthHeal actorHealthHealEvent)
+  M Void HandleCombatEventStressDamage(EventStressDamage stressDamageEvent)
+  M Void HandleCombatEventStressHeal(EventStressHeal stressHealEvent)
+  M Void HandleEventArenaModifierChanged(EventArenaModifierChanged arenaModifierChangedEvent)
+  M Void HandleEventAffinityConnectionLeaningChange(EventAffinityConnectionLeaningChange affinityConnectionLeaningChangeEvent)
+  M Void HandleEventReachedNode(EventReachedNode reachNodeEvent)
+  M Void HandleEventBattlePass(EventBattlePass battlePassEvent)
+  M Void HandleEventTeamPositionChange(EventTeamPositionChange teamPositionChangeEvent)
+  M Void HandleQueryActOutEquippedSkillActors(QueryActOutSelectedSkillActors actOutEquippedSkillActorsQuery)
+  M Void HandleEventProfileUnlock(EventProfileUnlock evt)
+  M Void HandleEventActorSurviveDeathsDoor(EventActorSurviveDeathsDoor actorSurviveDeathsDoorEvent)
+  M Void HandleEventRunValueChanged(EventRunValueChanged campaignValueChangedEvent)
+  M Void HandleEventProfileValueChanged(EventProfileValueChanged valueChangedEvent)
+  M Void HandleQueryActorInstanceWithClass(QueryActorInstanceWithClass obj)
+  M Void HandleEventSelectBoss(EventSelectBoss selectBossEvent)
+  M Void HandleEventActorTryResetSelection(EventActorTryResetSelection evt)
+  M Void HandleEventInnStateChanged(EventInnStateChanged innStateChangedEvent)
+  M Void HandleEventKingdomDayStateChanged(EventKingdomDayStateChanged kingdomDayStateChangedEvent)
+  M Void HandleEventKingdomActorTransferApplied(EventKingdomActorTransferApplied kingdomActorTransferAppliedEvent)
+  M Void HandleEventQuestStepCompleted(EventQuestStepCompleted questStepCompleted)
+  M Void HandleEventCampaignStarted(EventCampaignStarted campaignStartedEvent)
+  M Void HandleEventRunStarted(EventRunStarted runStartedEvent)
+  M Void HandleEventKingdomStarted(EventKingdomStarted kingdomStartedEvent)
+  M Void HandleEventGameTypeStarted(EventGameTypeStarted gameTypeStartedEvent)
+  M Void HandleEventActorReset(EventActorReset actorResetEvent)
+  M Void ApplyCombatEventEffects(UInt32 eventActorGuid, Int32 eventTeamIndex, ActorDataEffectType selfActorDataEffectType, ActorDataEffectType friendlyTeamActorDataEffectType, ActorDataEffectType friendlyTeamRandomActorDataEffectType, ActorDataEffectType enemyTeamActorDataEffectType, ActorDataEffectType enemyTeamRandomActorDataEffectType)
+  M Void OnActorSetClass(String previousActorClassId)
+  M Void SetResource(ResourceActor actorResource)
+  M Void SetActorName(String name)
+  M Void SetActorData(String actorDataId)
+  M Void SetInitialActorName()
+  M Boolean GetHasActorDataId(String actorDataId)
+  M Void OnUpdateActorDataIds()
+  M Void SetActorPathToReserve()
+  M Void SetInitialActorPath()
+  M Void SetActorPathToRandom(Boolean isHeroSelect)
+  M Void SetActorPathToDefault()
+  M Void SetActorPath(ActorDataPath actorDataPath, Boolean refundUnlockedSkills)
+  M Void OnUpdateActorPath(Boolean refundUnlockedSkills, Boolean refreshStats)
+  M Void SetActorModeToDefault()
+  M Void SetActorMode(ActorDataMode actorDataMode)
+  M Void OnUpdateActorMode(Boolean refreshStats, Boolean addCooldowns)
+  M Void CreateQuirkContainer(QuirkContainerDefinition quirkContainerDefinition)
+  M Int32 GetExtraDuration(DurationType durationType)
+  M Void AttemptSpawn()
+  M Void SetDeathClassIgnored()
+  M Boolean GetIsDeathClassValid(DeathType deathType)
+  M Boolean GetHasDeathsDoorArmor()
+  M Void SetLastDeathsDoorCalculationResult(DeathsDoorCalculationResult lastDeathsDoorCalculationResult)
+  M Void Destroy()
+  M Void SetShouldDestroy()
+  M Boolean GetShouldDestroy()
+  M Boolean GetIsDestroyed()
+  M Boolean IsKeyEqual(UInt32 key)
+  M UInt32 GetKey()
+  M Boolean Validate()
+  M DataContainer GetActorData()
+  M Void SetInitialSkills(ResourceActor actorResource)
+  M Void AddMissingInitialCombatSkills(ResourceActor actorResource)
+  M Void ClearEquippedSkills()
+  M Void AddInitalCombatSkillInstances(List`1 skillResources, Int32 insertIndex, List`1& skillInstances, List`1& skillReplacements, Predicate`1 equipPredicate, Predicate`1 startingUnlockedPredicate)
+  M Void SelectRiposteSkill(ResourceActor actorResource)
+  M Void SelectActOutSkills(ResourceActor actorResource)
+  M Void SetSkillEquipped(List`1& skills, Int32 equipLimit, String skillId, Boolean equip, Boolean refreshStats)
+  M Void SetCombatSkillEquipped(String skillId, Boolean equip, Boolean refreshStats)
+  M Void SetBaseCombatSkillIdsEquipped(IReadOnlyList`1 toEquipBaseCombatskillIds)
+  M Boolean GetCombatSkillEquipped(String skillId)
+  M Boolean GetHasValidCombatSkillOfType(SkillType skillType)
+  M Boolean GetHasEquippedCombatSkillOfType(SkillType skillType)
+  M Void UnequipRandomCombatSkill()
+  M IReadOnlyList`1 GetEquippedCombatSkillIds()
+  M IReadOnlyList`1 GetEquippedCombatSkillIds(SkillType skillType, Boolean includeMoveSkill, Boolean includePassSkill)
+  M IReadOnlyList`1 GetEquippedCombatSkillIds(Predicate`1 combatSkillIsValidPredicate, Boolean getBaseSkillIds, Boolean isModeValid, Boolean includeMoveSkills, Boolean includePassSkills, Boolean includeCombatSkillInventory, Boolean includeTokenSkills)
+  M IReadOnlyList`1 GetBaseEquippedCombatSkillIds()
+  M Boolean GetIsUnlockedCombatSkillInstance(SkillInstance skillInstance, Boolean isModeValid, Boolean includeMove, Boolean includePass)
+  M IReadOnlyList`1 GetUnlockedCharacterSheetCombatSkillIds()
+  M Boolean GetIsCharacterSheetCombatSkillInstance(SkillInstance skillInstance)
+  M Boolean GetIsEquippedCharacterSheetCombatSkillInstance(SkillInstance skillInstance)
+  M IReadOnlyList`1 GetEquippedCharacterSheetCombatSkillIds()
+  M IReadOnlyList`1 GetLockedCombatSkillIds()
+  M IReadOnlyList`1 GetUpgradedCombatSkillIds()
+  M IReadOnlyList`1 GetActorPathUpgradedSkillIds()
+  M IReadOnlyList`1 GetSkillIds(List`1 skills, Predicate`1 skillPredicate)
+  M Boolean CanEquipCombatSkills(Boolean checkHasUnequippedSkills)
+  M Boolean CanEquipCombatSkills(ActorDataMode actorDataMode, Boolean checkHasUnequippedSkills)
+  M Boolean HasUnequippedCombatSkills(ActorDataMode actorDataMode)
+  M Void UnequipOverCombatSkillLimitSkills()
+  M Void UnequipOverCombatSkillLimitSkills(ActorDataMode actorDataMode)
+  M Boolean CanEquipCombatItemSkills()
+  M Boolean HasUpgradeableSkills()
+  M SkillInstance GetCombatSkillInstance(String skillId)
+  M Void UnequipAllPossibleCombatSkills()
+  M String GetCombatBaseSkillId(SkillInstance skillInstance)
+  M Boolean GetIsFromBaseSkillId(SkillInstance skillInstance, String baseSkillId)
+  M Int32 RemoveCombatSkillsOfSource(SourceType sourceType)
+  M SkillInstance GetCombatSkillInstanceFromUnlockId(String unlockId)
+  M Void UpdateCombatSkillEquippedOrder()
+  M Void AddSkillModifier(SkillModifierInstance skillModifier)
+  M Single GetSkillModifierChance(ActorDataSkill actorDataSkill, SkillModifierDefinition skillModifierDefinition)
+  M Void RemoveSkillModifier(SourceType sourceType, String sourceId, UInt32 sourceActorGuid)
+  M SkillInstance GetModifiedCombatSkillInstance(AffinityConnection affinityConnection)
+  M Void RefreshActiveSkillModifiers()
+  M Void RefreshSkillReplacements(Boolean refundUnlockedSkills)
+  M Void ChangeSkillForSkillReplacement(List`1& skills, Int32 skillIndex, SkillInstance newSkillInstance)
+  M SkillInstance GetCombatReplacedSkill(String replacingSkillId)
+  M SkillInstance GetCombatReplacingSkill(String replacedSkillId)
+  M ItemInventory GetCombatSkillInventory()
+  M IReadOnlyList`1 GetCombatSkillInventoryIds()
+  M Boolean HasCombatSkillItemWithId(String skillId)
+  M Int32 GetItemCountFromSkillId(String skillId)
+  M Void RemoveOneUseOfCombatSkillItemIfConsumable(String skillId)
+  M Void AddCombatSkillInventoryItem(ItemDefinition combatSkillInventoryItemDefinition, Int32 qty)
+  M ItemInventory GetTrinketInventory()
+  M Boolean HasEquippableTrinkets()
+  M ItemInventory GetMemoryInventory()
+  M Boolean IsMemoried()
+  M Void UnlockSkill(UnlockDefinition unlockDefinition, SourceType sourceType)
+  M Void UnlockSwapSkillIds(List`1& skills, List`1& skillReplacements, UnlockDefinition unlockDefinition, SourceType sourceType, Boolean addSkillIfNotUpgrade)
+  M Void RefundUnlockedSkills(List`1& skills)
+  M Boolean GetIsTeamPositionSet()
+  M Void SetTeamPosition(Int32 teamPosition, Boolean resetTargetTeamPositionOffset, Boolean isMoveEffectsValid)
+  M Void SetTargetTeamPosition(Int32 targetTeamPosition, SourceType sourceType, UInt32 sourceActorGuid)
+  M Void MoveTeamPosition(Int32 move, SourceType sourceType, UInt32 sourceActorGuid)
+  M Boolean GetHasTargetTeamPositionOffset()
+  M Void ClearTeamPositions(Boolean resetTeamPosition)
+  M Void ClearTargetTeamPosition()
+  M Void SetSortTeamPosition(Int32 sortTeamPosition)
+  M Void SetSortTargetTeamPositionOffset(Int32 sortTargetTeamPositionOffset)
+  M Void IncrementSortTargetTeamPositionOffset()
+  M Void DecrementSortTargetTeamPositionOffset()
+  M Boolean GetHasSortTargetTeamPositionOffset()
+  M Void ClearSortTeamPosition()
+  M Void UpdateIsLockedTeamPosition()
+  M Boolean GetIsLockedTeamPosition()
+  M Void SetShouldRemoveFromTeam()
+  M Boolean GetShouldRemoveFromTeam()
+  M Boolean GetHasTeam()
+  M Boolean GetHasTeammates()
+  M Void SetActorController(ActorControllerBase actorController)
+  M Void OnSelectBoss()
+  M Void OnStartTurn(UInt32 actorGuid, Int32 teamIndex, BattleTurnType battleTurnType, Boolean isActOutsValid)
+  M Void OnSkipTurn(UInt32 actorGuid, Int32 teamIndex, BattleTurnType battleTurnType)
+  M Void OnDelayTurn(UInt32 actorGuid, Int32 teamIndex, BattleTurnType battleTurnType)
+  M Void OnAfterAnyTurn(BattleTurnType battleTurnType)
+  M Void OnEndTurn(UInt32 actorGuid, Int32 teamIndex, BattleTurnType battleTurnType)
+  M Void OnInTurnSelect(UInt32 actorGuid, Int32 teamIndex, BattleTurnType currentBattleTurnType)
+  M Void OnBattleStart()
+  M Void OnBattleEnd(BattleResult battleResult)
+  M Void ClearBattleTracking()
+  M Void SetArenaModifier(ArenaModifierDefinition newArenaModifier, ArenaModifierDefinition previousArenaModifier, Boolean isLoad)
+  M Void RefreshPartyTeamPosition()
+  M Void OnAddedToParty(Boolean isLoad, UInt32 replacementActorGuid)
+  M Void OnRemovedFromParty()
+  M Void OnCaptured(UInt32 captorActorGuid)
+  M Void OnReleased(UInt32 captorActorGuid, IReadOnlyDictionary`2 durationCounts)
+  M Void OnHireStart()
+  M Void OnHireEnd()
+  M Void OnInnVisitEnd()
+  M Void OnRespawnEnabledDeath()
+  M Void Respawn(ActorDataClass respawnActorDataClass)
+  M Void OnInnVisitStart(Boolean arrivedAtInn, Boolean isRespawnInnVisit)
+  M Boolean GetShouldApplyKingdomInnEffects()
+  M Void ResetConsecutiveDaysVisitingInn()
+  M Void OnEmbarkStart(Boolean isEmbarking)
+  M Void OnEmbarkEnd()
+  M Boolean GetIsTargetable()
+  M Void SetSelectedSkill(String skillId)
+  M Void DeselectSkill()
+  M Void SetSelectedSkillActorData(ActorDataSkill actorSkillData)
+  M Void ClearSelectedSkillActorData()
+  M String GetSelectedSkillId()
+  M ActorDataSkill GetSelectedSkill()
+  M Void SetSelectedTargetActorGuid(UInt32 targetActorGuid)
+  M UInt32 GetSelectedTargetActorGuid()
+  M Boolean GetIsSelectionComplete()
+  M Void ResetSelection()
+  M IReadOnlyList`1 GetUniqueSourceTypes()
+  M Single GetClampedStatValue(ActorStatType actorStatType)
+  M Single GetClampedStatValue(ActorStatType actorStatType, TextBasedEditorPrefsBoolType logEditorPrefBoolType)
+  M Single GetClampedStatValue(ActorStatType actorStatType, String subStatKey)
+  M Single GetClampedStatValue(ActorStatType actorStatType, IReadOnlyList`1 subStatKeys)
+  M Single GetClampedStatValue(ActorStatType actorStatType, String subStatKey, TextBasedEditorPrefsBoolType logEditorPrefBoolType)
+  M Single GetUnclampedStatValue(ActorStatType actorStatType)
+  M Single GetUnclampedStatValue(ActorStatType actorStatType, SourceType sourceType, Single baseValue)
+  M Single GetUnclampedStatValue(ActorStatType actorStatType, SourceType sourceType, Single baseValue, TextBasedEditorPrefsBoolType logEditorPrefBoolType)
+  M Single GetUnclampedStatValue(ActorStatType actorStatType, TextBasedEditorPrefsBoolType logEditorPrefBoolType)
+  M Single GetUnclampedStatValue(ActorStatType actorStatType, String subStatKey, SourceType sourceType, Single baseValue)
+  M Single GetUnclampedStatValue(ActorStatType actorStatType, IReadOnlyList`1 subStatKeys, SourceType sourceType, Single baseValue)
+  M Single GetUnclampedStatValue(ActorDataStats actorDataStatsSum, ActorStatType actorStatType, String subStatKey, SourceType sourceType, Single baseValue)
+  M Single GetUnclampedStatValue(ActorDataStats actorDataStatsSum, ActorStatType actorStatType, IReadOnlyList`1 subStatKeys, SourceType sourceType, Single baseValue)
+  M Single GetUnclampedStatValue(ActorDataStats actorDataStatsSum, ActorStatType actorStatType, String subStatKey)
+  M Single GetUnclampedStatValue(ActorDataStats actorDataStatsSum, ActorStatType actorStatType, IReadOnlyList`1 subStatKeys)
+  M ActorDataStats GetActorDataStatsSumForStatType(ActorStatType actorStatType)
+  M ActorDataStats GetActorDataStatsSumForStatType(ActorStatType actorStatType, SourceType sourceType)
+  M Single GetStatValue(ActorStatType actorStatType, String subStatKey, SourceType sourceType, Single baseValue, Boolean clamp, Boolean log)
+  M Single GetStatValue(ActorDataStats actorDataStatsSum, ActorStatType actorStatType, String subStatKey, SourceType sourceType, Single baseValue, Boolean clamp, Boolean log)
+  M Single GetStatValue(ActorStatType actorStatType, IReadOnlyList`1 subStatKeys, SourceType sourceType, Single baseValue, Boolean clamp)
+  M Single GetStatValue(ActorDataStats actorDataStatsSum, ActorStatType actorStatType, IReadOnlyList`1 subStatKeys, SourceType sourceType, Single baseValue, Boolean clamp)
+  M String[] GetSubstatKeys(ActorStatType actorStatType)
+  M String[] GetSubstatKeys(ActorDataStats actorDataStatsSum, ActorStatType actorStatType)
+  M IReadOnlyDictionary`2 GetClampedSubstatValues(ActorStatType actorStatType)
+  M IReadOnlyDictionary`2 GetAddStatValuesBySource(ActorStatType actorStatType)
+  M IReadOnlyDictionary`2 GetAddStatValuesBySource(ActorStatType actorStatType, TextBasedEditorPrefsBoolType logEditorPrefBoolType)
+  M IReadOnlyDictionary`2 GetAddStatValuesBySource(ActorStatType actorStatType, Boolean log)
+  M Void GetUnclampedSubstatValues(ActorStatType actorStatType, Dictionary`2& outUnclampedSubstatValues)
+  M Void GetUnclampedSubstatValues(ActorDataStats actorDataStatsSum, ActorStatType actorStatType, Dictionary`2& outUnclampedSubstatValues)
+  M IReadOnlyDictionary`2 GetMultiplyStatValuesBySource(ActorStatType actorStatType)
+  M IReadOnlyDictionary`2 GetMultiplyStatValuesBySource(ActorStatType actorStatType, TextBasedEditorPrefsBoolType logEditorPrefBoolType)
+  M Void PauseRefreshStats()
+  M Void UnpauseRefreshStats(Boolean refreshStats)
+  M IReadOnlyDictionary`2 GetMultiplyStatValuesBySource(ActorStatType actorStatType, Boolean log)
+  M Void LogAddStatFromSource(ActorStatType actorStatType, Single addStatValue, SourceType fromSourceType)
+  M Void LogMultiplyStatFromSource(SourceType sourceType, ActorStatType actorStatType, Single multiplyStatValue, SourceType fromSourceType)
+  M Void RefreshStats()
+  M Void UpdatePreviousHpMax()
+  M Void ClampHealthToMax()
+  M Single GetUnclampedStatValue(ActorStatType actorStatType, String subStatKey)
+  M Single GetUnclampedStatValue(ActorStatType actorStatType, String subStatKey, TextBasedEditorPrefsBoolType logEditorPrefBoolType)
+  M Single GetUnclampedStatValue(ActorStatType actorStatType, String subStatKey, SourceType sourceType, Single baseValue, TextBasedEditorPrefsBoolType logEditorPrefBoolType)
+  M Boolean GetIsHealthEnabled()
+  M Single GetHpMax(Boolean includeWound, Boolean includeCombined)
+  M Single GetHpPercent(Boolean useDisplayedHp, Boolean includeWound, Boolean includeCombined)
+  M Boolean GetIsHealthVisible()
+  M Void ApplyHealthDamage(Single damage, Boolean isCrit, Boolean isRiposte, ActorInstance damagingActor, DeathType deathType, SourceType sourceType, String sourceId, Boolean hasDisplayed)
+  M Void ApplyHealthDamage(Single damage, Boolean isCrit, Boolean isRiposte, UInt32 damagingActorGuid, DeathType deathType, SourceType sourceType, String sourceId, Boolean hasDisplayed, ActorHealthDamageCalculation healthDamageCalculation)
+  M Void ApplyHealthDamage(Single damage, Boolean isCrit, Boolean isRiposte, IReadOnlyList`1 damagingActorGuids, DeathType deathType, SourceType sourceType, IReadOnlyList`1 sourceIds, Boolean hasDisplayed, ActorHealthDamageCalculation healthDamageCalculation)
+  M Void ApplyHealthHeal(Single heal, Boolean isCrit, SourceType sourceType, Boolean hasDisplayed)
+  M Void Kill(DeathType deathType, SourceType sourceType, String sourceId, Single killDamage, UInt32 killingActorGuid)
+  M Void Kill(DeathType deathType, SourceType sourceType, IReadOnlyList`1 sourceIds, Single killDamage, IReadOnlyList`1 killingActorGuids)
+  M DeathsDoorCalculationResult CalculateDeathsDoorSurvival(ActorInstance damagingActor, SourceType damagingSource)
+  M Boolean GetCanHaveDeathsDoor()
+  M DeathsDoorCalculationResult CalculateWillHaveDeathsDoor()
+  M static Single RoundHp(Single hp)
+  M static Single RoundHpUp(Single hp)
+  M Void ChangeWoundPercent(Single woundPercentChange, SourceType sourceType)
+  M Boolean GetIsStressEnabled()
+  M Single GetStress()
+  M Void CacheStressMax()
+  M Single GetStressPercent()
+  M Void ApplyStressDamage(Single damage, Boolean canResist, SourceType sourceType, String sourceId, UInt32 sourceActorGuid)
+  M Void ApplyStressHeal(Single heal, SourceType sourceType)
+  M Boolean GetIsOverstressed()
+  M Void SetPendingOverstress(OverstressDefinition pendingOverstress)
+  M OverstressDefinition GetPendingOverstress()
+  M Boolean GetHasPendingOverstress()
+  M Void ApplyPendingOverstress()
+  M Boolean GetIsRankSet()
+  M Void SetFrontRank(Int32 frontRank)
+  M Int32 GetFrontRank()
+  M Int32 GetBackRank()
+  M Boolean GetContainsRank(Int32 rank)
+  M Void ClearFrontRank()
+  M Void ResetStatus()
+  M Boolean UpdateStatus(ActorStatusType actorStatusType, SourceType sourceType, Boolean isLoad)
+  M Boolean CheckIsStatusActive(ActorStatusType actorStatusType)
+  M static Boolean IsHpInDeathsDoor(Single hp)
+  M Boolean GetIsStatusActive(ActorStatusType actorStatusType)
+  M Boolean SetStatusIsActive(ActorStatusType actorStatusType, Boolean isActive, SourceType sourceType, Boolean isLoad)
+  M Void OnEnterStatus(ActorStatusType actorStatusType)
+  M Void OnExitStatus(ActorStatusType actorStatusType)
+  M Boolean GetHasActorCount(ActorCountType actorCountType, String actorCountSubType)
+  M Int32 GetActorCount(ActorCountType actorCountType, String actorCountSubType)
+  M Int32 GetActorCount(String actorCountId)
+  M Void IncrementActorCounts(ActorCountType actorCountType, IReadOnlyList`1 actorCountSubTypes, Int32 incrementValue)
+  M Void IncrementActorCount(ActorCountType actorCountType, Int32 incrementValue)
+  M Void IncrementActorCount(ActorCountType actorCountType, String actorCountSubType, Int32 incrementValue)
+  M Void ResetActorCount(ActorCountType actorCountType)
+  M Void ValidateActorCounts()
+  M Void RefreshRunGoals()
+  M Boolean GetIsRunGoalComplete(RunGoalDefinition runGoalDefinition)
+  M Boolean CheckIsRunGoalComplete(SourceDefinition`1 sourceRunGoal)
+  M Boolean CheckIsRunGoalComplete(RunGoalDefinition runGoal, SourceType sourceType, String sourceId)
+  M Void OnRunGoalsViewed()
+  M Boolean GetHasUnviewedCompletedRunGoals()
+  M String GetRunGoalLootDescription()
+  M Boolean TryPreRollRunGoalLoot()
+  M ActorHealthDamageCalculation HealthDamageCalculate(ActorInstance damagingActor, SourceType damagingSource, Single damage)
+  M ActorHealthDamageCalculation HealthDamageCalculate(ActorInstance damagingActor, SourceType damagingSource, Single previousHealthChange, Single currentDamage)
+  M ActorHealthDamageCalculation HealthDamageCalculate(ActorInstance damagingActor, SourceType damagingSource, Boolean isInDeathsDoor, Single calculateHp, Single calculateDamage)
+  M Int32 GetRemainingSkillCooldown(ActorDataSkill checkSkill)
+  M Boolean GetIsSkillCooledDown(ActorDataSkill skill)
+  M Void ClearSkillCooldowns()
+  M Int32 GetRemainingSkillLimitUses(ActorDataSkill skill)
+  M Boolean GetIsUnderSkillLimit(ActorDataSkill skill)
+  M Boolean GetIsItemConditionsMet(ItemDefinition itemDefinition)
+  M Boolean GetIsItemUnderUseLimit(ItemDefinition itemDefinition)
+  M Void RecordItemUseHistory(ItemDefinition itemDefinition)
+  M Boolean GetIsItemBlocked(ItemDefinition itemDefinition, ItemBlockDefinition& itemBlockDefinition)
+  M Void ClearItemHistories()
+  M Boolean GetIsBlocked(Predicate`1 isBlockedPredicate)
+  M Boolean GetIsSkillBlocked(ActorDataSkill actorDataSkill, Boolean isPerformer)
+  M Boolean GetIsSkillAttributeContainerBlocked(ISkillAttributeContainer skillAttributeContainer)
+  M Boolean GetIsSkillAttributeBlocked(SkillAttributeType skillAttributeType)
+  M Boolean GetIsTargetBlocked(UInt32 targetActorGuid)
+  M Void ClearAllCombatSpecificContainers()
+  M Void UpdateDuration(DurationType durationType)
+  M Void OnActorContainerChange()
+  M IReadOnlyList`1 GetLockedTeamPositionActorContainerInstances()
+  M Void RemoveLockedTeamPositionActorContainerInstances(Boolean isTransfer)
+  M Void AddActorContainerInstance(IActorContainerInstance actorContainerInstance, Boolean isLockedTeamPosition, SourceType sourceType, String sourceId, Boolean sendEvent)
+  M Boolean GetIsActOutValid()
+  M Void QueueActouts(ActOutType actOutType, UInt32 performerActorGuid, UInt32 targetActorGuid, ActOutSkillParameters skillParameters, ActOutStoryParameters storyParameters, ActOutRestItemParameters restItemParamaters)
+  M Void QueueActouts(ActOutType actOutType, ActOutActorType actOutActorType, UInt32 actoutActorGuid, UInt32 performerActorGuid, UInt32 targetActorGuid, ActOutSkillParameters skillParameters, ActOutStoryParameters storyParameters, ActOutRestItemParameters restItemParamaters)
+  M Void ClearActOutSelectedSkillId()
+  M SourceDefinition`1 GetRestItemBlockedSourceActOut(IReadOnlyList`1 itemTags)
+  M Void SetAi(ResourceActor actorResource)
+  M Boolean IsReadyToEndAutomatedTestTurn()
+  M Boolean IsNextAutomatedTurnCrit()
+  M Boolean IsNextAutomatedTurnMiss()
+  M Void SetToDestroyInAutomatedTest()
+  M Int32 GetSkillUseCount(String skillId)
+  M Boolean GetWasLastSkillUsed(String skillId)
+  M Int32 GetSkillReceivedCount(String skillId)
+  M Boolean GetWasLastSkillReceived(String skillId)
+  M Void ClearSkillUses()
+  M Void ClearSkillHistories()
+  M IReadOnlyList`1 GetActiveTags()
+  M Boolean ContainsTag(String tag)
+  M Void OnBetweenNodes(Single betweenNodesNumberOfDeltas)
+  M Single GetAdditionalDamageValue(AdditionalDamageValueType additionalDamageValueType, String actorValueString)
+  M Void RemoveRelationshipActorData(IReadOnlyList`1 connectionActorGuids, String relationshipId)
+  M Boolean GetHasViewedNewRelationships()
+  M Void OnAddedToRoster()
+  M Void CalculateRouteChoicePreference(IReadOnlyList`1 routeChoices)
+  M RouteChoiceResult ApplyRouteChoiceResults(NodeType routeChoice)
+  M Void SetCharacterSheetViewed()
+  M Void SetCharacterSheetRelationshipViewed()
+  M Void SetCharacterSheetSkillsTabViewed()
+  M Void ViewSkill(String skillId)
+  M Boolean GetHasNewConditions()
+  M Boolean HasQuirk(QuirkDefinition def)
+  M Boolean GetHasNewQuirks()
+  M Void SetQuirksViewed()
+  M Void CheckForCharacterSheetNotifications()
+  M Void OnAddedToTeam(Team team, Int32 teamPosition, Int32 newRank, ActorControllerBase actorController, Boolean isLoad)
+  M Void OnRemovedFromTeam()
+  M ActorInstance GetNeighborActor(Boolean isFrontNeighbor)
+  M Boolean GetHasActorSkins(ResourceDatabaseActorSkins resourceDatabaseActorSkins, ResourceActor resourceActor)
+  M Void SetActorSkin(IResourceActorArt skin)
+  M Boolean GetHasActorWeaponKits(ResourceDatabaseActorWeaponKits resourceDatabaseActorWeaponKits, ResourceActor resourceActor)
+  M Void SetActorWeaponKit(IResourceActorArt weaponKit)
+  M Void SetActorPalette(ResourceActorPalette actorPalette)
+  M Void SetActorPalette(String paletteId)
+  M Void SetActorArt(IResourceActorArt resourceActorArt)
+  M Void OnRunStart()
+  M Void OnRunEnd()
+  M Void OnRunSurvive(BossDefinition defeatedBossDefinition)
+  M Void OnRunPersist()
+  M Void OnRunReset()
+  M Void OnAddedToRun()
+  M Void OnRemovedFromRun()
+  M Boolean GetIsInventoryRunStatModified()
+  M Boolean GetIsDataExternalBuffsValid(DataExternalBuffs externalBuffs)
+  M Boolean GetIsBuffValid(BuffDefinition buff)
+  M Boolean GetIsStatTypeValid(ActorStatType actorStatType)
+  M Boolean GetIsActorDataEffectsValid(ActorDataEffects actorDataEffects)
+  M Boolean GetIsActorDataActOutValid(ActorDataActOut actorDataActOut)
+  M Boolean GetIsEffectValid(EffectDefinition effect)
+  M Void SetCurrentActorLoadoutGuid(UInt32 actorLoadoutGuid)
+  M UInt32 GetCurrentActorLoadoutGuid()
+  M Void SetCurrentActorLoadout(UInt32 actorLoadoutGuid, Boolean canChangePath)
+  M UInt32 CreateNewActorLoadout(Boolean isHidden)
+  M Boolean HasActorSkinSet()
+  M Boolean HasPaletteSet()
+  M Boolean HasWeaponKitSet()
+  M Void EditorPrefAttemptReroll()
+  ==== Assets.Code.Actor.ActorInstance/<>c : System.Object ====
+    F static <>c <>9
+    F static Predicate`1 <>9__141_0
+    F static Predicate`1 <>9__142_0
+    F static Predicate`1 <>9__143_0
+    F static Predicate`1 <>9__357_0
+  ==== Assets.Code.Actor.ActorInstance/<>c__DisplayClass119_0 : System.Object ====
+    F ISkillSet initialSkillSet
+    F ActorInstance <>4__this
+  ==== Assets.Code.Actor.ActorInstance/<>c__DisplayClass133_0 : System.Object ====
+    F SkillType skillType
+  ==== Assets.Code.Actor.ActorInstance/<>c__DisplayClass156_0 : System.Object ====
+    F SourceType sourceType
+  ==== Assets.Code.Actor.ActorInstance/<>c__DisplayClass255_0 : System.Object ====
+    F ActorStatType actorStatType
+  ==== Assets.Code.Actor.ActorInstance/<>c__DisplayClass257_0 : System.ValueType ====
+    F ActorInstance <>4__this
+    F ActorStatType actorStatType
+    F String subStatKey
+  ==== Assets.Code.Actor.ActorInstance/<>c__DisplayClass257_1 : System.ValueType ====
+    F String statString
+  ==== Assets.Code.Actor.ActorInstance/<>c__DisplayClass265_0 : System.Object ====
+    F ActorStatType actorStatType
+    F Dictionary`2 returnStatValuesBySourceDictionary
+    F Boolean log
+    F ActorInstance <>4__this
+  ==== Assets.Code.Actor.ActorInstance/<>c__DisplayClass272_0 : System.Object ====
+    F ActorStatType actorStatType
+    F Dictionary`2 returnStatValuesBySourceDictionary
+    F Boolean log
+    F ActorInstance <>4__this
+  ==== Assets.Code.Actor.ActorInstance/<>c__DisplayClass328_0 : System.Object ====
+    F ActorCountType actorCountType
+  ==== Assets.Code.Actor.ActorInstance/<>c__DisplayClass352_0 : System.Object ====
+    F Boolean isPerformer
+    F ActorDataSkill actorDataSkill
+  ==== Assets.Code.Actor.ActorInstance/<>c__DisplayClass353_0 : System.Object ====
+    F ISkillAttributeContainer skillAttributeContainer
+  ==== Assets.Code.Actor.ActorInstance/<>c__DisplayClass354_0 : System.Object ====
+    F SkillAttributeType skillAttributeType
+  ==== Assets.Code.Actor.ActorInstance/<>c__DisplayClass364_0 : System.Object ====
+    F ActorInstance actOutPerformerActorInstance
+    F ActorInstance actOutTargetActorInstance
+    F UInt32 actOutQueueTargetActorGuid
+  ==== Assets.Code.Actor.ActorInstance/<>c__DisplayClass382_0 : System.Object ====
+    F UInt32 connectionActorGuid
+  ==== Assets.Code.Actor.ActorInstance/<>c__DisplayClass81_0 : System.Object ====
+    F EventQuestStepCompleted questStepCompleted

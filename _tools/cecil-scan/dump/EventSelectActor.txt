@@ -1,0 +1,4 @@
+==== Assets.Code.Actor.Events.EventSelectActor : Assets.Code.Events.EventBase ====
+  F UInt32 m_ActorGuid
+  F Boolean m_IsUserInput
+  M static Void Trigger(UInt32 actorGuid, Boolean isUserInput)

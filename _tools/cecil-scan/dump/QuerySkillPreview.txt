@@ -1,0 +1,8 @@
+==== Assets.Code.Skill.Queries.QuerySkillPreview : Assets.Code.Events.QueryBase ====
+  F UInt32 m_PerformerActorGuid
+  F String m_SkillId
+  F UInt32 m_TargetActorGuid
+  F List`1 m_SkillPreviews
+  F AffinityTickTriggerInstance m_AffinityTickTriggerInstance
+  P Boolean IsValid
+  M static QuerySkillPreview Trigger(UInt32 performerActorGuid, String skillId, UInt32 targetActorGuid)

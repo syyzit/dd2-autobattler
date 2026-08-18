@@ -1,0 +1,4 @@
+==== Assets.Code.Actor.Events.EventActorControllerCalculatedValidSkills : Assets.Code.Events.EventBase ====
+  F UInt32 m_PerformerActorGuid
+  F Boolean m_IsInputValid
+  M static Void Trigger(UInt32 performerActorGuid, Boolean isInputValid)

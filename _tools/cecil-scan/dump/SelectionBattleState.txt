@@ -1,0 +1,2 @@
+==== Assets.Code.Combat.SelectionBattleState : Assets.Code.Utils.Serialization.SelectionCustomEnum`1<Assets.Code.Combat.BattleState> ====
+  M static SelectionBattleState op_Implicit(BattleState battleState)

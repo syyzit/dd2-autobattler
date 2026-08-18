@@ -1,0 +1,72 @@
+==== Assets.Code.Token.TokenDefinition : Assets.Code.Actor.ActorContainer.ActorContainerDefinition`1<Assets.Code.Token.TokenDefinition> ====
+  F static String CSV_KEY_REPLACE
+  F static String CSV_KEY_REPLACE_WITH
+  F static String POSITIVE_TOKEN_TAG
+  F static String NEGATIVE_TOKEN_TAG
+  F static String HIDDEN_TOKEN_TAG
+  F Single m_Chance
+  F Boolean m_AlwaysRemove
+  F IReadOnlyList`1 m_ConsumeTypes
+  F IReadOnlyList`1 m_RemoveTypes
+  F IReadOnlyList`1 m_HighlightTypes
+  F Boolean m_IsPerformer
+  F Boolean m_IsTarget
+  F List`1 m_ConsumeBuffs
+  F Int32 m_Limit
+  F Int32 m_TeamLimit
+  F Int32 m_ConsumeLimit
+  F IReadOnlyList`1 m_NegateIds
+  F IReadOnlyList`1 m_NegateAllIds
+  F Int32 m_ConsumePriority
+  F Boolean m_IsExclusiveSource
+  F Boolean m_IsRemovedOnSourceDeath
+  F Boolean m_IsRemovedOnSourceCapture
+  F Dictionary`2 m_ReplaceIds
+  F Boolean m_IsHidden
+  F String m_InvertTokenId
+  F TokenDefinition m_InvertToken
+  F String m_ActorDataEffectsId
+  F ActorDataEffects m_ActorDataEffects
+  F String m_DataExternalBuffsId
+  F DataExternalBuffs m_DataExternalBuffs
+  F String m_ActorDataSkillId
+  F ActorDataSkill m_ActorDataSkill
+  F String m_ConditionId
+  F ConditionDefinition m_ConditionDefinition
+  F Boolean m_ShowName
+  F Boolean m_ShowDescription
+  F Boolean m_ShowConsumePopText
+  F Boolean m_ShowCombatDuration
+  F Boolean m_IsRankToken
+  F Boolean m_TokenGlossaryAlwaysDisplay
+  F IReadOnlyList`1 m_TokenGlossaryTagDisplay
+  F String m_TokenGlossaryHeroTag
+  F IReadOnlyList`1 m_TokenGlossaryPathTag
+  F String m_TokenGlossaryBiomeTag
+  F List`1 m_PreviewValidStatuses
+  P Boolean IsHidden
+  P Boolean IsPositive
+  P Boolean IsNegative
+  P Boolean ShowName
+  P Boolean ShowDescription
+  P TokenDefinition InvertToken
+  P ActorDataEffects ActorDataEffects
+  P DataExternalBuffs DataExternalBuffs
+  P ActorDataSkill ActorDataSkill
+  P ConditionDefinition ConditionDefinition
+  P IReadOnlyList`1 ConsumeBuffs
+  P IReadOnlyList`1 PreviewValidStatuses
+  M Boolean CsvParseLineInternal(String key, String[] cells)
+  M Void InitInternal()
+  M Void PostInit()
+  M String GetValidateType()
+  M Boolean ValidateInternal()
+  M SkillAttributeType GetAddSkillAttributeType()
+  M Void PostInitValidate()
+  M Boolean GetHasType(TokenType type)
+  M Int32 ClampAddAmount(ActorInstance actor, Int32 addAmount)
+  M Int32 GetPostAddLimit(ActorInstance actor)
+  M Boolean GetIsPerformerTargetValid(TokenType type, Boolean isPerformer, Boolean isTarget)
+  ==== Assets.Code.Token.TokenDefinition/<>c__DisplayClass10_0 : System.ValueType ====
+    F TokenDefinition <>4__this
+    F Boolean returnIsValid

@@ -1,0 +1,38 @@
+==== Assets.Code.Combat.CombatRules : System.Object ====
+  F static String CSV_KEY_RETREAT_EFFECTS
+  F static String CSV_KEY_RETREAT_PER_HERO_EFFECTS
+  F static String CSV_KEY_RETREAT_SINGLE_HERO_EFFECTS
+  F static String CSV_KEY_STALL_EFFECTS
+  F static String CSV_KEY_STALL_PER_HERO_EFFECTS
+  F static String CSV_KEY_STALL_SINGLE_HERO_EFFECTS
+  F Single m_TurnOrderSpeedRollRangeMin
+  F Single m_TurnOrderSpeedRollRangeMax
+  F Boolean m_TurnOrderSpeedRollRound
+  F Single m_TurnOrderSpeedRollPerExtraAction
+  F IReadOnlyList`1 m_CritDamageMultiplications
+  F Int32 m_CritDotExtraDuration
+  F Single m_BattleEndMinHealthHealUpToPercent
+  F Int32 m_SkillInventorySlotSize
+  F Boolean m_SkillInventoryIgnoresMaxQty
+  F Boolean m_SkillInventorySendsEvents
+  F List`1 m_RetreatEffects
+  F List`1 m_RetreatPerHeroEffects
+  F List`1 m_RetreatSingleHeroEffects
+  F Int32 m_StallMinRound
+  F Int32 m_StallMinNumberOfHeroes
+  F Int32 m_StallMaxNumberOfEnemies
+  F Single m_StallInvalidatingThresholdPercent
+  F List`1 m_StallEffects
+  F List`1 m_StallPerHeroEffects
+  F List`1 m_StallSingleHeroEffects
+  F Int32 m_FirstKillNarrationMaxRound
+  F Int32 m_LongCombatNarrationFirstRound
+  F Single m_HeroHurtBigNarrationHealthPercent
+  F Single m_HeroSpecificDeathNarrationChance
+  P IReadOnlyList`1 RetreatEffects
+  P IReadOnlyList`1 RetreatPerHeroEffects
+  P IReadOnlyList`1 RetreatSingleHeroEffects
+  P IReadOnlyList`1 StallEffects
+  P IReadOnlyList`1 StallPerHeroEffects
+  P IReadOnlyList`1 StallSingleHeroEffects
+  M Void Init()

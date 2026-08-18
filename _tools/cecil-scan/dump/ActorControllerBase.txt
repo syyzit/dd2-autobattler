@@ -1,0 +1,62 @@
+==== Assets.Code.Actor.ActorController.ActorControllerBase : System.Object ====
+  F ActorControllerType m_ActorControllerType
+  F BattleTeams m_BattleTeams
+  F ActorInstance m_PerformerActor
+  F List`1 m_SkillTargetEntries
+  F BattleTurnType m_CurrentTurnType
+  M Boolean GetIsInputValid()
+  M Boolean CalculateIsSkip()
+  M String SelectSkilIId()
+  M UInt32 SelectTargetGuid()
+  M Void Init(ActorInstance performerActor)
+  M Void Destroy()
+  M Void AddEventListeners()
+  M Void RemoveEventListeners()
+  M Void HandleQueryIsValidSkill(QueryIsValidSkill isValidSkillQuery)
+  M Void HandleQueryIsSkillTarget(QueryIsSelectedSkillTarget isSkillTargetQuery)
+  M Void HandleQuerySelectedSkillTargets(QuerySelectedSkillTargets skillTargetQuery)
+  M Void RefreshSkillMaps()
+  M Void HandleEventDebugActorAddToken(EventDebugActorAddToken debugActorAddTokenEvent)
+  M Void HandleEventDebugActorAddBuff(EventDebugActorAddBuff debugActorAddBuffEvent)
+  M Void HandleEventDebugActorAddDot(EventDebugActorAddDot debugActorAddDotEvent)
+  M Void HandleEventDebugActorApplyEffect(EventDebugActorApplyEffect debugActorApplyEffectEvent)
+  M Void HandleEventDebugActorAddCombatItem(EventDebugActorAddCombatItem debugACtorAddCombatItem)
+  M Void HandleEventDebugActorAddQuirk(EventDebugActorAddQuirk debugActorAddQuirkEvent)
+  M Void HandleEventActorHealthDamage(EventActorHealthDamage actorHealthDamageEvent)
+  M Void HandleEventActorHealthHeal(EventActorHealthHeal actorHealthHealEvent)
+  M Void HandleEventStressDamage(EventStressDamage stressDamageEvent)
+  M Void HandleEventStressHeal(EventStressHeal stressHealEvent)
+  M Void HandleEventActorChangeClass(EventActorChangeClass actorChangeClassEvent)
+  M Void HandleEventActorChangeMode(EventActorChangeMode actorChangeModeEvent)
+  M Void HandleEventActOutApplied(EventActOutApplied actOutAppliedEvent)
+  M Void HandleEventActorStatusChanged(EventActorStatusChanged actorStatusChanged)
+  M Boolean CalculateValidCombatSkillTargetEntries(SkillType skillType, Boolean saveCalculation)
+  M Boolean CalculateValidSkillTargetEntries(IReadOnlyList`1 toCalculateSkillIds, Boolean saveCalculation)
+  M Void ClearValidSkillTargetEntries(Boolean sendEvent)
+  M Boolean GetIsValidSkill(String skillId)
+  M Boolean GetIsValidSkillTarget(String skillId, UInt32 targetActorGuid)
+  M Boolean GetIsStealthedTarget(String skillId, UInt32 targetActorGuid)
+  M IReadOnlyList`1 GetValidSkillTargetEntries()
+  M Boolean GetIsStealthedTarget(ActorInstance potentialTargetActor)
+  M SkillTargetValidityType GetPerformerSkillTargetValidityType(ActorInstance performerActor, ActorDataSkill skill, Boolean isPassSkillValid)
+  M Boolean GetCanActorLaunchSkill(ActorInstance performerActor, ActorDataSkill skill)
+  M SkillTargetValidityType GetTargetSkillTargetValidityType(ActorInstance performerActor, ActorDataSkill skill, ActorInstance targetActor, Boolean ignoreStealth, List`1 stealthedActorGuids)
+  M Void AttemptSelectSkill()
+  M Void AttemptSelectTarget()
+  M Void OnStartTurn(BattleTurnType currentTurnType)
+  M Void OnTurnSelect()
+  M Void OnEndTurn()
+  M Void OnRestartTurn()
+  M BattleTurnType GetCurrentTurnType()
+  M Boolean IsReadyToCompleteAutomatedTurn()
+  M Boolean NextAutomatedTurnIsCrit()
+  M Boolean NextAutomatedTurnIsMiss()
+  ==== Assets.Code.Actor.ActorController.ActorControllerBase/<>c__DisplayClass28_0 : System.Object ====
+    F ActorDataSkill toCalculateSkill
+    F List`1 stealthedTargetActorGuids
+  ==== Assets.Code.Actor.ActorController.ActorControllerBase/<>c__DisplayClass28_1 : System.ValueType ====
+    F IReadOnlyList`1 potentialTargetActors
+  ==== Assets.Code.Actor.ActorController.ActorControllerBase/<>c__DisplayClass28_2 : System.Object ====
+    F IReadOnlyList`1 forcedTargetActorguids
+    F IReadOnlyList`1 stealthedPotentialTargetActorGuids
+    F <>c__DisplayClass28_0 CS$<>8__locals1

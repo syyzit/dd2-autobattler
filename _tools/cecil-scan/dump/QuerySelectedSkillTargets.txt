@@ -1,0 +1,6 @@
+==== Assets.Code.Combat.Queries.QuerySelectedSkillTargets : Assets.Code.Events.QueryBase ====
+  F UInt32 m_PerformerActorGuid
+  F String m_SkillId
+  F List`1 m_ValidTargetActorGuids
+  F List`1 m_StealthedTargetActorGuids
+  M static QuerySelectedSkillTargets Trigger(UInt32 performerActorGuid, String skillId)

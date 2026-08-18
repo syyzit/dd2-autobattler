@@ -1,0 +1,42 @@
+==== Assets.Code.Combat.BattleStateMachine : System.Object ====
+  F static Single AUTOMATED_TEST_STATE_TRANSITION_PAUSE_TIME
+  F SkillCalculation m_BattleSkillCalculation
+  F BattleTurnOrder m_BattleTurnOrder
+  F BattleTeams m_BattleTeams
+  F BattleConditions m_BattleConditions
+  F BattleState m_CurrentState
+  F Queue`1 m_NextStateQueue
+  F Single m_StateTransitionPauseTimer
+  F IReadOnlyList`1 m_StartActorlessEffects
+  F IReadOnlyList`1 m_StartRoundActorlessEffects
+  M Void Create()
+  M Void PostCreate(BattleConfigurationDefinition battleConfiguration, CombatSource combatSource, Boolean isLoad)
+  M Void Destroy(BattleResult battleResult)
+  M Void AddEventListeners()
+  M Void RemoveEventListeners()
+  M Void HandleEventSelectActor(EventSelectActor selectActorEvent)
+  M Void HandleEventDebugActorAddToken(EventDebugActorAddToken debugActorAddTokenEvent)
+  M Void HandleEventDebugActorApplyEffect(EventDebugActorApplyEffect debugActorApplyEfffectEvent)
+  M Void HandleEventActorDeath(EventActorDeath actorDeath)
+  M Void HandleEventBattlePass(EventBattlePass battlePassEvent)
+  M Void HandleEventBattleRetreat(EventBattleRetreat battleRetreatEvent)
+  M Void HandleEventBattleStall(EventBattleStall battleStallEvent)
+  M Void HandleEventBattleRetreatFailed(EventBattleRetreatFailed battleRetreatFailedEvent)
+  M Void HandleEventActorChangeClass(EventActorChangeClass actorChangeClassEvent)
+  M Void HandleEventBattleStartRound(EventBattleStartRound battleStartRoundEvent)
+  M String GetJsonId()
+  M JToken SaveToJson()
+  M Void LoadFromJson(JObject data)
+  M BattleState GetState()
+  M BattleState GetNextState()
+  M Void Update(Int32 pauseOnStateMask)
+  M Void QueueNextState(BattleState nextState)
+  M Void SetState(BattleState enterState)
+  M Void OnEnterState(BattleState enterState)
+  M Void UpdateState(BattleState updateState)
+  M Void OnQueueNextState(BattleState currentState)
+  M Void OnExitState(BattleState exitState)
+  M Boolean GetIsStateValidForEnd()
+  M Void ApplySkillStartEffects()
+  M Void QueueSkillActouts(ActOutType actOutType, UInt32 performerActorGuid, UInt32 targetActorGuid, ActorDataSkill skill)
+  M Void QueueSkillActouts(ActOutType actOutType, SkillResult skillResult)

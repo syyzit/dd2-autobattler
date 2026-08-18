@@ -1,0 +1,28 @@
+==== Assets.Code.Events.EventManager : Assets.Code.Utils.Singleton`1<Assets.Code.Events.EventManager> ====
+  F static Int32 PRIORITY_VERY_HIGH
+  F static Int32 PRIORITY_HIGH
+  F static Int32 PRIORITY_MEDIUM
+  F static Int32 PRIORITY_LOW
+  F static Int32 PRIORITY_VERY_LOW
+  F static Int32 PRIORITY_DEFAULT
+  F static Int32 NUM_PREALLOCATED_CALLBACKS
+  F Dictionary`2 m_registeredEvents
+  F HashSet`1 m_oneShots
+  F List`1 m_tempList
+  F Pool`1 m_tempListPool
+  M static Void Listener(Object handleEventLanguageChanged)
+  M Void Initialize()
+  M Void Restart()
+  M static Void AddListener(Action`1 callback, Boolean oneShot, Int32 priority)
+  M Void AddListener_Internal(Type eventType, Delegate callback, Boolean oneShot, Int32 priority)
+  M static Void RemoveListener(Action`1 callback)
+  M Void RemoveListener_Internal(Type eventType, Delegate callback)
+  M static List`1 GetListenerNames()
+  M List`1 GetListenerNames_Internal(Type eventType)
+  M static Void TriggerEvent(T evt)
+  M Void TriggerEvent_Internal(T evt)
+  M Void TriggerEvent_Recursive(Type t, T evt)
+  ==== Assets.Code.Events.EventManager/<>c__DisplayClass15_0 : System.Object ====
+    F Int32 priority
+  ==== Assets.Code.Events.EventManager/<>c__DisplayClass17_0 : System.Object ====
+    F Delegate callback

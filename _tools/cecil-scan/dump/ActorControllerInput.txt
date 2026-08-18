@@ -1,0 +1,5 @@
+==== Assets.Code.Actor.ActorController.ActorControllerInput : Assets.Code.Actor.ActorController.ActorControllerBase ====
+  M Boolean CalculateIsSkip()
+  M Boolean GetIsInputValid()
+  M String SelectSkilIId()
+  M UInt32 SelectTargetGuid()

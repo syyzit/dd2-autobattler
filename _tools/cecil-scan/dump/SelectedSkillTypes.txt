@@ -1,0 +1,3 @@
+T Assets.Code.Actor.Queries.QueryActOutSelectedSkillActors
+T Assets.Code.Combat.Queries.QueryIsSelectedSkillTarget
+T Assets.Code.Combat.Queries.QuerySelectedSkillTargets

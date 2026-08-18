@@ -1,0 +1,4 @@
+T Assets.Code.Actor.Events.EventSelectActor
+T Assets.Code.Boss.Events.EventSelectBoss
+T Assets.Code.Kingdom.Events.EventSelectKingdomMapCell
+T Assets.Code.Story.Events.EventSelectStoryChoice

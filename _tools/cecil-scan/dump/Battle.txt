@@ -1,0 +1,499 @@
+==== Assets.Code.Combat.Battle : System.Object ====
+  F Boolean m_IsActive
+  F List`1 m_BattleSystems
+  F BattleTeams m_BattleTeams
+  F BattleTracking m_BattleTracking
+  F BattleTurnOrder m_BattleTurnOrder
+  F BattleConditions m_BattleConditions
+  F SkillCalculation m_BattleSkillCalculation
+  F BattleStateMachine m_BattleStateMachine
+  F BattleModifierDefinition m_BattleModifier
+  P BattleState CurrentBattleState
+  P BattleState NextBattleState
+  P Boolean IsInFreeAction
+  P UInt32 CurrentActorGuid
+  P Int32 CurrentRound
+  P Int32 CurrentTurn
+  P Boolean IsPartyInBattle
+  P Boolean IsRetreatInvalid
+  M Void PostCreate(Boolean isLoad)
+  M Void Destroy(BattleResult battleResult)
+  M JToken ToJson()
+  M Void Update(Int32 pauseOnStateMask)
+  M Boolean GetIsActive()
+  M Boolean AttemptRetreat()
+  M Void ForceEnd(Boolean isForceComplete)
+  M Void BattleEnd()
+  M Void BattleExit()
+  M Boolean GetHasCurrentActor()
+  M UInt32 GetCurrentActorGuid()
+  M Int32 GetCurrentActorTeamIndex()
+  M Int32 GetHitSkillIdCount(String skillId)
+  M Int32 GetActorStatusCountForBattle(UInt32 actorGuid, ActorStatusType actorStatusType)
+  M IReadOnlyList`1 GetKilledActorEntries()
+  M IReadOnlyList`1 GetActorSkillUseActiveTokensEntries(String actorDataId)
+  M Int32 GetNumberOfTeams()
+==== Assets.Code.Combat.BattleConditions : System.Object ====
+  F BattleTeams m_BattleTeams
+  F BattleTurnOrder m_BattleTurnOrder
+  F BattleConfigurationDefinition m_BattleConfiguration
+  F Boolean m_IsForceEnd
+  F Boolean m_IsForceComplete
+  F Boolean m_IsRetreat
+  F List`1 m_EndBattleConditions
+  F Boolean m_IsCompleteFromEndConditions
+  F List`1 m_CompleteBattleConditions
+  P Boolean IsForceEnd
+  P Boolean IsRetreat
+  M Void Create()
+  M Void PostCreate(BattleConfigurationDefinition battleConfiguration, CombatSource combatSource, Boolean isLoad)
+  M Void Destroy(BattleResult battleResult)
+  M Void AddEventListeners()
+  M Void RemoveEventListeners()
+  M Void HandleQueryBattleEndAtRound(QueryBattleEndAtRound battleEndAtRound)
+  M String GetJsonId()
+  M JToken SaveToJson()
+  M Void LoadFromJson(JObject data)
+  M Boolean CheckForEnd()
+  M Boolean GetIsComplete()
+  M Boolean GetIsAnyEndBattleConditionMet()
+  M Boolean GetIsAnyCompleteBattleConditionMet()
+  M Boolean GetIsAnyBattleConditionsMet(IReadOnlyList`1 battleConditions)
+  M Void Retreat()
+  M Void ForceEnd(Boolean isForceComplete)
+==== Assets.Code.Combat.BattleParameters : System.Object ====
+  F Parameters m_BattleTeamParameters
+  F Parameters m_BattleTurnOrderParameters
+  F BattleModifierDefinition m_BattleModifierDefinition
+==== Assets.Code.Combat.BattleResult : System.Object ====
+  F Boolean m_IsBattleComplete
+  F IReadOnlyList`1 m_BattleConfigurations
+  F Int32 m_CurrentBattleConfigurationIndex
+  F Int32 m_NextBattleConfigurationIndex
+  F IReadOnlyList`1 m_LootPreRolls
+  F Boolean m_IsForceEnd
+  F Boolean m_IsRetreat
+  F Boolean m_IsBiomeBossBattle
+  F Boolean m_IsExpeditionBossBattle
+  F Boolean m_IsGangBossBattle
+  F List`1 m_LootRewards
+  F CombatSource m_CombatSource
+  F String m_NodeSubType
+  F IReadOnlyList`1 m_StartingPartyActorGuids
+  F IReadOnlyList`1 m_KingdomSiegeDefenseActorGuids
+  F UInt32 m_StoryActorGuid
+  F StoryChoiceDefinition m_StoryChoiceDefinition
+  F Int32 m_StoryRetryCount
+  F UInt32 m_KingdomSiegeGuid
+  F LootReason m_LootReason
+  F String m_LootReasonId
+  F BiomeKillContractDefinition m_BiomeKillContractDefinition
+  P Boolean IsFightComplete
+  P Boolean IsBattleSequenceComplete
+  P Boolean HasNextBattle
+  P BattleConfigurationDefinition CurrentBattleConfiguration
+==== Assets.Code.Combat.BattleState : Assets.Code.Utils.CustomEnum`1<Assets.Code.Combat.BattleState> ====
+  F static BattleState INACTIVE
+  F static BattleState START
+  F static BattleState BEFORE_TURN
+  F static BattleState START_TURN
+  F static BattleState IN_TURN_SELECT
+  F static BattleState IN_TURN_CALCULATE
+  F static BattleState IN_TURN_PERFORM
+  F static BattleState IN_TURN_APPLY
+  F static BattleState IN_TURN_AFTER_APPLY
+  F static BattleState END_TURN
+  F static BattleState SKIP_TURN
+  F static BattleState DELAY_TURN
+  F static BattleState AFTER_TURN
+  F static BattleState START_RETREAT
+  F static BattleState END_RETREAT
+  F static BattleState LOAD
+  F Boolean m_IsValidForEnd
+  F Boolean m_IsValidForPause
+  F Boolean m_IsValidForStressTriggersProcess
+  F Boolean m_IsValidForBarkTriggersProcess
+  F Boolean m_IsProcessQueueNextStateMovement
+  F Boolean m_IsProcessQueueNextStateAddRemove
+==== Assets.Code.Combat.BattleStateMachine : System.Object ====
+  F static Single AUTOMATED_TEST_STATE_TRANSITION_PAUSE_TIME
+  F SkillCalculation m_BattleSkillCalculation
+  F BattleTurnOrder m_BattleTurnOrder
+  F BattleTeams m_BattleTeams
+  F BattleConditions m_BattleConditions
+  F BattleState m_CurrentState
+  F Queue`1 m_NextStateQueue
+  F Single m_StateTransitionPauseTimer
+  F IReadOnlyList`1 m_StartActorlessEffects
+  F IReadOnlyList`1 m_StartRoundActorlessEffects
+  M Void Create()
+  M Void PostCreate(BattleConfigurationDefinition battleConfiguration, CombatSource combatSource, Boolean isLoad)
+  M Void Destroy(BattleResult battleResult)
+  M Void AddEventListeners()
+  M Void RemoveEventListeners()
+  M Void HandleEventSelectActor(EventSelectActor selectActorEvent)
+  M Void HandleEventDebugActorAddToken(EventDebugActorAddToken debugActorAddTokenEvent)
+  M Void HandleEventDebugActorApplyEffect(EventDebugActorApplyEffect debugActorApplyEfffectEvent)
+  M Void HandleEventActorDeath(EventActorDeath actorDeath)
+  M Void HandleEventBattlePass(EventBattlePass battlePassEvent)
+  M Void HandleEventBattleRetreat(EventBattleRetreat battleRetreatEvent)
+  M Void HandleEventBattleStall(EventBattleStall battleStallEvent)
+  M Void HandleEventBattleRetreatFailed(EventBattleRetreatFailed battleRetreatFailedEvent)
+  M Void HandleEventActorChangeClass(EventActorChangeClass actorChangeClassEvent)
+  M Void HandleEventBattleStartRound(EventBattleStartRound battleStartRoundEvent)
+  M String GetJsonId()
+  M JToken SaveToJson()
+  M Void LoadFromJson(JObject data)
+  M BattleState GetState()
+  M BattleState GetNextState()
+  M Void Update(Int32 pauseOnStateMask)
+  M Void QueueNextState(BattleState nextState)
+  M Void SetState(BattleState enterState)
+  M Void OnEnterState(BattleState enterState)
+  M Void UpdateState(BattleState updateState)
+  M Void OnQueueNextState(BattleState currentState)
+  M Void OnExitState(BattleState exitState)
+  M Boolean GetIsStateValidForEnd()
+  M Void ApplySkillStartEffects()
+  M Void QueueSkillActouts(ActOutType actOutType, UInt32 performerActorGuid, UInt32 targetActorGuid, ActorDataSkill skill)
+  M Void QueueSkillActouts(ActOutType actOutType, SkillResult skillResult)
+==== Assets.Code.Combat.BattleTeams : System.Object ====
+  F static Int32 HERO_TEAM_INDEX
+  F static Int32 ENEMY_TEAM_INDEX
+  F static Int32 DEFAULT_TEAM_SIZE
+  F static String JSON_ID
+  F static String JSON_KEY_TEAMS
+  F List`1 m_Teams
+  M Void Create(Parameters battleTeamsParameters, BattleModifierDefinition battleModifier)
+  M Void PostCreate(BattleConfigurationDefinition battleConfiguration, CombatSource combatSource, Boolean isLoad)
+  M Void Destroy(BattleResult battleResult)
+  M String GetJsonId()
+  M JToken SaveToJson()
+  M Void LoadFromJson(JObject data)
+  M Void AddEventListeners()
+  M Void RemoveEventListeners()
+  M Void HandleQueryCurrentActors(QueryCurrentActors currentActorsQuery)
+  M Void HandleQueryActorTeamInfo(QueryActorTeamInfo actorTeamInfoQuery)
+  M Void HandleQueryActorValidShuffleRank(QueryActorValidShuffleRank actorValidShuffleRankQuery)
+  M Void HandleQueryActorValidSortTeamPosition(QueryActorValidSortTeamPosition actorValidSortTeamPositionQuery)
+  M Void HandleEventCreateActor(EventCreateActor createActorEvent)
+  M Void HandleEventActorDeath(EventActorDeath deadActorEvent)
+  M Void HandleQueryTeamActors(QueryTeamActors teamActorsQuery)
+  M Void HandleQueryFriendlyTeamActors(QueryFriendlyTeamActors friendlyTeamActorsQuery)
+  M Void HandleQueryEnemyTeamActors(QueryEnemyTeamActors enemyTeamActorsQuery)
+  M Void HandleQueryRandomTeamActorGuids(QueryRandomTeamActorGuids randomTeamActorGuidsQuery)
+  M Void HandleEventDebugUpdateEnemyTeamControllers(EventDebugUpdateEnemyTeamControllers obj)
+  M Void SetEnemyTeamInputControllers(Boolean inputActive)
+  M Int32 GetNumberOfTeams()
+  M Team GetTeam(Int32 index)
+  M Team GetTeamFromActorGuid(UInt32 actorGuid)
+  M Int32 GetTeamIndexFromActorGuid(UInt32 actorGuid)
+  M ActorInstance GetActorFromActorGuid(UInt32 actorGuid)
+  M Boolean GetIsActorsOnTheSameTeam(UInt32 actorAGuid, UInt32 actorBGuid)
+  M IReadOnlyList`1 GetFriendlyActors(ActorInstance sourceActor)
+  M IReadOnlyList`1 GetFriendlyActors(ActorInstance sourceActor, ActorDataSkill actorDataSkill)
+  M IReadOnlyList`1 GetFriendlyActors(ActorInstance sourceActor, Boolean isFriendly)
+  M Int32 GetTeamPositionFromActorGuid(UInt32 actorGuid)
+  M Int32 GetRankFromActorGuid(UInt32 actorGuid)
+  M Int32 GetRankFromActor(ActorInstance actor)
+  M Void ProcessQueueNextStateChanges(Boolean processMovement, Boolean processAddRemove)
+  M Boolean GetIsPartyInBattle()
+  M Boolean GetIsRetreatInvalid()
+  M static ActorControllerType GetDefaultActorControllerType(Int32 teamIndex)
+  M ActorControllerBase CreateActorController(ActorInstance actor, Team team)
+  ==== Assets.Code.Combat.BattleTeams/Parameters : System.Object ====
+    F List`1 m_TeamParameters
+  ==== Assets.Code.Combat.BattleTeams/<>c__DisplayClass18_0 : System.Object ====
+    F QueryActorValidSortTeamPosition actorValidSortTeamPositionQuery
+==== Assets.Code.Combat.BattleTracking : System.Object ====
+  F static String JSON_ID
+  F BattleTeams m_BattleTeams
+  F List`1 m_DeathLootIds
+  F List`1 m_KilledActorEntries
+  F Dictionary`2 m_HitSkillIdCounts
+  F List`1 m_ActorStatusCounts
+  F Dictionary`2 m_ActorSkillUseActiveTokensMap
+  F Boolean m_StallIsBattleValid
+  F Boolean m_StallIsCurrentRoundValid
+  F List`1 m_StallActioningActorGuids
+  F List`1 m_StallInvalidatingActorGuids
+  F List`1 m_LastSkillAffinitySkillHistories
+  P IReadOnlyList`1 DeathLootIds
+  P IReadOnlyList`1 KilledActorEntries
+  P IReadOnlyDictionary`2 ActorSkillUseActiveTokensMap
+  P IReadOnlyList`1 LastSkillAffinitySkillHistories
+  M Void Create()
+  M Void PostCreate(BattleConfigurationDefinition battleConfiguration, CombatSource combatSource, Boolean isLoad)
+  M Void Destroy(BattleResult battleResult)
+  M Void AddEventListeners()
+  M Void RemoveEventListeners()
+  M Void HandleEventSkillFinalizeResults(EventSkillFinalizeResults skillFinalizeResultsEvent)
+  M Void HandleEventActorDeath(EventActorDeath actorDeathEvent)
+  M Void HandleEventActorStatusChanged(EventActorStatusChanged evt)
+  M Void HandleEventBattleStartRound(EventBattleStartRound battleStartRoundEvent)
+  M Void HandleEventBattleEndRound(EventBattleEndRound battleEndRoundEvent)
+  M String GetJsonId()
+  M JToken SaveToJson()
+  M Void LoadFromJson(JObject data)
+  M Int32 GetHitSkillIdCount(String skillId)
+  M Int32 GetActorStatusCountForBattle(UInt32 actorGuid, ActorStatusType actorStatusType)
+  M Boolean GetIsRoundStall()
+  M Void StartStallRound(Int32 round)
+  M Void EndStallRound()
+  ==== Assets.Code.Combat.BattleTracking/ActorDamageCount : System.Object ====
+    F UInt32 m_ActorGuid
+    F Dictionary`2 m_TotalHealthDamagePercentDictionary
+    F List`1 m_LastAttackActorGuids
+    F List`1 m_LastCritActorGuids
+    F List`1 m_LastKillActorGuids
+    F List`1 m_LastEnterDeathsDoorActorGuids
+    P IReadOnlyList`1 LastAttackActorGuids
+    P IReadOnlyList`1 LastCritActorGuids
+    P IReadOnlyList`1 LastKillActorGuids
+    P IReadOnlyList`1 LastEnterDeathsDoorActorGuids
+    M Void ClearLastActorGuids()
+    M Void AddDamagingResult(ActorResult actorResult)
+    M Single GetTotalHealthDamagePercent(UInt32 actorGuid)
+  ==== Assets.Code.Combat.BattleTracking/ActorStatusCount : System.Object ====
+    F UInt32 m_ActorGuid
+    F List`1 m_ActorStatusTypes
+    M Void AddActorStatus(ActorStatusType actorStatusType)
+    M Int32 GetNumberOfActorStatuses(ActorStatusType countActorStatusType)
+  ==== Assets.Code.Combat.BattleTracking/<>c__DisplayClass7_0 : System.Object ====
+    F String actorResultBaseSkillId
+    F Predicate`1 <>9__0
+==== Assets.Code.Combat.BattleTurnOrder : System.Object ====
+  F static Int32 AMBUSH_ROUND_INDEX
+  F static String JSON_ID
+  F BattleTeams m_BattleTeams
+  F Boolean m_IsCurrentTurnInvalid
+  F List`1 m_TurnOrder
+  F Int32 m_CurrentTurn
+  F Int32 m_TotalTurns
+  F Int32 m_Round
+  F Int32 m_AmbushTeamIndex
+  M Void Create(Parameters battleTurnOrderParameters)
+  M Void PostCreate(BattleConfigurationDefinition battleConfiguration, CombatSource combatSource, Boolean isLoad)
+  M Void Destroy(BattleResult battleResult)
+  M Void AddEventListeners()
+  M Void RemoveEventListeners()
+  M Void HandleQueryRemainingTurnOrder(QueryTurnOrder remainingTurnOrderQuery)
+  M Void HandleEventBattleAddTurn(EventBattleAddTurn eventBattleAddTurn)
+  M Void HandleEventBattleRemoveTurn(EventBattleRemoveTurn eventBattleRemoveTurn)
+  M Void HandleActorDeath(EventActorDeath actorDeathEvent)
+  M Void HandleEventActorRemove(EventActorRemove actorRemoveEvent)
+  M Void HandleEventCreateActor(EventCreateActor createActorEvent)
+  M String GetJsonId()
+  M JToken SaveToJson()
+  M Void LoadFromJson(JObject data)
+  M Void StartRound()
+  M Void EndRound()
+  M Void ClearTurnOrder()
+  M Void RollTurnOrder()
+  M Void AttemptRollExtraTurn(BattleTurnType battleTurnType)
+  M Boolean GetIsAtStartOfNewRound()
+  M Boolean GetIsOnLastTurn()
+  M Boolean GetIsOutOfTurns()
+  M Void IncrementTurn()
+  M ActorInstance GetCurrentActor()
+  M UInt32 GetCurrentActorActorGuid()
+  M Int32 GetRound()
+  M Int32 GetTurn()
+  M BattleTurnType GetCurrentTurnType()
+  M Void InsertNextTurn(UInt32 actorGuid)
+  M Void InsertDelayedTurn(UInt32 actorGuid, BattleTurnType battleTurnType)
+  ==== Assets.Code.Combat.BattleTurnOrder/Parameters : System.Object ====
+    F Int32 m_AmbushTeamIndex
+  ==== Assets.Code.Combat.BattleTurnOrder/SortElement : System.Object ====
+    F UInt32 m_ActorGuid
+    F Single m_SpeedRoll
+    F Single m_SpeedTieBreaker
+  ==== Assets.Code.Combat.BattleTurnOrder/<>c : System.Object ====
+    F static <>c <>9
+    F static Predicate`1 <>9__28_0
+  ==== Assets.Code.Combat.BattleTurnOrder/<>c__DisplayClass13_0 : System.Object ====
+    F EventBattleRemoveTurn eventBattleRemoveTurn
+  ==== Assets.Code.Combat.BattleTurnOrder/<>c__DisplayClass14_0 : System.Object ====
+    F EventActorDeath actorDeathEvent
+  ==== Assets.Code.Combat.BattleTurnOrder/<>c__DisplayClass15_0 : System.Object ====
+    F EventActorRemove actorRemoveEvent
+==== Assets.Code.Combat.BattleTurnOrderElement : System.Object ====
+  F UInt32 m_ActorGuid
+  F BattleTurnType m_TurnType
+  M Boolean GetIsValidForFutureTurn()
+==== Assets.Code.Combat.BattleTurnType : Assets.Code.Utils.CustomEnum`1<Assets.Code.Combat.BattleTurnType> ====
+  F static BattleTurnType ROLL
+  F static BattleTurnType DYNAMIC
+  F static BattleTurnType START_ROUND
+  F static BattleTurnType END_ROUND
+  F Boolean m_IsExtra
+  F SkillType m_SkillType
+  F Boolean m_IsTurnTokenConsumeValid
+  F Boolean m_IsCheckFutureTurnValidity
+  F Boolean m_IsCooldownUpdating
+==== Assets.Code.Combat.BattleModifier.BattleModifierCalculation : System.Object ====
+  M static BattleModifierDefinition RollBattleModifier(BattleConfigurationDefinition battleConfiguration)
+==== Assets.Code.Combat.BattleModifier.BattleModifierDefinition : Assets.Code.Library.SerializedLibraryElement`1<Assets.Code.Combat.BattleModifier.BattleModifierDefinition> ====
+  F Single m_Chance
+  F List`1 m_Tags
+  F List`1 m_AnyConditions
+  F List`1 m_AllConditions
+  F Int32 m_TeamActorLimit
+  F DataContainer m_DataContainer
+  F String m_ActorDataEffectsId
+  F ActorDataEffects m_ActorDataSkillEffects
+  F String m_ActorDataExternalBuffsId
+  F DataExternalBuffs m_ActorDataExternalBuffs
+  P DataContainer DataContainer
+  P ActorDataEffects ActorDataSkillEffects
+  P DataExternalBuffs ActorDataExternalBuffs
+  P IReadOnlyList`1 Tags
+  P IReadOnlyList`1 AnyConditions
+  P IReadOnlyList`1 AllConditions
+  M Void Init()
+  M Boolean Validate()
+==== Assets.Code.Combat.BattleModifier.LibraryBattleModifier : Assets.Code.Library.Library`2<System.String,Assets.Code.Combat.BattleModifier.BattleModifierDefinition> ====
+  F ResourceDatabaseText m_ResourceDatabase
+  F ResourceDatabaseBattleModifier m_ResourceDatabaseBattleModifier
+  P LibraryBattleModifier LibraryBattleModifierInstance
+  M Void InitInternal()
+  M IResourceDatabase GetResourceDatabase()
+  M ResourceBattleModifier GetBattleModifierResource(String id)
+==== Assets.Code.Combat.BattleConfiguration.BattleConfigurationDefinition : Assets.Code.Library.SerializedLibraryElement`1<Assets.Code.Combat.BattleConfiguration.BattleConfigurationDefinition> ====
+  F static String CSV_KEY_END_ACTOR_ANY_CONDITIONS
+  F static String CSV_KEY_END_ACTOR_ALL_CONDITIONS
+  F Single m_Chance
+  F IReadOnlyList`1 m_Tags
+  F Int32 m_RunLimit
+  F Int32 m_RoundLimit
+  F IReadOnlyList`1 m_PlayerActors
+  F Boolean m_PlayerRandomOrder
+  F IReadOnlyList`1 m_EnemyActors
+  F Boolean m_EnemyRandomOrder
+  F IReadOnlyList`1 m_ResultActors
+  F IReadOnlyList`1 m_CompleteLootTables
+  F IReadOnlyList`1 m_CompleteStoryLootTables
+  F IReadOnlyList`1 m_IncompleteLootTables
+  F IReadOnlyList`1 m_IncompleteStoryLootTables
+  F String m_BackgroundSceneOverride
+  F String m_TorchOverride
+  F String m_BattleModifierOverrideId
+  F BattleModifierDefinition m_BattleModifierOverride
+  F Boolean m_IsRollBattleModifier
+  F String m_RollBattleModifierTag
+  F Boolean m_IsStallInvalidating
+  F Boolean m_IsKeepCombatContainers
+  F String m_PlayerSummonControllerConfigurationId
+  F SummonControllerConfigurationDefinition m_PlayerSummonControllerConfiguration
+  F String m_EnemySummonControllerConfigurationId
+  F SummonControllerConfigurationDefinition m_EnemySummonControllerConfiguration
+  F Boolean m_EndAtMaxStress
+  F Boolean m_EndIsAlwaysComplete
+  F List`1 m_EndActorAnyConditions
+  F List`1 m_EndActorAllConditions
+  F List`1 m_EndActorConditionClassIds
+  F Boolean m_EndConditionsIsComplete
+  F String m_NextBattleConfigurationId
+  F BattleConfigurationDefinition m_NextBattleConfiguration
+  F String m_NextBattleConfigurationTableId
+  F Boolean m_IsNextBattleOptional
+  F String m_AdditionalBattleConfigurationId
+  F BattleConfigurationDefinition m_AdditionalBattleConfiguration
+  F String m_AdditionalBattleConfigurationTableId
+  F List`1 m_HeroEffects
+  F List`1 m_EnemyEffects
+  F List`1 m_ActorlessEffects
+  F List`1 m_ActorlessRoundStartEffects
+  F String m_RunDataStatsId
+  F RunDataStats m_RunDataStats
+  F Boolean m_HasEndSequence
+  F Single m_EndSequenceDelay
+  F String m_endBossCinematicName
+  F Boolean m_TokenViewValid
+  P IReadOnlyList`1 EndActorAnyConditions
+  P IReadOnlyList`1 EndActorAllConditions
+  P IReadOnlyList`1 EndConditionActorClassIds
+  P IReadOnlyList`1 HeroEffects
+  P IReadOnlyList`1 EnemyEffects
+  P IReadOnlyList`1 ActorlessEffects
+  P IReadOnlyList`1 ActorlessRoundStartEffects
+  P RunDataStats RunDataStats
+  P Boolean HasNextBattle
+  P Boolean HasAdditionalBattle
+  P SummonControllerConfigurationDefinition PlayerSummonControllerConfiguration
+  P SummonControllerConfigurationDefinition EnemySummonControllerConfiguration
+  P BattleModifierDefinition BattleModifierOverride
+  M Void Init()
+  M Void PostInit()
+  M Boolean Validate()
+  M Void PostBattleConfigurationTableLibraryLoadValidate()
+  M Void ValidateNextBattleConfigurationSequence(List`1 possibleNextBattleConfigurationIds)
+  M BattleConfigurationDefinition RollNextBattleConfiguration()
+  M BattleConfigurationDefinition RollAdditionalBattleConfiguration()
+  M static BattleConfigurationDefinition GetBattleConfiguration(String id, BattleConfigurationDefinition battleConfiguration, String battleConfigurationTableId)
+  M List`1 GetLootTables(CombatSource combatSource, Boolean isComplete)
+==== Assets.Code.Combat.BattleConfiguration.BattleConfigurationOption : Assets.Code.Condition.ConditionTableOption`2<Assets.Code.Combat.BattleConfiguration.BattleConfigurationOption,System.String> ====
+  F BattleConfigurationOptionType m_type
+  M static BattleConfigurationOption Parse(String chanceString, String qtyString, String id, String tagsString, String tableId, String conditionId, String typeString)
+  M Boolean Collect(IRandomIdentifierContainer randomIdentifierContainer, Boolean isDuplicateResultAllowed, List`1 outEvent)
+  M Boolean Collect(IRandomIdentifierContainer randomIdentifierContainer, Boolean isDuplicateResultAllowed, List`1 outEvent, Func`2 additionalCheck)
+  M Void CollectAllPossible(Boolean isValidOnly, HashSet`1 outAll)
+  M Boolean GetIsOptionSameAsResult(String result)
+  M Boolean GetIsValidOption(Boolean checkConditions, Boolean checkUnlocks, Boolean& isExclusive)
+  M Boolean Validate()
+  M Single GetAdditionalChance()
+==== Assets.Code.Combat.BattleConfiguration.BattleConfigurationOptionType : Assets.Code.Utils.CustomEnum`1<Assets.Code.Combat.BattleConfiguration.BattleConfigurationOptionType> ====
+  F static BattleConfigurationOptionType BATTLE_CONFIGURATION
+  F static BattleConfigurationOptionType SUB_TABLE
+  F static BattleConfigurationOptionType NOTHING
+==== Assets.Code.Combat.BattleConfiguration.LibraryBattleConfiguration : Assets.Code.Library.Library`2<System.String,Assets.Code.Combat.BattleConfiguration.BattleConfigurationDefinition> ====
+  F ResourceDatabaseText m_ResourceDatabase
+  F List`1 m_AllTags
+  F Boolean m_IsPostBattleConfigurationTablesLibraryCalled
+  P LibraryBattleConfiguration LibraryBattleConfigurationInstance
+  P IReadOnlyList`1 AllTags
+  M Void InitInternal()
+  M Void DestroyInternal()
+  M Void SystemClear()
+  M IResourceDatabase GetResourceDatabase()
+  M Void OnLibraryLoad(EventLibraryLoaded evnt)
+  M Void PostBattleConfigurationTablesLibraryLoad()
+==== Assets.Code.Combat.BattleConfiguration.LibraryBattleConfigurationTables : Assets.Code.Library.Library`2<System.String,Assets.Code.Math.Randomizer.Table`2<Assets.Code.Combat.BattleConfiguration.BattleConfigurationOption,System.String>> ====
+  F ResourceDatabaseText m_ResourceDatabase
+  F List`1 m_AllTags
+  P LibraryBattleConfigurationTables LibraryBattleConfigurationTablesInstance
+  P IReadOnlyList`1 AllTags
+  M Void InitInternal()
+  M IResourceDatabase GetResourceDatabase()
+  M static Boolean RollBattleConfiguration(String id, IRandomIdentifierContainer randomIdentifier, List`1 outBattleConfigId, Func`2 additionalCheck)
+  M static Void CollectAllPossibleConfigurations(String id, Boolean isValidOnly, HashSet`1 outEventIds)
+==== Assets.Code.Combat.BattleCondition.IBattleCondition :  ====
+  M Boolean IsConditionMet()
+  M Void SetTeams(BattleTeams battleTeams)
+  M Void SetTurnOrder(BattleTurnOrder battleTurnOrder)
+==== Assets.Code.Combat.BattleCondition.MaxStressTeamBattleCondition : Assets.Code.Combat.BattleCondition.TeamsBattleCondition ====
+  M Boolean IsConditionMet(Int32 specificTeamIndex, BattleTeams battleTeams)
+==== Assets.Code.Combat.BattleCondition.NoTeamBattleCondition : Assets.Code.Combat.BattleCondition.TeamsBattleCondition ====
+  M Boolean IsConditionMet(Int32 specificTeamIndex, BattleTeams battleTeams)
+==== Assets.Code.Combat.BattleCondition.OnlyTeamBattleCondition : Assets.Code.Combat.BattleCondition.TeamsBattleCondition ====
+  M Boolean IsConditionMet(Int32 specificTeamIndex, BattleTeams battleTeams)
+==== Assets.Code.Combat.BattleCondition.PartyDeadBattleCondition : System.Object ====
+  M Boolean IsConditionMet()
+  M Void SetTeams(BattleTeams battleTeams)
+  M Void SetTurnOrder(BattleTurnOrder battleTurnOrder)
+==== Assets.Code.Combat.BattleCondition.RoundBattleCondition : Assets.Code.Combat.BattleCondition.ITurnOrderBattleCondition ====
+  F Int32 m_MinRound
+  M Boolean IsConditionMet(BattleTurnOrder battleTeams)
+==== Assets.Code.Combat.BattleCondition.TeamsBattleCondition : System.Object ====
+  F Int32 m_SpecificTeamIndex
+  F BattleTeams m_BattleTeams
+  M Boolean IsConditionMet(Int32 specificTeamIndex, BattleTeams battleTeams)
+  M Void SetTeams(BattleTeams battleTeams)
+  M Void SetTurnOrder(BattleTurnOrder battleTurnOrder)
+  M Boolean IsConditionMet()
+==== Assets.Code.Combat.BattleCondition.ITurnOrderBattleCondition : System.Object ====
+  F BattleTurnOrder m_BattleTurnOrder
+  M Boolean IsConditionMet(BattleTurnOrder battleTeams)
+  M Void SetTurnOrder(BattleTurnOrder battleTurnOrder)
+  M Void SetTeams(BattleTeams battleTeams)
+  M Boolean IsConditionMet()

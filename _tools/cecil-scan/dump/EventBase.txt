@@ -1,0 +1,5 @@
+==== Assets.Code.Events.EventBase : System.Object ====
+  P Boolean IsInvoking
+  M Void Reset()
+  M Void StartInvoke()
+  M Void End()

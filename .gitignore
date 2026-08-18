@@ -1,0 +1,20 @@
+bin/
+obj/
+.vs/
+.idea/
+*.suo
+*.userprefs
+*.log
+
+# Local game path (copy from Directory.Build.props.user.example)
+Directory.Build.props.user
+*.user
+
+# Decompiled game IL and editor leftovers — do not publish
+*.il.txt
+*.bak
+
+# Built binaries (plugin, scanners, accidental game copies)
+*.dll
+*.pdb
+*.exe

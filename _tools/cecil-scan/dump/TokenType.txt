@@ -1,0 +1,36 @@
+==== Assets.Code.Token.TokenType : Assets.Code.Utils.CustomEnum`1<Assets.Code.Token.TokenType> ====
+  F static TokenType MANUAL
+  F static TokenType CRIT
+  F static TokenType EVADE
+  F static TokenType BLOCK_MOVE
+  F static TokenType TURN
+  F static TokenType SKILL_BUFF
+  F static TokenType SKILL_CALCULATE_DAMAGE_BUFF
+  F static TokenType SKILL_DAMAGE_BUFF
+  F static TokenType ROUND_START_BUFF
+  F static TokenType ROUND_END_BUFF
+  F static TokenType SKILL_EFFECT
+  F static TokenType SKILL_TOKEN_IGNORE
+  F static TokenType EXTRA_LAUNCH
+  F static TokenType EXTRA_TARGET
+  F static TokenType SKIP_TURN
+  F static TokenType FORCED_TARGET
+  F static TokenType BLOCK_STRESS_DAMAGE
+  F static TokenType DELAY_TURN
+  F static TokenType STEALTH
+  F static TokenType GUARD
+  F static TokenType GUARDING
+  F static TokenType RIPOSTE
+  F static TokenType BLOCK_DOT_APPLY
+  F static TokenType PASSIVE
+  F static TokenType ON_DAMAGING_BLOCKED
+  F static TokenType ON_DAMAGING_HIT
+  F static TokenType ON_DAMAGING_MISS
+  F static TokenType ON_NON_DAMAGING_MISS
+  F static TokenType ON_NON_DAMAGING_HIT
+  F static TokenType ON_KILLED
+  F static TokenType DEATHS_DOOR_ARMOR
+  F Boolean m_IsValidForPerformer
+  F Boolean m_IsValidForTarget
+  F Boolean m_IsValidForMultiHitDamagingSkillIgnorePerformer
+  F Boolean m_IsValidForMultiHitDamagingSkillIgnoreTarget

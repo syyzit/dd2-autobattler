@@ -1,0 +1,9 @@
+T Code.FlyingRat.Simulator.EventBiomeSelectionScreenOpened
+T Code.FlyingRat.Simulator.EventConfirmDialogOpen
+T Code.FlyingRat.Simulator.EventDoomWindowShown
+T Code.FlyingRat.Simulator.EventLairNextBattleWindowShown
+T Code.FlyingRat.Simulator.EventLootWindowShown
+T Code.FlyingRat.Simulator.InputSimulator
+T Code.FlyingRat.Simulator.InputSimulatorUtils
+T Code.FlyingRat.Simulator.PerformanceLogger
+T Code.FlyingRat.Simulator.SimulatedCombatHandler

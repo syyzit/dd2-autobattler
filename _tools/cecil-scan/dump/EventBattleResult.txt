@@ -1,0 +1,3 @@
+==== Assets.Code.Combat.Events.EventBattleResult : Assets.Code.Events.EventBase ====
+  F BattleResult m_BattleResult
+  M static Void Trigger(BattleResult result)

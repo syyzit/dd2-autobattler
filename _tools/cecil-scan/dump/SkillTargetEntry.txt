@@ -1,0 +1,9 @@
+==== Assets.Code.Actor.ActorController.SkillTargetEntry : System.Object ====
+  F String m_SkillId
+  F Boolean m_IsForcedSkill
+  F IReadOnlyList`1 m_ValidTargetActorGuids
+  F IReadOnlyList`1 m_StealthedTargetActorGuids
+  F SkillTargetValidityType m_ValidityType
+  P Boolean IsValid
+  P SkillTargetValidityType ValidityType
+  M Void SetValidityType(SkillTargetValidityType validityType)

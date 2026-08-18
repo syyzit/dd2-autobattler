@@ -1,0 +1,16 @@
+==== Assets.Code.Token.TokenInstance : Assets.Code.Actor.ActorContainer.ActorContainerInstance`1<Assets.Code.Token.TokenDefinition> ====
+  F Boolean m_IsHidden
+  F TokenConsumeType m_ConsumeType
+  P Boolean IsHidden
+  M Boolean GetShouldRemove(ActorInstance actorInstance)
+  M Void ForceShouldRemove(TokenConsumeType consumeType)
+  M Boolean GetIsRemoveDelayed()
+  M Boolean GetIsConsumeAttempted()
+  M Void SetAsPreviousResult()
+  M Void ResetConsume()
+  M Void Consume(TokenConsumeType consumeType, UInt32 actorGuid, TokenContainer tokenContainer, BuffContainer buffContainer, DataContainer actorData)
+  M Boolean GetIsPreviousConsumed()
+  M Boolean GetIsCurrentConsumed(Boolean isUntracked)
+  M Boolean GetIsUntracked()
+  M JToken ToJson()
+  M static TokenInstance FromJson(JToken data)

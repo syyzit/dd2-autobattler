@@ -1,0 +1,6 @@
+==== Assets.Code.Combat.Queries.QueryIsValidSkill : Assets.Code.Events.QueryBase ====
+  F UInt32 m_PerformerActorGuid
+  F String m_SelectedSkillId
+  F SkillTargetValidityType m_ValidityType
+  P Boolean IsValid
+  M static QueryIsValidSkill Trigger(UInt32 performerActorGuid, String selectedSkillId)

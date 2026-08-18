@@ -1,0 +1,7 @@
+==== Assets.Code.Actor.Events.EventSkillSelectionChanged : Assets.Code.Events.EventBase ====
+  F Boolean m_IsSelected
+  F UInt32 m_ActorGuid
+  F String m_SkillId
+  F Boolean m_IsUserInput
+  F Boolean m_autohighlightTarget
+  M static Void Trigger(Boolean isSelected, UInt32 actorGuid, String skillId, Boolean isUserInput, Boolean autohighlightTarget)

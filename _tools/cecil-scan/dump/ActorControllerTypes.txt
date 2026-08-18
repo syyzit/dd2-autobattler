@@ -1,0 +1,10 @@
+T Assets.Code.Actor.ActorController.ActorControllerBase
+T Assets.Code.Actor.ActorController.ActorControllerInput
+T Assets.Code.Actor.ActorController.ActorControllerRandom
+T Assets.Code.Actor.ActorController.ActorControllerSequentialSkillTest
+T Assets.Code.Actor.ActorController.ActorControllerTest
+T Assets.Code.Actor.ActorController.ActorControllerType
+T Assets.Code.Actor.ActorController.SkillTargetEntry
+T Assets.Code.Actor.ActorController.SkillTargetValidityType
+T Assets.Code.Actor.Events.EventActorControllerCalculatedValidSkills
+T Assets.Code.Actor.Events.EventActorControllerClearValidSkills

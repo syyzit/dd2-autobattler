@@ -1,0 +1,210 @@
+==== Assets.Code.Skill.SkillCalculation : System.Object ====
+  F static Int32 ACTOR_RESULT_STARTING_POOL_SIZE
+  F BattleTeams m_BattleTeams
+  F BattleTurnOrder m_BattleTurnOrder
+  F BattleTracking m_BattleTracking
+  F Input m_FinalInput
+  F IReadOnlyList`1 m_FinalTargetActorGuids
+  F Dictionary`2 m_PotentialResults
+  F ObjectPool`1 m_SkillPreviewPool
+  P SkillResult FinalResult
+  P Boolean IsValid
+  M Void Create()
+  M Void PostCreate(BattleConfigurationDefinition battleConfiguration, CombatSource combatSource, Boolean isLoad)
+  M Void Destroy(BattleResult battleResult)
+  M Void AddEventListeners()
+  M Void RemoveEventListeners()
+  M Void HandleEventActorControllerCalculatedValidSkills(EventActorControllerCalculatedValidSkills actorControllerCalculatedValidSkillsEvent)
+  M Void HandleEventActorControllerClearValidSkills(EventActorControllerClearValidSkills actorControllerClearValidSkillsEvent)
+  M Void HandleQuerySkillPreview(QuerySkillPreview skillPreviewQuery)
+  M Void HandleEventActOutApplied(EventActOutApplied actOutAppliedEvent)
+  M String GetJsonId()
+  M JToken SaveToJson()
+  M Void LoadFromJson(JObject data)
+  M Input GetInput()
+  M Void SetFinalInput(Input finalInput)
+  M Void Reset()
+  M Boolean GetIsInFreeAction()
+  M Void AddPotentialResult(Input input, SkillResult skillResult)
+  M SkillResult AddPotentialResult(Input input, IReadOnlyList`1 inputTargetActorGuids)
+  M Void FinalizeResults()
+  M Void CalculateSkillResults(ActorInstance performerActor, List`1 targetActors, List`1 guardTokenConsumeResults, ActorDataSkill actorDataSkill, String resultSkillId, Boolean reultSkillIsStallInvalidating, TurnInformation turnInformation, Boolean isPreviewOnly, List`1 potentialValidActorResults, List`1 potentialPreviewOnlyActorResults)
+  M Void CalculateOnCritResults(ActorInstance performerActor, String resultSkillId, Boolean resultSkillIsStallInvalidating, TurnInformation turnInformation, ActorDataEffects actorDataEffects, List`1 potentialValidActorResults, Int32 startResultIndex, List`1 potentialPreviewOnlyActorResults)
+  M Void CalculateTeamResults(ActorInstance performerActor, ActorInstance targetActor, String resultSkillId, Boolean resultSkillIsStallInvalidating, TurnInformation turnInformation, ActorDataEffects actorDataEffects, ActorDataEffectType teamEffectType, ActorDataEffectType teamRandomMemberEffectType, Boolean includeTargetActor, List`1 potentialValidActorResults, List`1 potentialPreviewOnlyActorResults)
+  M Void CalculateTeamResults(ActorInstance performerActor, ActorInstance targetActor, String resultSkillId, Boolean resultSkillIsStallInvalidating, Input conditionCalculationInput, TurnInformation turnInformation, ActorDataEffects actorDataEffects, ActorDataEffectType teamEffectType, ActorDataEffectType teamRandomMemberEffectType, Boolean includeTargetActor, List`1 potentialValidActorResults, List`1 potentialPreviewOnlyActorResults)
+  M Void CalculateTeamResults(ActorInstance performerActor, List`1 teamActors, String resultSkillId, Boolean resultSkillIsStallInvalidating, Input conditionCalculationInput, TurnInformation turnInformation, ActorDataEffects actorDataEffects, ActorDataEffectType teamEffectType, ActorDataEffectType teamRandomMemberEffectType, List`1 potentialValidActorResults, List`1 potentialPreviewOnlyActorResults)
+  M Void CalculateNeighborResults(ActorInstance performerActor, ActorInstance targetActor, String resultSkillId, Boolean resultSkillIsStallInvalidating, TurnInformation turnInformation, ActorDataEffects actorDataEffects, ActorDataEffectType teamEffectType, ActorDataEffectType teamRandomMemberEffectType, List`1 potentialActorResults, List`1 potentialPreviewOnlyActorResults)
+  M Void CalculateNeighborResults(ActorInstance performerActor, ActorInstance targetActor, String resultSkillId, Boolean resultSkillIsStallInvalidating, Input conditionCalculationInput, TurnInformation turnInformation, ActorDataEffects actorDataEffects, ActorDataEffectType teamEffectType, ActorDataEffectType teamRandomMemberEffectType, List`1 potentialActorResults, List`1 potentialPreviewOnlyActorResults)
+  M Void CalculateNeighborResults(ActorInstance performerActor, List`1 targetActors, String resultSkillId, Boolean resultSkillIsStallInvalidating, TurnInformation turnInformation, ActorDataEffects actorDataEffects, ActorDataEffectType teamEffectType, ActorDataEffectType teamRandomMemberEffectType, List`1 potentialActorResults, List`1 potentialPreviewOnlyActorResults)
+  M Void CalculateNeighborResults(ActorInstance performerActor, List`1 targetActors, String resultSkillId, Boolean resultSkillIsStallInvalidating, Input conditionCalculationInput, TurnInformation turnInformation, ActorDataEffects actorDataEffects, ActorDataEffectType teamEffectType, ActorDataEffectType teamRandomMemberEffectType, List`1 potentialValidActorResults, List`1 potentialPreviewOnlyActorResults)
+  M Void AddEffectsResult(ResultType resultType, ActorInstance performerActor, ActorInstance targetActor, String resultSkillId, Boolean resultSkillIsInvalidating, TurnInformation turnInformation, ActorDataEffects actorDataEffects, ActorDataEffectType actorDataEffectType, List`1 potentialValidActorResults, List`1 potentialPreviewOnlyActorResults)
+  M Void AddEffectsResult(ResultType resultType, ActorInstance performerActor, ActorInstance targetActor, String resultSkillId, Boolean resultSkillIsInvalidating, Input conditionCalculationInput, TurnInformation turnInformation, ActorDataEffects actorDataEffects, ActorDataEffectType actorDataEffectType, List`1 potentialValidActorResults, List`1 potentialPreviewOnlyActorResults)
+  M Void AddSkillModifierResult(ResultType resultType, ActorInstance performerActor, String resultSkillId, Boolean resultSkillIsInvalidating, TurnInformation turnInformation, SkillModifierInstance skillModifier, List`1 potentialValidActorResults, List`1 potentialPreviewOnlyActorResults)
+  M Void CalculateResult(ActorInstance performerActor, ActorInstance targetActor, ActorInstance guardingActor, SourceType guardingSourceType, Boolean isPerformerResult, ActorDataSkill actorDataSkill, String resultSkillId, Boolean resultSkllIsStallInvalidating, TurnInformation turnInformation, Boolean isRiposte, Boolean isActOut, Single minHealthDamage, Hit performerResultHit, Boolean isPreviewOnly, List`1 potentialValidActorResults, List`1 potentialPreviewOnlyActorResults)
+  M Void ClearResults()
+  M Boolean GetIsRiposteSkillValidForActorResult(ActorDataSkill riposteSkill, ActorResult actorResult)
+  M Void CalculateRiposteResults(Input input, String resultSkillId, TurnInformation turnInformation, List`1 potentialActorResults, List`1 potentialPreviewOnlyActorResults)
+  M Void AddSkillBuffsCalculate(ActorDataSkill actorDataSkill, ActorInstance performerActor, IReadOnlyList`1 targetActors)
+  M Void RemoveSkillBuffsCalculate(ActorInstance performerActor, IReadOnlyList`1 targetActors)
+  M Void AddSkillBuffsApply(ActorDataSkill actorDataSkill, ActorInstance performerActor, ActorInstance targetActor)
+  M Void RemoveSkillBuffsApply(ActorInstance performerActor, ActorInstance targetActor)
+  M Void ConsumeDamageBuffToken(Input conditionCalculateionInput, TokenType tokenType, Boolean isPerformerValid)
+  M IReadOnlyDictionary`2 GetResultTokensToRemove(IReadOnlyList`1 participatingActors)
+  M Void SetPreviousResultTokenConsumes(ActorInstance actorInstance, SkillResult skillResult)
+  M Void RemoveTokens(UInt32 actorGuid, IReadOnlyList`1 tokenInstances)
+  M Void ApplyResults()
+  M Void ApplyActorResults(IReadOnlyList`1 actorResults)
+  M Void TryAddActorResult(ActorResult actorResult, List`1 destinationValidActorResults, List`1 destinationPreviewOnlyActorResults)
+  M Crit CalculateResutCrit(Input conditionCalculationInput, Boolean isPerformerTokenValid, Boolean isStatCritValid)
+  M Damage CalculateResultDamage(ResultType resultType, Input conditionCalculationInput, Boolean isHit, Boolean isPerformerTokenValid, Single minHealthDamage, Boolean ignoreMultipliers, Crit critResult)
+  M Single GetAdditionalDamage(ActorInstance performerActor, ActorInstance targetActor, ActorDataSkill skill)
+  M Hit CalculateTestResultHit(ActorInstance performerActor)
+  M Hit CalculateResultHitPerformer(ActorInstance performerActor)
+  M Hit CalculateResultHitTarget(ActorInstance targetActor)
+  ==== Assets.Code.Skill.SkillCalculation/ActorResult : System.Object ====
+    F ResultType m_Type
+    F UInt32 m_PerformerActorGuid
+    F Int32 m_PerformerTeamIndex
+    F Boolean m_PerformerIsAtDeathsDoor
+    F UInt32 m_TargetActorGuid
+    F Int32 m_TargetTeamIndex
+    F Boolean m_TargetIsAtDeathsDoor
+    F UInt32 m_GuardingActorGuid
+    F SourceType m_GuardingSourceType
+    F String m_SkillId
+    F TurnInformation m_TurnInformation
+    F Hit m_PerformerHit
+    F Hit m_TargetHit
+    F Crit m_Crit
+    F Damage m_Damage
+    F Heal m_Heal
+    F OutputContainer`1 m_AppliedEffectsOutputContainer
+    F SkillPreview m_SkillPreview
+    F Boolean m_IsCancelCrit
+    F Boolean m_IsStallInvalidating
+    F Boolean m_IsActOutSkillAdditionalInvalidating
+    P Boolean IsValid
+    P Boolean IsFriendly
+    P Boolean IsSelfTargeting
+    P Boolean IsFacingRight
+    P Boolean IsHit
+    P Boolean IsCalculatedHit
+    P Boolean IsMiss
+    P Boolean IsDodge
+    P Boolean IsRiposte
+    P Boolean IsActOut
+    P Boolean IsDamageCalculated
+    P Boolean IsDamaging
+    P Boolean IsDamageMitigated
+    P Single HealthDamage
+    P Single BaseHealthDamage
+    P Single HealthDamagePercent
+    P Boolean IsHealthHeal
+    P Single PopTextBaseHealthDamage
+    P Boolean IsHealthHealCrit
+    P Boolean IsEmptyResult
+    P Single HealthHeal
+    P Boolean PerformerIsAtDeathsDoor
+    P Single StressDamage
+    P Boolean IsDamagingStress
+    P Single StressHeal
+    P Boolean IsStressHeal
+    P Boolean TargetIsAtDeathsDoor
+    P Boolean IsKill
+    P Boolean IsDamageKill
+    P Boolean IsEffectKill
+    P Boolean IsIgnoreDeathClass
+    P IReadOnlyList`1 DeathClassTagIngores
+    P ActorHealthDamageCalculation HealthDamageCalculation
+    P Boolean IsDeathClassValid
+    P Boolean IsCrit
+    P Boolean IsCombo
+    P Boolean IsBlocked
+    P Boolean IsEnteringDeathsDoor
+    P Boolean IsDeathsDoorSurvival
+    P DeathsDoorCalculationResult DeathsDoorCalculationResult
+    P Boolean IsGuarding
+    P Boolean CanRiposteDamagingResult
+    P Boolean CanRiposteNonDamagingResult
+    P Boolean IsStressTriggerValid
+    P Boolean IsActOutValid
+    M Int32 ConvertMoveEffectsToMoveAmount()
+    M Void DebugLog()
+  ==== Assets.Code.Skill.SkillCalculation/Cost : System.Object ====
+    F Dictionary`2 m_RunValues
+    M Boolean IsValid()
+    M Void Clear()
+    M Void AddRunValue(RunValueType type, Single value)
+    M Void PayCost()
+  ==== Assets.Code.Skill.SkillCalculation/Input : System.Object ====
+    F UInt32 m_PerformerGuid
+    F String m_SelectedSkillId
+    F UInt32 m_SelectedTargetActorGuid
+    F String m_CompareString
+    F Int32 m_HashCode
+    M Boolean Equals(Input compareInput)
+    M Int32 GetHashCode()
+    M Boolean GetIsFreeAction()
+    M Void DebugLog()
+  ==== Assets.Code.Skill.SkillCalculation/SkillResult : System.Object ====
+    F UInt32 m_PerformerActorGuid
+    F Int32 m_PerformerTeamIndex
+    F IReadOnlyList`1 m_TargetActorGuids
+    F String m_SkillId
+    F Cost m_Cost
+    F Dictionary`2 m_TokensToRemove
+    F List`1 m_ActorResults
+    F List`1 m_PreviewOnlyActorResults
+    F List`1 m_PreCalculatedPostPerformerMoveActorGuids
+    F AffinityTickTriggerInstance m_AffinityTickTriggerInstance
+    F List`1 m_KilledActorGuids
+    F List`1 m_KilledCompleteTeamIndexes
+    P IReadOnlyList`1 ActorResults
+    P IReadOnlyList`1 PreviewOnlyActorResults
+    P IReadOnlyList`1 PreCalculatedPostPerformerMoveActorGuids
+    P AffinityTickTriggerInstance AffinityTickTriggerInstance
+    M Void AddActorResults(IReadOnlyList`1 actorResults)
+    M Void AddPreviewOnlyActorResults(IReadOnlyList`1 previewOnlyActorResults)
+    M Void SortActorResults()
+    M Void FinalizeResults(ActorDataSkill actorDataSkill, BattleTeams battleTeams, BattleTracking battleTracking)
+    M Void DebugLog()
+    M Void OnFinalize(BattleTeams battleTeams)
+    M Boolean GetIsSkillAdditionalActOutValid()
+    M Void AddTokensToRemove(IReadOnlyDictionary`2 tokensToRemove)
+    M Void AddTokensToRemove(UInt32 actorGuid, IReadOnlyList`1 tokenInstancesToRemove)
+    M IReadOnlyCollection`1 GetTokensToRemoveActorGuids()
+    M IReadOnlyList`1 GetTokensToRemoveTokenInstances(UInt32 actorGuid)
+    M IReadOnlyList`1 GetKilledActorGuids()
+    M IReadOnlyList`1 GetKilledCompleteTeamIndexes()
+  ==== Assets.Code.Skill.SkillCalculation/ResultType : System.Enum ====
+    F Int32 value__
+    F static ResultType TARGET
+    F static ResultType RIPOSTE_TARGET
+    F static ResultType ACT_OUT_TARGET
+    F static ResultType ADDITIONAL_EFFECTS
+    F static ResultType COUNT
+  ==== Assets.Code.Skill.SkillCalculation/<>c__DisplayClass21_0 : System.ValueType ====
+    F SkillCalculation <>4__this
+    F String resultSkillId
+    F Boolean reultSkillIsStallInvalidating
+    F TurnInformation turnInformation
+    F ActorDataEffects performerActorDataEffects
+    F List`1 potentialValidActorResults
+    F List`1 potentialPreviewOnlyActorResults
+    F Boolean isAnyResultCalculatedHit
+  ==== Assets.Code.Skill.SkillCalculation/<>c__DisplayClass29_0 : System.ValueType ====
+    F List`1 targetActors
+  ==== Assets.Code.Skill.SkillCalculation/<>c__DisplayClass33_0 : System.ValueType ====
+    F ActorInstance performerActor
+    F Input conditionCalculationInput
+    F ActorInstance targetActor
+  ==== Assets.Code.Skill.SkillCalculation/<>c__DisplayClass33_1 : System.ValueType ====
+    F OutputContainer`1 potentialPerformerAppliedEffectsOutputContainer
+    F ActorDataEffects performerActorDataEffects
+    F Boolean isKill
+    F OutputContainer`1 potentialTargetAppliedEffectsOutputContainer
+    F OutputContainer`1 potentialPerformerFromTargetAppliedEffectsOutputContainer
+  ==== Assets.Code.Skill.SkillCalculation/<>c__DisplayClass33_2 : System.ValueType ====
+    F ActorDataEffects targetActorDataEffects
+  ==== Assets.Code.Skill.SkillCalculation/<>c__DisplayClass46_0 : System.Object ====
+    F List`1 killedActorGuids

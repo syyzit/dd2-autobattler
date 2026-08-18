@@ -1,0 +1,247 @@
+==== Code.FlyingRat.Simulator.InputSimulator : UnityEngine.MonoBehaviour ====
+  F Dictionary`2 _wait
+  F ActorInstance[] _actors
+  F Boolean _actorsSetUp
+  F Boolean _disabled
+  F GameModeType _lastGameMode
+  F SimulatedCombatHandler _combatHandler
+  F PerformanceLogger _performanceLogger
+  F String _currentGameMode
+  F String _currentNode
+  F BiomeType _currentBiome
+  P Boolean Run
+  P InputSimulator Instance
+  M Void Setup()
+  M Void AssignEvents()
+  M Void DisposeEvents()
+  M Void Update()
+  M Void LogPerformance()
+  M IEnumerator Wait(Single time)
+  M Void SetGamepad()
+  M Void OnGameModeEnterComplete(GameModeType enteringGameMode, Boolean isLoad)
+  M Void OnGameModeExitStart(GameModeType exitingGameMode)
+  M Void OnGameModeExitComplete(GameModeType exitingGameMode)
+  M Void Submit()
+  M Void Cancel()
+  M Void Move(MoveDirection direction)
+  M Void SetupActors()
+  M Void AddTrophy()
+  M Void Rejuvenate()
+  M IEnumerator HandleGameModeEnterComplete(GameModeType enteringGameMode)
+  M IEnumerator HandleDriving()
+  M Boolean IsMountain()
+  M IEnumerator HandleAltarOfHope()
+  M IEnumerator HandleHeroSelect()
+  M IEnumerator HandleCombatResults()
+  M IEnumerator HandleInn()
+  M IEnumerator HandleEmbark()
+  M IEnumerator HandleIntersection()
+  M IEnumerator HandleNode(EventExecuteNodeStarted obj)
+  M Void OnIntersection(EventIntersectionCalculatedChoices obj)
+  M Void OnEnteredNode(EventExecuteNodeStarted obj)
+  M IEnumerator StoryHeroSelect()
+  M Void OnLeftNode(EventExecuteNodeEndSequenceCompleted evt)
+  M IEnumerator LeaveNode(EventExecuteNodeEndSequenceCompleted evt)
+  M Void OnLootWindowShown(EventLootWindowShown evt)
+  M IEnumerator HandleLootWindow(EventLootWindowShown evt)
+  M Void OnDoomWindowShown(EventDoomWindowShown evt)
+  M IEnumerator HandleDoomWindow(EventDoomWindowShown evt)
+  M Void OnConfirmShown(EventConfirmDialogOpen evt)
+  M IEnumerator HandleConfirmDialog(EventConfirmDialogOpen evt)
+  M Void OnBiomeSelectionShown(EventBiomeSelectionScreenOpened evt)
+  M IEnumerator HandleBiomeSelection(EventBiomeSelectionScreenOpened evt)
+  M Void OnEnterBiome(EventEnterBiome obj)
+  ==== Code.FlyingRat.Simulator.InputSimulator/<<HandleHeroSelect>g__NormalizeLeft|38_0>d : System.Object ====
+    F Int32 <>1__state
+    F Object <>2__current
+    F InputSimulator <>4__this
+    F Int32 <i>5__2
+    P Object System.Collections.Generic.IEnumerator<System.Object>.Current
+    P Object System.Collections.IEnumerator.Current
+    M Void System.IDisposable.Dispose()
+    M Boolean MoveNext()
+    M Void System.Collections.IEnumerator.Reset()
+  ==== Code.FlyingRat.Simulator.InputSimulator/<HandleAltarOfHope>d__37 : System.Object ====
+    F Int32 <>1__state
+    F Object <>2__current
+    F InputSimulator <>4__this
+    P Object System.Collections.Generic.IEnumerator<System.Object>.Current
+    P Object System.Collections.IEnumerator.Current
+    M Void System.IDisposable.Dispose()
+    M Boolean MoveNext()
+    M Void System.Collections.IEnumerator.Reset()
+  ==== Code.FlyingRat.Simulator.InputSimulator/<HandleBiomeSelection>d__56 : System.Object ====
+    F Int32 <>1__state
+    F Object <>2__current
+    F InputSimulator <>4__this
+    F EventBiomeSelectionScreenOpened evt
+    F Int32 <i>5__2
+    F Int32 <count>5__3
+    P Object System.Collections.Generic.IEnumerator<System.Object>.Current
+    P Object System.Collections.IEnumerator.Current
+    M Void System.IDisposable.Dispose()
+    M Boolean MoveNext()
+    M Void System.Collections.IEnumerator.Reset()
+  ==== Code.FlyingRat.Simulator.InputSimulator/<HandleCombatResults>d__39 : System.Object ====
+    F Int32 <>1__state
+    F Object <>2__current
+    F InputSimulator <>4__this
+    P Object System.Collections.Generic.IEnumerator<System.Object>.Current
+    P Object System.Collections.IEnumerator.Current
+    M Void System.IDisposable.Dispose()
+    M Boolean MoveNext()
+    M Void System.Collections.IEnumerator.Reset()
+  ==== Code.FlyingRat.Simulator.InputSimulator/<HandleConfirmDialog>d__54 : System.Object ====
+    F Int32 <>1__state
+    F Object <>2__current
+    F InputSimulator <>4__this
+    P Object System.Collections.Generic.IEnumerator<System.Object>.Current
+    P Object System.Collections.IEnumerator.Current
+    M Void System.IDisposable.Dispose()
+    M Boolean MoveNext()
+    M Void System.Collections.IEnumerator.Reset()
+  ==== Code.FlyingRat.Simulator.InputSimulator/<HandleDoomWindow>d__52 : System.Object ====
+    F Int32 <>1__state
+    F Object <>2__current
+    F InputSimulator <>4__this
+    P Object System.Collections.Generic.IEnumerator<System.Object>.Current
+    P Object System.Collections.IEnumerator.Current
+    M Void System.IDisposable.Dispose()
+    M Boolean MoveNext()
+    M Void System.Collections.IEnumerator.Reset()
+  ==== Code.FlyingRat.Simulator.InputSimulator/<HandleDriving>d__35 : System.Object ====
+    F Int32 <>1__state
+    F Object <>2__current
+    F InputSimulator <>4__this
+    P Object System.Collections.Generic.IEnumerator<System.Object>.Current
+    P Object System.Collections.IEnumerator.Current
+    M Void System.IDisposable.Dispose()
+    M Boolean MoveNext()
+    M Void System.Collections.IEnumerator.Reset()
+  ==== Code.FlyingRat.Simulator.InputSimulator/<HandleEmbark>d__41 : System.Object ====
+    F Int32 <>1__state
+    F Object <>2__current
+    F InputSimulator <>4__this
+    P Object System.Collections.Generic.IEnumerator<System.Object>.Current
+    P Object System.Collections.IEnumerator.Current
+    M Void System.IDisposable.Dispose()
+    M Boolean MoveNext()
+    M Void System.Collections.IEnumerator.Reset()
+  ==== Code.FlyingRat.Simulator.InputSimulator/<HandleGameModeEnterComplete>d__34 : System.Object ====
+    F Int32 <>1__state
+    F Object <>2__current
+    F GameModeType enteringGameMode
+    F InputSimulator <>4__this
+    P Object System.Collections.Generic.IEnumerator<System.Object>.Current
+    P Object System.Collections.IEnumerator.Current
+    M Void System.IDisposable.Dispose()
+    M Boolean MoveNext()
+    M Void System.Collections.IEnumerator.Reset()
+  ==== Code.FlyingRat.Simulator.InputSimulator/<HandleHeroSelect>d__38 : System.Object ====
+    F Int32 <>1__state
+    F Object <>2__current
+    F InputSimulator <>4__this
+    F Int32 <i>5__2
+    P Object System.Collections.Generic.IEnumerator<System.Object>.Current
+    P Object System.Collections.IEnumerator.Current
+    M Void System.IDisposable.Dispose()
+    M Boolean MoveNext()
+    M Void System.Collections.IEnumerator.Reset()
+  ==== Code.FlyingRat.Simulator.InputSimulator/<HandleInn>d__40 : System.Object ====
+    F Int32 <>1__state
+    F Object <>2__current
+    F InputSimulator <>4__this
+    P Object System.Collections.Generic.IEnumerator<System.Object>.Current
+    P Object System.Collections.IEnumerator.Current
+    M Void System.IDisposable.Dispose()
+    M Boolean MoveNext()
+    M Void System.Collections.IEnumerator.Reset()
+  ==== Code.FlyingRat.Simulator.InputSimulator/<HandleIntersection>d__42 : System.Object ====
+    F Int32 <>1__state
+    F Object <>2__current
+    F InputSimulator <>4__this
+    P Object System.Collections.Generic.IEnumerator<System.Object>.Current
+    P Object System.Collections.IEnumerator.Current
+    M Void System.IDisposable.Dispose()
+    M Boolean MoveNext()
+    M Void System.Collections.IEnumerator.Reset()
+  ==== Code.FlyingRat.Simulator.InputSimulator/<HandleLootWindow>d__50 : System.Object ====
+    F Int32 <>1__state
+    F Object <>2__current
+    F InputSimulator <>4__this
+    F EventLootWindowShown evt
+    P Object System.Collections.Generic.IEnumerator<System.Object>.Current
+    P Object System.Collections.IEnumerator.Current
+    M Void System.IDisposable.Dispose()
+    M Boolean MoveNext()
+    M Void System.Collections.IEnumerator.Reset()
+  ==== Code.FlyingRat.Simulator.InputSimulator/<HandleNode>d__43 : System.Object ====
+    F Int32 <>1__state
+    F Object <>2__current
+    F InputSimulator <>4__this
+    F EventExecuteNodeStarted obj
+    F Int32 <confession>5__2
+    F Int32 <i>5__3
+    P Object System.Collections.Generic.IEnumerator<System.Object>.Current
+    P Object System.Collections.IEnumerator.Current
+    M Void System.IDisposable.Dispose()
+    M Boolean MoveNext()
+    M Void System.Collections.IEnumerator.Reset()
+  ==== Code.FlyingRat.Simulator.InputSimulator/<LeaveNode>d__48 : System.Object ====
+    F Int32 <>1__state
+    F Object <>2__current
+    F EventExecuteNodeEndSequenceCompleted evt
+    F InputSimulator <>4__this
+    P Object System.Collections.Generic.IEnumerator<System.Object>.Current
+    P Object System.Collections.IEnumerator.Current
+    M Void System.IDisposable.Dispose()
+    M Boolean MoveNext()
+    M Void System.Collections.IEnumerator.Reset()
+  ==== Code.FlyingRat.Simulator.InputSimulator/<StoryHeroSelect>d__46 : System.Object ====
+    F Int32 <>1__state
+    F Object <>2__current
+    F InputSimulator <>4__this
+    P Object System.Collections.Generic.IEnumerator<System.Object>.Current
+    P Object System.Collections.IEnumerator.Current
+    M Void System.IDisposable.Dispose()
+    M Boolean MoveNext()
+    M Void System.Collections.IEnumerator.Reset()
+  ==== Code.FlyingRat.Simulator.InputSimulator/<Wait>d__23 : System.Object ====
+    F Int32 <>1__state
+    F Object <>2__current
+    F InputSimulator <>4__this
+    F Single time
+    P Object System.Collections.Generic.IEnumerator<System.Object>.Current
+    P Object System.Collections.IEnumerator.Current
+    M Void System.IDisposable.Dispose()
+    M Boolean MoveNext()
+    M Void System.Collections.IEnumerator.Reset()
+==== Code.FlyingRat.Simulator.InputSimulatorUtils : System.Object ====
+  F static Dictionary`2 simulatorActions
+  F static Dictionary`2 axisValues
+  M static Void Bind(String actionName, InputActionDelegate callback)
+  M static Void Unbind(String actionName, InputActionDelegate callback)
+  M static IEnumerator SimulateActionClick(String actionName)
+  M static IEnumerator SimulateAxis(String axisName, Single direction, Single duration)
+  M static Void SimulateActionEnd(String actionName, Boolean noLog)
+  M static Void SimulateActionStart(String actionName)
+  ==== Code.FlyingRat.Simulator.InputSimulatorUtils/<SimulateActionClick>d__4 : System.Object ====
+    F Int32 <>1__state
+    F Object <>2__current
+    F String actionName
+    P Object System.Collections.Generic.IEnumerator<System.Object>.Current
+    P Object System.Collections.IEnumerator.Current
+    M Void System.IDisposable.Dispose()
+    M Boolean MoveNext()
+    M Void System.Collections.IEnumerator.Reset()
+  ==== Code.FlyingRat.Simulator.InputSimulatorUtils/<SimulateAxis>d__5 : System.Object ====
+    F Int32 <>1__state
+    F Object <>2__current
+    F String axisName
+    F Single direction
+    F Single duration
+    P Object System.Collections.Generic.IEnumerator<System.Object>.Current
+    P Object System.Collections.IEnumerator.Current
+    M Void System.IDisposable.Dispose()
+    M Boolean MoveNext()
+    M Void System.Collections.IEnumerator.Reset()

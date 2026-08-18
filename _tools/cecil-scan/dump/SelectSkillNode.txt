@@ -1,0 +1,11 @@
+==== Assets.Code.AI.SelectSkillNode : Assets.Code.RedNodes.RedNode ====
+  F ResourceZoomInSkill m_Skill
+  F Boolean m_IsFinished
+  F AiRunnerData m_AiRunnerData
+  M IRedNodeResult OnEnter(IParameterSource parameterSource)
+  M Single UpdateNode(Single elapsedTime)
+  M Boolean IsFinished()
+  M Void ResetNode()
+  M Boolean CanSave()
+  M Void SetAiRunnerData(AiRunnerData aiRunnerData)
+  M Boolean GetUpdateNextNodeAfterFinish()

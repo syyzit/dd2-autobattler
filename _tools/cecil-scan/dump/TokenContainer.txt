@@ -1,0 +1,87 @@
+==== Assets.Code.Token.TokenContainer : Assets.Code.Actor.ActorContainer.ActorContainer`2<Assets.Code.Token.TokenInstance,Assets.Code.Token.TokenDefinition> ====
+  F DataContainer m_ActorData
+  F DataContainer m_SkillActorData
+  F List`1 m_CalculationTokenIgnores
+  F Boolean m_IsInSkillCalculation
+  F Boolean m_IsInSkillResultCalculation
+  F Boolean m_SkillResultIsUntracked
+  F Boolean m_SkillHitIsUntracked
+  F Input m_ConditionCalculationInput
+  P DataContainer ActorData
+  P Boolean IsUntracked
+  M Void InitInternal()
+  M Void DestroyInternal()
+  M Void OnChangeNumberOfInstancesInternal()
+  M Void OnBeforeDecrementDurations()
+  M Void OnDecrementDuration(TokenInstance tokenInstance)
+  M Void OnAfterDecrementDurations()
+  M Void OnAddedInstance(TokenInstance tokenInstance, Boolean sendEvent)
+  M Void OnRemovedInstance(TokenInstance tokenInstance, SourceType sourceType, String sourceId, UInt32 sourceActorGuid, Boolean sendEvent)
+  M Boolean GetIsCombatSpecificInternal()
+  M Boolean GetIsBlockingValid(TokenDefinition tokenDefinition)
+  M Void OnLoadFromJson()
+  M Void AddEventListeners()
+  M Void RemoveEventListeners()
+  M Void HandleEventBattleStateChanged(EventBattleStateChanged battleStateChangedEvent)
+  M Void HandleEventTokenRemoveWithSource(EventTokenEnsureExclusiveSource tokenEnsureExclusiveSourceEvent)
+  M Void HandleEventActorDeath(EventActorDeath actorDeathEvent)
+  M Void HandleEventActorCapture(EventActorCapture actorCaptureEvent)
+  M Void Add(TokenDefinition tokenDefinition, Boolean isSourceOnly, Boolean isLockedTeamPosition, SourceType sourceType, String sourceId, UInt32 sourceActorGuid)
+  M Void Add(TokenDefinition tokenDefinition, Boolean isSourceOnly, Boolean isLockedTeamPosition, SourceType sourceType, String sourceId, UInt32 sourceActorGuid, Int32 addAmount)
+  M Void Add(TokenDefinition tokenDefinition, Boolean isSourceOnly, Boolean isLockedTeamPosition, SourceType sourceType, String sourceId, UInt32 sourceActorGuid, Int32 addAmount, Boolean triggerAddEvent, Boolean isPopTextValid, Boolean isUiTextValid)
+  M Void AddRandomTokensWithTag(String tag, Boolean isSourceOnly, Int32 amount, Boolean isLockedTeamPosition, SourceType sourceType, String sourceId, UInt32 sourceActorGuid)
+  M Void OnStartSkillCalculation()
+  M Void OnEndSkillCalculation()
+  M Void OnStartSkillResultCalculation(Input conditionCalculationInput, Boolean isPreviewOnly)
+  M Void OnEndSkillResultCalcuation()
+  M Void OnStartSkillHitCalculation(Boolean isHit)
+  M Void OnEndSkillHitCalculation()
+  M Boolean GetHasTokenAsPerformer(TokenType tokenType)
+  M Boolean GetHasTokenAsTarget(TokenType tokenType)
+  M Boolean GetHasToken(TokenType tokenType, Boolean isPerformer, Boolean isTarget)
+  M Int32 GetNumberOfTokensOfType(TokenType tokenType, Boolean isPerformer, Boolean isTarget)
+  M Int32 GetNumberOfTokensWithId(String tokenId, Boolean checkIgnored)
+  M IReadOnlyList`1 GetRemoveDelayedTokens()
+  M IReadOnlyList`1 GetConsumeAttemptedTokens()
+  M Void ResetConsumedTokens()
+  M Void AddCalculationTokenIgnore(TokenIgnoreDefinition tokenIgnore)
+  M Void AddCalculationTokenIgnores(IReadOnlyList`1 tokenIgnores)
+  M Void RemoveCalculationTokenIgnore(TokenIgnoreDefinition tokenIgnore)
+  M Void ClearCalculationTokenIgnores()
+  M static Boolean IsCalculationTokenIgnored(IReadOnlyList`1 tokenIgnores, TokenDefinition tokenDefinition)
+  M Boolean IsCalculationTokenIgnored(TokenDefinition tokenDefinition)
+  M static Boolean IsCalculationTokenTypeIgnored(IReadOnlyList`1 calculationTokenIgnores, TokenType tokenType)
+  M Boolean IsCalculationTokenTypeIgnored(TokenType tokenType)
+  M static Boolean IsCalculationTokenIdIgnored(IReadOnlyList`1 tokenIgnores, String tokenId)
+  M Boolean IsCalculationTokenIdIgnored(String tokenId)
+  M Boolean IsTokenSourceActorGuidIgnored(IReadOnlyList`1 ignoredSourceActorGuids, UInt32 sourceActorGuid)
+  M Boolean IsTokenConditionMet(TokenDefinition tokenDefinition)
+  M IReadOnlyList`1 GetCalculationTokenIgnores()
+  M TokenConsumedResult AttemptConsumeToken(TokenType tokenType, IReadOnlyList`1 externalTokenIgnores, IReadOnlyList`1 ignoredSourceActorGuids)
+  M TokenConsumedResult AttemptConsumeToken(TokenType tokenType)
+  M TokenConsumedResult AttemptConsumeTokenAsPerformer(TokenType tokenType, IReadOnlyList`1 externalTokenIgnores, IReadOnlyList`1 ignoredSourceActorGuids)
+  M IReadOnlyList`1 AttemptConsumeAllTokensAsPerformer(TokenType tokenType)
+  M TokenConsumedResult AttemptConsumeTokenAsPerformer(TokenType tokenType)
+  M TokenConsumedResult AttemptConsumeTokenAsTarget(TokenType tokenType, IReadOnlyList`1 externalTokenIgnores, IReadOnlyList`1 ignoredSourceActorGuids)
+  M TokenConsumedResult AttemptConsumeTokenAsTarget(TokenType tokenType)
+  M IReadOnlyList`1 AttemptConsumeAllTokensAsTarget(TokenType tokenType)
+  M IReadOnlyList`1 AttemptConsumeTokens(TokenType tokenType, Int32 maxConsumeAttemptAmount, Int32 maxConsumeAmount, Boolean isPerformer, Boolean isTarget, IReadOnlyList`1 externalTokenIgnores, IReadOnlyList`1 ignoredSourceActorGuids)
+  M Boolean GetIsUnderTokenConsumeLimit(TokenDefinition tokenDefinition)
+  M IReadOnlyList`1 GetPotentialTokensToConsume(TokenType tokenType, Boolean isPerformer, Boolean isTarget, IReadOnlyList`1 externalTokenIgnores, IReadOnlyList`1 ignoredSourceActorGuids)
+  M Int32 GetNumberOfTokensConsumed(TokenType tokenType)
+  M Single GetChanceOfFirstConsumeTokenOfType(TokenType tokenType, Boolean isPerformer, Boolean isTarget, IReadOnlyList`1 externalTokenIgnores, IReadOnlyList`1 ignoredSourceActorGuids)
+  M Single GetChanceOfFirstConsumeTokenAsPerformer(TokenType tokenType)
+  M Single GetChanceOfFirstConsumeTokenAsTarget(TokenType tokenType)
+  ==== Assets.Code.Token.TokenContainer/<>c : System.Object ====
+    F static <>c <>9
+    F static Predicate`1 <>9__33_0
+    F static Predicate`1 <>9__34_0
+  ==== Assets.Code.Token.TokenContainer/<>c__DisplayClass15_0 : System.Object ====
+    F EventTokenEnsureExclusiveSource tokenEnsureExclusiveSourceEvent
+  ==== Assets.Code.Token.TokenContainer/<>c__DisplayClass16_0 : System.Object ====
+    F EventActorDeath actorDeathEvent
+  ==== Assets.Code.Token.TokenContainer/<>c__DisplayClass17_0 : System.Object ====
+    F EventActorCapture actorCaptureEvent
+  ==== Assets.Code.Token.TokenContainer/<>c__DisplayClass21_0 : System.Object ====
+    F String tag
+    F TokenContainer <>4__this

@@ -1,0 +1,10 @@
+T Assets.Code.Actor.Events.EventActorHealthHealPreview
+T Assets.Code.Combat.Presentation.CombatPreview.CombatPreviewSkillData
+T Assets.Code.Combat.Presentation.CombatPreview.ICombatPreviewLoaded
+T Assets.Code.Combat.Presentation.CombatPreviewSettings
+T Assets.Code.Skill.Queries.QuerySkillPreview
+T Assets.Code.Story.Events.EventShowStoryChoicePreviewBar
+T Assets.Code.Story.ResourceDatabaseStoryChoicePreview
+T Assets.Code.Story.ResourceStoryChoicePreview
+T Assets.Code.UI.Story.StoryChoicePreviewBarBhv
+T Unity.Cloud.UserReporting.UserReportPreview

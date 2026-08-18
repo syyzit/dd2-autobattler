@@ -1,0 +1,3 @@
+==== Assets.Code.Combat.Signals.ActivateSkillSignal : UnityEngine.Timeline.SignalAsset ====
+  F Int32 m_SkillNum
+  P Int32 SkillIndex

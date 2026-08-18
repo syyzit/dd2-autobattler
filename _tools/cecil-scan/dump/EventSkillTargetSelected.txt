@@ -1,0 +1,4 @@
+==== Assets.Code.Combat.Events.EventSkillTargetSelected : Assets.Code.Actor.Events.EventActorBase ====
+  P UInt32 TargetGuid
+  P String SkillId
+  M static Void Trigger(UInt32 actorGuid, UInt32 targetGuid, String skillId)

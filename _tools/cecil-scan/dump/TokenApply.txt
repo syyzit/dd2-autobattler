@@ -1,0 +1,2 @@
+==== Assets.Code.Token.TokenApply : System.Object ====
+  M static Void Apply(TokenContainer tokenContainer, BuffContainer buffContainer, DataContainer actorData, TokenDefinition token)

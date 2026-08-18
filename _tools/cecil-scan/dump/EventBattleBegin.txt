@@ -1,0 +1,6 @@
+==== Assets.Code.Combat.Events.EventBattleBegin : Assets.Code.Events.EventBase ====
+  F Int32 m_battleIndex
+  F BattleConfigurationDefinition m_BattleConfiguration
+  F CombatSource m_CombatSource
+  F Boolean m_IsLoad
+  M static Void Trigger(Int32 battleIndex, BattleConfigurationDefinition battleConfiguration, CombatSource combatSource, Boolean isLoad)

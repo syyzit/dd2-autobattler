@@ -1,0 +1,4 @@
+==== Assets.Code.UI.SelectionActorStatusType : Assets.Code.Utils.Serialization.SelectionCustomEnum`1<Assets.Code.Actor.ActorStatusType> ====
+  M static SelectionActorStatusType op_Implicit(ActorStatusType type)
+==== Assets.Code.Actor.ActorStatusType : Assets.Code.Utils.CustomEnum`1<Assets.Code.Actor.ActorStatusType> ====
+  F static ActorStatusType DEATHS_DOOR

@@ -1,0 +1,50 @@
+==== Code.FlyingRat.Simulator.SimulatedCombatHandler : System.Object ====
+  F Dictionary`2 _actorCache
+  F Coroutine _selectionCoroutine
+  F Boolean _failedTargetting
+  F Int32 _rounds
+  F List`1 _beneficialTokens
+  F static Int32 ROUND_BUFF_THRESHOLD
+  M Void Finalize()
+  M ActorInstance GetActor(UInt32 id)
+  M Void OnCombatBegin()
+  M Int32 GetSkillValue(String id)
+  M Void OnActorSelected(EventActorControllerCalculatedValidSkills evt)
+  M IEnumerator SelectSkill(UInt32 actorId, String skillId)
+  M IEnumerator ProceedInLair()
+  M Void OnLairScreenShown(EventLairNextBattleWindowShown evt)
+  M Void OnSkillFinalizeResults(EventSkillFinalizeResults eventSkillFinalizeResults)
+  M IEnumerator HealHeroes()
+  M Void OnRoundStarted(EventBattleStartRound eventBattleStartRound)
+  ==== Code.FlyingRat.Simulator.SimulatedCombatHandler/<>c : System.Object ====
+    F static <>c <>9
+    F static Func`2 <>9__11_0
+    F static Func`2 <>9__11_1
+  ==== Code.FlyingRat.Simulator.SimulatedCombatHandler/<HealHeroes>d__16 : System.Object ====
+    F Int32 <>1__state
+    F Object <>2__current
+    P Object System.Collections.Generic.IEnumerator<System.Object>.Current
+    P Object System.Collections.IEnumerator.Current
+    M Void System.IDisposable.Dispose()
+    M Boolean MoveNext()
+    M Void System.Collections.IEnumerator.Reset()
+  ==== Code.FlyingRat.Simulator.SimulatedCombatHandler/<ProceedInLair>d__13 : System.Object ====
+    F Int32 <>1__state
+    F Object <>2__current
+    P Object System.Collections.Generic.IEnumerator<System.Object>.Current
+    P Object System.Collections.IEnumerator.Current
+    M Void System.IDisposable.Dispose()
+    M Boolean MoveNext()
+    M Void System.Collections.IEnumerator.Reset()
+  ==== Code.FlyingRat.Simulator.SimulatedCombatHandler/<SelectSkill>d__12 : System.Object ====
+    F Int32 <>1__state
+    F Object <>2__current
+    F SimulatedCombatHandler <>4__this
+    F String skillId
+    F UInt32 actorId
+    F Int32 <i>5__2
+    P Object System.Collections.Generic.IEnumerator<System.Object>.Current
+    P Object System.Collections.IEnumerator.Current
+    M Void System.IDisposable.Dispose()
+    M Boolean MoveNext()
+    M Void System.Collections.IEnumerator.Reset()

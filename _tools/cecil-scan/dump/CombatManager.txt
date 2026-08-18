@@ -1,0 +1,34 @@
+==== Assets.Code.Combat.CombatManager : System.Object ====
+  F BiomeManager m_BiomeManager
+  F RosterManager m_RosterManager
+  F List`1 m_BattleConfigurationHistory
+  F Int32 m_CombatCount
+  F Guid m_CombatGuid
+  F Int32 m_RoundCount
+  F Dictionary`2 m_AppliedEffectsWithSourceMap
+  F Dictionary`2 m_OverstressedActorDataIdMap
+  F Dictionary`2 m_ClearedEnemyTokenCountsMap
+  P Int32 CombatCount
+  P Guid CombatGuid
+  P Int32 RoundCount
+  P Dictionary`2 AppliedEffectsWithSourceMap
+  P Dictionary`2 OverstressedActorDataIdMap
+  P Dictionary`2 ClearedEnemyTokenCountsMap
+  M Void InitPreLoad(BiomeManager biomeManager)
+  M Void InitPostLoad()
+  M Void Destroy()
+  M Void AddEventListeners()
+  M Void RemoveEventListeners()
+  M Void HandleEventBattleStartRound(EventBattleStartRound battleStartRoundEvent)
+  M Void HandleEventActorOverstress(EventActorOverstress actorOverstressEvent)
+  M Void HandleEventTokenRemoved(EventTokenRemoved evt)
+  M JToken SaveToJson()
+  M Void LoadFromJson(JObject data)
+  M Void ConstructFromOtherSaveJson(ObsoleteSaveConverter converter)
+  M Void OnGameModeEnterStart(GameModeType enteringGameMode, Boolean isLoad)
+  M Void OnGameModeExitComplete(GameModeType exitingGameMode)
+  M Void CombatStart(CombatScenarioData combatScenarioData)
+  M Void CombatEnd()
+  M Int32 GetBattleConfigurationHistoryCount(BattleConfigurationDefinition battleConfiguration)
+  M Int32 GetBattleConfigurationHistoryCount(String battleConfigurationTag)
+  M BattleConfigurationDefinition GetLastBattleConfigurationHistory()

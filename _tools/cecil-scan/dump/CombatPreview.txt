@@ -1,0 +1,32 @@
+==== Assets.Code.Combat.Presentation.CombatPreviewSettings : UnityEngine.ScriptableObject ====
+  F TimelineAsset m_ArenaDeathTimeline
+  F TimelineAsset m_DefaultArenaTimeline
+  F TimelineAsset m_DefaultRiposteTimeline
+  F TimelineAsset m_DefaultActOutTimeline
+  F TimelineAsset m_BackstabActOutTimeline
+  F String m_Editor_Combat_Arena
+  F String m_EnemyExampleTeam
+  F String m_FriendlyExampleTeam
+  F ResourceActor m_AdditionalTargetResource
+  F ConjoinedCombatPreviewGroup[] m_conjoinedCombatPreviewGroups
+  P TimelineAsset ArenaDeathTimeline
+  P TimelineAsset DefaultArenaTimeline
+  P TimelineAsset DefaultRiposteTimeline
+  P TimelineAsset DefaultActOutTimeline
+  P TimelineAsset BackstabActOutTimeline
+  P String Editor_Combat_Arena
+  P String EnemyExampleTeam
+  P String FriendlyExampleTeam
+  P ResourceActor AdditionalTargetResource
+  M Boolean IsTimelineValidForSkill(PlayableAsset timelineAsset, ResourceZoomInSkill resourceSkill)
+  M TimelineAsset GetActOutArenaTimeline(ResourceZoomInSkill zoomInSkill, Boolean logWarnings)
+  M Boolean TryGetConjoinedGroupForActor(ResourceActor actor, ConjoinedCombatPreviewGroup& foundGroup, Int32& requestedActorIndex)
+  ==== Assets.Code.Combat.Presentation.CombatPreviewSettings/ConjoinedCombatPreviewGroup : System.Object ====
+    F List`1 ConjoinedActors
+==== Assets.Code.Combat.Presentation.CombatPreview.CombatPreviewSkillData : System.Object ====
+  F static String EditorPrefs_PreviouslyLoadedSkill
+  F String m_ResourceSkillGuid
+  F String m_PerformerGuidOverride
+  F Int32 m_PerformerTeamPosition
+==== Assets.Code.Combat.Presentation.CombatPreview.ICombatPreviewLoaded :  ====
+  M Void OnLoadCombatPreview(CombatPresentationBhv combatPresentation)
