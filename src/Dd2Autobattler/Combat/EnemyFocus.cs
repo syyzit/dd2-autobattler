@@ -69,6 +69,7 @@ namespace Dd2Autobattler.Combat
             ApplyDreamingGeneralNote(focus, teams);
             ApplyTangleNotes(focus);
             ApplyDenialLocksNote(focus, teams);
+            ApplyHarvestChildNote(focus);
 
             if (focus.HasPriorityTarget)
             {
@@ -225,6 +226,8 @@ namespace Dd2Autobattler.Combat
                     why += "lock_ranged+";
                 else if (IdHas(e.ClassId, "lock_health"))
                     why += "lock_health+";
+                else if (IdHas(e.ClassId, "harvest_table"))
+                    why += "harvest_table+";
                 else
                     why += "bishop+";
             }
@@ -323,6 +326,35 @@ namespace Dd2Autobattler.Combat
             if (anyLocked && budget < 1)
                 budget = 1;
             return budget;
+        }
+
+        // wiki.gg/Harvest_Child: do not kill the meats. They block Maws of Life.
+        // Focus the table (Child). Meats are deferred while the table is alive.
+        private static void ApplyHarvestChildNote(EnemyFocus focus)
+        {
+            EnemyThreat table = null;
+            var meats = new List<EnemyThreat>();
+            for (var i = 0; i < focus.Enemies.Count; i++)
+            {
+                var e = focus.Enemies[i];
+                if (IdHas(e.ClassId, "harvest_table"))
+                    table = e;
+                else if (IdHas(e.ClassId, "fetid_meat") || IdHas(e.ClassId, "putrid_meat"))
+                    meats.Add(e);
+            }
+            if (table == null)
+                return;
+
+            focus.HasPriorityTarget = true;
+            focus.HasMustKillFirst = true;
+            table.MustKillFirst = true;
+            table.Defer = false;
+            for (var i = 0; i < meats.Count; i++)
+            {
+                meats[i].Defer = true;
+                meats[i].MustKillFirst = false;
+                meats[i].Add = true;
+            }
         }
 
         // wiki.gg/The_Shackles_of_Denial Strategy + r/darkestdungeon 19348th.

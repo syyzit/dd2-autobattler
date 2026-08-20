@@ -6,9 +6,9 @@ Not an official Red Hook mod. **Not a Steam Workshop item** (Workshop is data/CS
 
 ## Status
 
-Competent on road trash (playtested Plague Doctor / Grave Robber / Highwayman / Man-at-Arms). Named fights use **cited notes** only (`notes/cited-bosses.md`: wiki Strategy + game CSVs). Current notes: Dreaming General Taproot cadence, Tangle Bishop→Drummer, Shackles of Denial lock order.
+Competent on road trash (playtested Plague Doctor / Grave Robber / Highwayman / Man-at-Arms). Named fights use **cited notes** only (`notes/cited-bosses.md`: wiki Strategy + game CSVs). Current notes: Dreaming General Taproot cadence, Tangle Bishop→Drummer, Shackles of Denial lock order, Harvest Child (table, not the meats).
 
-Not done: relationship-skill filter, remaining Lair/Confession bosses, search, gambits. Retreat is opt-in and off.
+Not done: remaining Lair/Confession bosses, search, gambits. Retreat is opt-in and off. Cursed relationship skills lose to a clean alternative. A healer who cannot launch their heal will walk into rank if an ally is in crisis.
 
 ## Requirements
 

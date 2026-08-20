@@ -67,6 +67,12 @@ namespace Dd2Autobattler.Combat
             var lastEnemy = livingEnemies <= 1 && enemyTarget && !target.Corpse;
             var fightClosing = livingEnemies <= 1 && !enemyTarget;
             var role = ClassifyItem(skillId, def, kind, preview);
+            // Antivenom/bandage are cleanses first, but they still heal. On Death's Door
+            // that heal is the point - do not treat them as a wasted cleanse.
+            if (!enemyTarget && preview.Heal > 0f
+                && (target.DeathsDoor || target.HpPct <= 0.30f)
+                && role != ItemRole.Heal)
+                role = ItemRole.Heal;
 
             switch (role)
             {
