@@ -117,6 +117,8 @@ namespace Dd2Autobattler.Combat
             if (AllyInCrisis(teams) && !HasLegalAllyHeal(candidates))
                 ApplyHealReposition(candidates, performer);
             ApplyHarvestHungerGuard(candidates, performer, teams, focus);
+            ApplyLibrarianBookVeto(candidates, focus);
+            ApplyOnePly(candidates);
 
             var lastEnemy = FindLastLivingEnemy(candidates);
             var lastGuid = lastEnemy != null && lastEnemy.Actor != null ? lastEnemy.Actor.ActorGuid : 0u;
@@ -171,6 +173,7 @@ namespace Dd2Autobattler.Combat
             public string FocusWhy;
             public bool Cursed;
             public bool HealReposition;
+            public float Ply;
         }
 
         private static SkillKind Classify(string skillId, ActorDataSkill def, PreviewScore preview)
@@ -486,6 +489,7 @@ namespace Dd2Autobattler.Combat
                     ["kills"] = c.Preview != null && c.Preview.Kills,
                     ["curse"] = c.Cursed,
                     ["reposition"] = c.HealReposition,
+                    ["ply"] = c.Ply,
                     ["error"] = c.Preview != null ? c.Preview.Error : null
                 });
             }
@@ -508,6 +512,10 @@ namespace Dd2Autobattler.Combat
             if (IsHarvestHungerGuard(picked.SkillId) && picked.Score >= 80f)
                 return "hunger_guard";
             if (kind == SkillKind.Heal && target != null && target.DeathsDoor) return "heal_deaths_door";
+            if (kind == SkillKind.Attack && picked.FocusWhy != null
+                && picked.FocusWhy.IndexOf("librarian", StringComparison.OrdinalIgnoreCase) >= 0
+                && picked.FocusWhy.IndexOf("stack", StringComparison.OrdinalIgnoreCase) < 0)
+                return "focus_librarian";
             if (kind == SkillKind.Attack && picked.FocusWhy != null
                 && picked.FocusWhy.IndexOf("harvest_table", StringComparison.OrdinalIgnoreCase) >= 0)
                 return "focus_harvest";
@@ -556,6 +564,9 @@ namespace Dd2Autobattler.Combat
                 return "save_combo";
             if (tokens != null && !string.IsNullOrEmpty(tokens.Reason))
                 return tokens.Reason;
+            if (picked.Ply >= 8f && kind == SkillKind.Attack && enemyTarget
+                && preview != null && preview.Damage > 0f && !preview.Kills)
+                return "one_ply";
             if (preview.Kills) return "preview_kill";
             if (preview.Ok && preview.Damage > 0) return "preview_damage";
             if (kind == SkillKind.Attack && enemyTarget) return "attack_enemy";
@@ -571,6 +582,81 @@ namespace Dd2Autobattler.Combat
             return !string.IsNullOrEmpty(skillId)
                    && (skillId.IndexOf("hold_the_line", StringComparison.OrdinalIgnoreCase) >= 0
                        || skillId.IndexOf("toe_to_toe", StringComparison.OrdinalIgnoreCase) >= 0);
+        }
+
+        // Paper-apply this click's preview onto the board. Remaining enemy HP and
+        // kills beat a 0-damage Combo mark. Does not clone legal skills for the next hero.
+        private static void ApplyOnePly(List<ScoredAction> candidates)
+        {
+            if (candidates == null)
+                return;
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                var c = candidates[i];
+                if (c.IsItem)
+                    continue;
+                var ply = BoardDelta(c);
+                c.Ply = ply;
+                c.Score += ply;
+            }
+        }
+
+        private static float BoardDelta(ScoredAction c)
+        {
+            if (c == null || c.Kind != SkillKind.Attack || !c.EnemyTarget || c.Target == null || c.Target.Corpse)
+                return 0f;
+            var preview = c.Preview;
+            var dmg = preview != null ? preview.Damage : 0f;
+            var kills = preview != null && preview.Kills;
+            var ply = 0f;
+            if (kills)
+                ply += 28f;
+            else
+                ply += dmg * 1.2f;
+            var applyCombo = c.Tokens != null && TokenPrices.HasId(c.Tokens.Apply, "combo");
+            if (applyCombo && !kills && dmg < 1f)
+                ply -= 10f;
+            else if (applyCombo && !kills)
+                ply += 3f;
+            return ply;
+        }
+
+        // wiki.gg/Librarian: destroying a stack grants Burning Bright and speeds Ignite.
+        private static void ApplyLibrarianBookVeto(List<ScoredAction> candidates, EnemyFocus focus)
+        {
+            if (candidates == null || focus == null)
+                return;
+            var librarianUp = false;
+            for (var i = 0; i < focus.Enemies.Count; i++)
+            {
+                var id = focus.Enemies[i].ClassId;
+                if (string.IsNullOrEmpty(id))
+                    continue;
+                if (id.IndexOf("librarian_stack", StringComparison.OrdinalIgnoreCase) >= 0)
+                    continue;
+                if (id.IndexOf("librarian", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    librarianUp = true;
+                    break;
+                }
+            }
+            if (!librarianUp)
+                return;
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                var c = candidates[i];
+                if (!c.EnemyTarget || c.Target == null || c.Target.Actor == null)
+                    continue;
+                string classId = null;
+                try { classId = c.Target.Actor.ActorDataClass != null ? c.Target.Actor.ActorDataClass.GetKey() : null; } catch { }
+                if (string.IsNullOrEmpty(classId)
+                    || classId.IndexOf("librarian_stack", StringComparison.OrdinalIgnoreCase) < 0)
+                    continue;
+                if (c.Preview != null && c.Preview.Kills)
+                    c.Score -= 200f;
+                else
+                    c.Score -= 40f;
+            }
         }
 
         private static void ApplyHarvestHungerGuard(List<ScoredAction> candidates, ActorInstance performer, BattleTeams teams, EnemyFocus focus)
