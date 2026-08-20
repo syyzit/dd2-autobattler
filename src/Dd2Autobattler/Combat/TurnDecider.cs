@@ -106,11 +106,17 @@ namespace Dd2Autobattler.Combat
                             Score = score,
                             Stealthed = stealthed || target.Stealth,
                             Focus = enemyTarget && target != null && target.Actor != null ? focus.ScoreOf(target.Actor.ActorGuid) : 0f,
-                            FocusWhy = enemyTarget && target != null && target.Actor != null ? focus.Why(target.Actor.ActorGuid) : null
+                            FocusWhy = enemyTarget && target != null && target.Actor != null ? focus.Why(target.Actor.ActorGuid) : null,
+                            Cursed = IsCursedSkill(performer, entry.m_SkillId)
                         });
                     }
                 }
             }
+
+            ApplyCursePenalty(candidates);
+            if (AllyInCrisis(teams) && !HasLegalAllyHeal(candidates))
+                ApplyHealReposition(candidates, performer);
+            ApplyHarvestHungerGuard(candidates, performer, teams, focus);
 
             var lastEnemy = FindLastLivingEnemy(candidates);
             var lastGuid = lastEnemy != null && lastEnemy.Actor != null ? lastEnemy.Actor.ActorGuid : 0u;
@@ -163,6 +169,8 @@ namespace Dd2Autobattler.Combat
             public bool Stealthed;
             public float Focus;
             public string FocusWhy;
+            public bool Cursed;
+            public bool HealReposition;
         }
 
         private static SkillKind Classify(string skillId, ActorDataSkill def, PreviewScore preview)
@@ -394,11 +402,12 @@ namespace Dd2Autobattler.Combat
                     bestCrisisHeal = c;
                 var realHit = c.Kind == SkillKind.Attack && c.EnemyTarget && c.Target != null && !c.Target.Corpse
                               && c.Target.Actor != null && c.Target.Actor.IsLiving;
-                if (realHit && mustKillLegal && focus.IsDeferred(c.Target.Actor.ActorGuid))
+                var hungerGuard = IsHarvestHungerGuard(c.SkillId);
+                if (realHit && !hungerGuard && mustKillLegal && focus.IsDeferred(c.Target.Actor.ActorGuid))
                     continue;
-                if (realHit && priorityLegal && focus.IsDeferred(c.Target.Actor.ActorGuid))
+                if (realHit && !hungerGuard && priorityLegal && focus.IsDeferred(c.Target.Actor.ActorGuid))
                     continue;
-                if (realHit && priorityLegal && focus.IsAdd(c.Target.Actor.ActorGuid))
+                if (realHit && !hungerGuard && priorityLegal && focus.IsAdd(c.Target.Actor.ActorGuid))
                     continue;
                 if (realHit && (bestAttack == null || c.Score > bestAttack.Score))
                     bestAttack = c;
@@ -414,6 +423,18 @@ namespace Dd2Autobattler.Combat
                 if (!lastKill)
                     return bestCrisisHeal;
             }
+
+            ScoredAction bestReposition = null;
+            foreach (var c in candidates)
+            {
+                if (!c.HealReposition)
+                    continue;
+                if (bestReposition == null || c.Score > bestReposition.Score)
+                    bestReposition = c;
+            }
+            if (bestReposition != null)
+                return bestReposition;
+
             // One setup while the last enemy is awkward, then we must swing.
             if (allowSetup && bestSetup != null && bestAttack != null)
                 return bestSetup;
@@ -463,6 +484,8 @@ namespace Dd2Autobattler.Combat
                     ["dmg_hi"] = c.Preview != null ? c.Preview.DamageHigh : 0f,
                     ["heal"] = c.Preview != null ? c.Preview.Heal : 0f,
                     ["kills"] = c.Preview != null && c.Preview.Kills,
+                    ["curse"] = c.Cursed,
+                    ["reposition"] = c.HealReposition,
                     ["error"] = c.Preview != null ? c.Preview.Error : null
                 });
             }
@@ -481,7 +504,13 @@ namespace Dd2Autobattler.Combat
             var preview = picked.Preview;
             var target = picked.Target;
             var tokens = picked.Tokens;
+            if (picked.HealReposition) return "heal_reposition";
+            if (IsHarvestHungerGuard(picked.SkillId) && picked.Score >= 80f)
+                return "hunger_guard";
             if (kind == SkillKind.Heal && target != null && target.DeathsDoor) return "heal_deaths_door";
+            if (kind == SkillKind.Attack && picked.FocusWhy != null
+                && picked.FocusWhy.IndexOf("harvest_table", StringComparison.OrdinalIgnoreCase) >= 0)
+                return "focus_harvest";
             if (kind == SkillKind.Heal && target != null && target.HpPct <= 0.55f) return "heal_low_ally";
             if (allowSetup && (kind == SkillKind.Support || kind == SkillKind.Pass))
                 return "setup_once";
@@ -535,6 +564,201 @@ namespace Dd2Autobattler.Combat
             if (kind == SkillKind.Pass) return "pass";
             if (kind == SkillKind.Move) return "move_last_resort";
             return "fallback";
+        }
+
+        private static bool IsHarvestHungerGuard(string skillId)
+        {
+            return !string.IsNullOrEmpty(skillId)
+                   && (skillId.IndexOf("hold_the_line", StringComparison.OrdinalIgnoreCase) >= 0
+                       || skillId.IndexOf("toe_to_toe", StringComparison.OrdinalIgnoreCase) >= 0);
+        }
+
+        private static void ApplyHarvestHungerGuard(List<ScoredAction> candidates, ActorInstance performer, BattleTeams teams, EnemyFocus focus)
+        {
+            if (candidates == null || performer == null || teams == null || focus == null)
+                return;
+            var tableUp = false;
+            for (var i = 0; i < focus.Enemies.Count; i++)
+            {
+                if (focus.Enemies[i].ClassId != null
+                    && focus.Enemies[i].ClassId.IndexOf("harvest_table", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    tableUp = true;
+                    break;
+                }
+            }
+            if (!tableUp)
+                return;
+
+            var selfHungry = GameSnapshot.CountToken(performer, "harvest_hunger") > 0;
+            var allyHungry = false;
+            foreach (var hero in GameSnapshot.TeamActors(teams, BattleTeams.HERO_TEAM_INDEX))
+            {
+                if (hero == null || hero.ActorGuid == performer.ActorGuid)
+                    continue;
+                if (!hero.IsLiving || GameSnapshot.IsCorpse(hero))
+                    continue;
+                if (GameSnapshot.CountToken(hero, "harvest_hunger") > 0)
+                {
+                    allyHungry = true;
+                    break;
+                }
+            }
+
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                var c = candidates[i];
+                if (!IsHarvestHungerGuard(c.SkillId))
+                    continue;
+                if (selfHungry)
+                    c.Score -= 50f;
+                else if (allyHungry)
+                    c.Score += 80f;
+            }
+        }
+
+        private static bool AllyInCrisis(BattleTeams teams)
+        {
+            if (teams == null)
+                return false;
+            foreach (var hero in GameSnapshot.TeamActors(teams, BattleTeams.HERO_TEAM_INDEX))
+            {
+                if (hero == null || !hero.IsLiving || GameSnapshot.IsCorpse(hero))
+                    continue;
+                var body = GameSnapshot.Describe(hero);
+                if (body.DeathsDoor || body.HpPct <= 0.35f)
+                    return true;
+            }
+            return false;
+        }
+
+        private static bool HasLegalAllyHeal(List<ScoredAction> candidates)
+        {
+            if (candidates == null)
+                return false;
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                var c = candidates[i];
+                if (c.IsItem)
+                    continue;
+                if (c.Kind == SkillKind.Heal && !c.EnemyTarget && c.Target != null && !c.Target.Corpse)
+                    return true;
+            }
+            return false;
+        }
+
+        private static void ApplyCursePenalty(List<ScoredAction> candidates)
+        {
+            if (candidates == null)
+                return;
+            var cleanAttack = false;
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                var c = candidates[i];
+                if (!c.Cursed && c.Kind == SkillKind.Attack && c.EnemyTarget && c.Target != null && !c.Target.Corpse)
+                    cleanAttack = true;
+            }
+            if (!cleanAttack)
+                return;
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                var c = candidates[i];
+                if (!c.Cursed)
+                    continue;
+                if (c.Kind == SkillKind.Heal)
+                    continue;
+                c.Score -= 40f;
+            }
+        }
+
+        private static void ApplyHealReposition(List<ScoredAction> candidates, ActorInstance performer)
+        {
+            if (candidates == null || performer == null)
+                return;
+            var heals = BlockedHealSkills(performer);
+            if (heals.Count == 0)
+                return;
+            var size = 1;
+            try { size = performer.Size; } catch { }
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                var c = candidates[i];
+                if (c.Kind != SkillKind.Move || c.Target == null || c.Target.Actor == null)
+                    continue;
+                var dest = 0;
+                try { dest = c.Target.Actor.TeamPosition; } catch { continue; }
+                var helps = false;
+                for (var h = 0; h < heals.Count; h++)
+                {
+                    try
+                    {
+                        if (heals[h].GetHasLaunchRank(dest, size))
+                        {
+                            helps = true;
+                            break;
+                        }
+                    }
+                    catch { }
+                }
+                if (!helps)
+                    continue;
+                c.HealReposition = true;
+                c.Score = 200f;
+            }
+        }
+
+        private static List<ActorDataSkill> BlockedHealSkills(ActorInstance performer)
+        {
+            var blocked = new List<ActorDataSkill>();
+            IReadOnlyList<string> skillIds = null;
+            try { skillIds = performer.GetEquippedCombatSkillIds(); } catch { }
+            if (skillIds == null)
+                return blocked;
+            var rank = 0;
+            try { rank = performer.TeamPosition; } catch { }
+            var size = 1;
+            try { size = performer.Size; } catch { }
+
+            for (var i = 0; i < skillIds.Count; i++)
+            {
+                var id = skillIds[i];
+                var def = GetSkill(id);
+                if (def == null)
+                    continue;
+                try { if (def.IsItemSkill || def.IsMoveSkill) continue; } catch { }
+                if (!LooksLikeHeal(id, null) && !PartyKit.DescribeSkill(def).Heals)
+                    continue;
+                try
+                {
+                    if (!performer.GetIsUnderSkillLimit(def))
+                        continue;
+                }
+                catch { }
+                var fromHere = false;
+                try { fromHere = def.GetHasLaunchRank(rank, size); } catch { }
+                if (fromHere)
+                    continue;
+                blocked.Add(def);
+            }
+            return blocked;
+        }
+
+        private static bool IsCursedSkill(ActorInstance performer, string skillId)
+        {
+            if (performer == null || string.IsNullOrEmpty(skillId))
+                return false;
+            try
+            {
+                var inst = performer.GetCombatSkillInstance(skillId);
+                if (inst == null)
+                    return false;
+                var mod = inst.GetActiveSkillModifier(performer.ActorGuid);
+                return mod != null && mod.GetIsForceEquip();
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private static JArray ToArray(List<string> values)
