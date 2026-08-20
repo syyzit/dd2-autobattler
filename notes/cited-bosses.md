@@ -56,6 +56,14 @@ Do not encode a fallback that only we invented.
 - **Rules encoded:** if an ally is in crisis (Death's Door or <=35%) and no skill heal is legal, allow a move that lands the healer on a launch rank of an equipped heal that still has uses. Do not un-veto every swap.
 - Cleanse items that also heal (antivenom, bandage) are spent on Death's Door / <=30% instead of being scored as a wasted cleanse.
 
+## Librarian (Sprawl lair)
+
+- **Sources:** [wiki Strategy](https://darkestdungeon.wiki.gg/wiki/Librarian#Strategy). CSV: `fanatic_librarian` / `_ignited`, stacks `fanatic_librarian_stack_l` / `_m` / `_s`. Page Burner `librarian_books_destroyed` extra action; Ignite when no books left.
+- **Rules encoded:**
+  - Focus the Librarian. Book stacks are deferred while he is a legal attack.
+  - Do not finish a stack. Wiki: destroying books lets him Ignite sooner and grants a free party-wide Burning Bright. Kill him before the stacks are gone (about 6-7 rounds of his own Page Burner).
+- **Not encoded:** knockback to slide books behind him; Categorize alphabetical reorder; ignite-phase item/Burn-salve inn prep.
+
 ## How to add the next boss
 
 Copy the wiki Strategy paragraph into this file, quote the CSV keys that back the numbers, then encode only those sentences. If a live log looks drunk, write the mismatch here - do not invent a new rule from the log.

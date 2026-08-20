@@ -70,6 +70,7 @@ namespace Dd2Autobattler.Combat
             ApplyTangleNotes(focus);
             ApplyDenialLocksNote(focus, teams);
             ApplyHarvestChildNote(focus);
+            ApplyLibrarianNote(focus);
 
             if (focus.HasPriorityTarget)
             {
@@ -228,6 +229,8 @@ namespace Dd2Autobattler.Combat
                     why += "lock_health+";
                 else if (IdHas(e.ClassId, "harvest_table"))
                     why += "harvest_table+";
+                else if (IdHas(e.ClassId, "librarian") && !IdHas(e.ClassId, "stack"))
+                    why += "librarian+";
                 else
                     why += "bishop+";
             }
@@ -326,6 +329,36 @@ namespace Dd2Autobattler.Combat
             if (anyLocked && budget < 1)
                 budget = 1;
             return budget;
+        }
+
+        // wiki.gg/Librarian Strategy: do not destroy the book stacks. Killing a
+        // stack gives a free Burning Bright and speeds Ignite. Hit the Librarian.
+        private static void ApplyLibrarianNote(EnemyFocus focus)
+        {
+            EnemyThreat librarian = null;
+            var books = new List<EnemyThreat>();
+            for (var i = 0; i < focus.Enemies.Count; i++)
+            {
+                var e = focus.Enemies[i];
+                if (IdHas(e.ClassId, "librarian_stack"))
+                    books.Add(e);
+                else if (IdHas(e.ClassId, "librarian"))
+                    librarian = e;
+            }
+            if (librarian == null)
+                return;
+
+            focus.HasPriorityTarget = true;
+            focus.HasMustKillFirst = true;
+            librarian.MustKillFirst = true;
+            librarian.Defer = false;
+            librarian.Boss = true;
+            for (var i = 0; i < books.Count; i++)
+            {
+                books[i].Defer = true;
+                books[i].MustKillFirst = false;
+                books[i].Add = true;
+            }
         }
 
         // wiki.gg/Harvest_Child: do not kill the meats. They block Maws of Life.
