@@ -25,6 +25,8 @@ namespace Dd2Autobattler.Combat
         public bool Commander;
         public bool LungInflate;
         public bool DiesToDot;
+        public bool Dodge;
+        public bool Riposte;
         public int Size;
         public float Score;
         public string Why;
@@ -39,6 +41,10 @@ namespace Dd2Autobattler.Combat
         public int DgRound;
         public int DgTaprootBudget;
         public int DgTaprootHits;
+        public bool LeviathanHandUp;
+        public bool ExemplarUp;
+        public bool ReachPhase2;
+        public bool ReachPhase3;
 
         public static EnemyFocus Scan(BattleTeams teams)
         {
@@ -499,6 +505,7 @@ namespace Dd2Autobattler.Combat
 
             if (exemplar != null)
             {
+                focus.ExemplarUp = true;
                 focus.HasPriorityTarget = true;
                 focus.HasMustKillFirst = true;
                 exemplar.MustKillFirst = true;
@@ -568,6 +575,10 @@ namespace Dd2Autobattler.Combat
                 if (!IdHas(e.ClassId, "boss_arms_phase"))
                     continue;
                 arms = true;
+                if (IdHas(e.ClassId, "boss_arms_phase2"))
+                    focus.ReachPhase2 = true;
+                else if (IdHas(e.ClassId, "boss_arms_phase3"))
+                    focus.ReachPhase3 = true;
                 e.MustKillFirst = true;
                 e.Defer = false;
                 e.Add = false;
@@ -691,6 +702,7 @@ namespace Dd2Autobattler.Combat
             if (hand == null)
                 return;
 
+            focus.LeviathanHandUp = true;
             focus.HasPriorityTarget = true;
             if (hand.DiesToDot)
             {
@@ -1038,7 +1050,11 @@ namespace Dd2Autobattler.Combat
             {
                 var info = GameSnapshot.Describe(actor);
                 if (info != null)
+                {
                     threat.DiesToDot = info.DiesToDot;
+                    threat.Dodge = info.Dodge;
+                    threat.Riposte = info.Riposte;
+                }
             }
             catch { }
 
