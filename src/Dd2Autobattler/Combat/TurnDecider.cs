@@ -116,8 +116,9 @@ namespace Dd2Autobattler.Combat
             ApplyCursePenalty(candidates);
             if (AllyInCrisis(teams) && !HasLegalAllyHeal(candidates))
                 ApplyHealReposition(candidates, performer);
-            if (livingEnemies <= 1 && !HasDamagingLastEnemyHit(candidates))
-                ApplyReachReposition(candidates, performer);
+            var reachTarget = ReachWalkTarget(candidates, performer, teams, focus, livingEnemies);
+            if (reachTarget != null)
+                ApplyReachReposition(candidates, performer, reachTarget);
             ApplyHarvestHungerGuard(candidates, performer, teams, focus);
             ApplyLibrarianBookVeto(candidates, focus);
             ApplySighLungVeto(candidates, focus);
@@ -217,6 +218,9 @@ namespace Dd2Autobattler.Combat
             if (preview != null && (preview.HealValid || preview.Heal > 0f))
                 return true;
             if (string.IsNullOrEmpty(skillId))
+                return false;
+            // pass_heal is Rest. Do not treat it as a skill heal that needs a launch rank.
+            if (IsPassHeal(skillId) || skillId.StartsWith("pass_", StringComparison.OrdinalIgnoreCase))
                 return false;
             return skillId.IndexOf("heal", StringComparison.OrdinalIgnoreCase) >= 0
                    || skillId.IndexOf("battlefield_medicine", StringComparison.OrdinalIgnoreCase) >= 0
@@ -1069,10 +1073,9 @@ namespace Dd2Autobattler.Combat
             }
         }
 
-        // Last living enemy sits behind corpses. 0-damage marks and Defender are
-        // legal; the damaging skill is not, because launch ranks are wrong. Walk
-        // onto a launch rank instead of buffing.
-        private static bool HasDamagingLastEnemyHit(List<ScoredAction> candidates)
+        // Last living enemy behind corpses, or a must-kill (Librarian) this
+        // hero cannot damage from the current rank. 0-damage Combo marks do not count.
+        private static bool HasDamagingHitOn(List<ScoredAction> candidates, uint guid)
         {
             if (candidates == null)
                 return false;
@@ -1085,39 +1088,74 @@ namespace Dd2Autobattler.Combat
                     continue;
                 if (c.Target.Actor == null || !c.Target.Actor.IsLiving)
                     continue;
+                if (guid != 0 && c.Target.Actor.ActorGuid != guid)
+                    continue;
                 if (c.Preview != null && c.Preview.Damage > 0f)
                     return true;
             }
             return false;
         }
 
-        private static void ApplyReachReposition(List<ScoredAction> candidates, ActorInstance performer)
+        private static bool HasDamagingMustKillHit(List<ScoredAction> candidates, EnemyFocus focus)
         {
-            if (candidates == null || performer == null)
-                return;
-            TargetInfo last = null;
+            if (candidates == null || focus == null)
+                return false;
             for (var i = 0; i < candidates.Count; i++)
             {
-                var t = candidates[i].Target;
-                if (t == null || !candidates[i].EnemyTarget || t.Corpse || t.Actor == null || !t.Actor.IsLiving)
+                var c = candidates[i];
+                if (c.IsItem && c.FreeAction)
                     continue;
-                if (last == null)
-                    last = t;
-                else if (t.Actor.ActorGuid != last.Actor.ActorGuid)
-                    return;
+                if (c.Kind != SkillKind.Attack || !c.EnemyTarget || c.Target == null || c.Target.Corpse)
+                    continue;
+                if (c.Target.Actor == null || !c.Target.Actor.IsLiving)
+                    continue;
+                if (c.Preview == null || c.Preview.Damage <= 0f)
+                    continue;
+                if (focus.IsMustKillFirst(c.Target.Actor.ActorGuid))
+                    return true;
             }
-            if (last == null || last.Actor == null)
-                return;
+            return false;
+        }
 
-            var skills = BlockedReachSkills(performer, last.Actor);
+        private static ActorInstance ReachWalkTarget(List<ScoredAction> candidates, ActorInstance performer, BattleTeams teams, EnemyFocus focus, int livingEnemies)
+        {
+            if (livingEnemies <= 1 && !HasDamagingHitOn(candidates, 0))
+            {
+                var last = FindLastLivingEnemy(candidates);
+                return last != null ? last.Actor : null;
+            }
+
+            if (focus == null || !focus.HasMustKillFirst || HasDamagingMustKillHit(candidates, focus))
+                return null;
+
+            for (var i = 0; i < focus.Enemies.Count; i++)
+            {
+                var e = focus.Enemies[i];
+                if (e == null || !e.MustKillFirst)
+                    continue;
+                var actor = GetActor(teams, e.Guid);
+                if (actor == null || !actor.IsLiving)
+                    continue;
+                try { if (GameSnapshot.IsCorpse(actor)) continue; } catch { }
+                if (BlockedReachSkills(performer, actor).Count > 0)
+                    return actor;
+            }
+            return null;
+        }
+
+        private static void ApplyReachReposition(List<ScoredAction> candidates, ActorInstance performer, ActorInstance enemy)
+        {
+            if (candidates == null || performer == null || enemy == null)
+                return;
+            var skills = BlockedReachSkills(performer, enemy);
             if (skills.Count == 0)
                 return;
             var size = 1;
             try { size = performer.Size; } catch { }
             var enemyRank = 0;
             var enemySize = 1;
-            try { enemyRank = last.Actor.TeamPosition; } catch { return; }
-            try { enemySize = last.Actor.Size; } catch { }
+            try { enemyRank = enemy.TeamPosition; } catch { return; }
+            try { enemySize = enemy.Size; } catch { }
 
             for (var i = 0; i < candidates.Count; i++)
             {
@@ -1154,8 +1192,6 @@ namespace Dd2Autobattler.Combat
             try { skillIds = performer.GetEquippedCombatSkillIds(); } catch { }
             if (skillIds == null || enemy == null)
                 return blocked;
-            var rank = 0;
-            try { rank = performer.TeamPosition; } catch { }
             var size = 1;
             try { size = performer.Size; } catch { }
             var enemyRank = 0;
@@ -1171,7 +1207,7 @@ namespace Dd2Autobattler.Combat
                     continue;
                 try { if (def.IsItemSkill || def.IsMoveSkill) continue; } catch { }
                 try { if (def.m_IsFriendly) continue; } catch { }
-                if (LooksLikeHeal(id, null))
+                if (LooksLikeHeal(id, null) || IsPassHeal(id))
                     continue;
                 try
                 {
@@ -1179,29 +1215,19 @@ namespace Dd2Autobattler.Combat
                         continue;
                 }
                 catch { }
-                var fromHere = false;
-                try { fromHere = def.GetHasLaunchRank(rank, size); } catch { }
-                if (fromHere)
-                    continue;
                 var hitsThem = false;
-                try { hitsThem = def.GetHasTargetRank(rank, size, enemyRank, enemySize); } catch { }
-                // Some skills only gain the back rank after the walk. Check dest
-                // ranks 0-3 as well as the current one.
-                if (!hitsThem)
+                for (var dest = 0; dest < 4; dest++)
                 {
-                    for (var dest = 0; dest < 4; dest++)
+                    try
                     {
-                        try
+                        if (def.GetHasLaunchRank(dest, size)
+                            && def.GetHasTargetRank(dest, size, enemyRank, enemySize))
                         {
-                            if (def.GetHasLaunchRank(dest, size)
-                                && def.GetHasTargetRank(dest, size, enemyRank, enemySize))
-                            {
-                                hitsThem = true;
-                                break;
-                            }
+                            hitsThem = true;
+                            break;
                         }
-                        catch { }
                     }
+                    catch { }
                 }
                 if (!hitsThem)
                     continue;
@@ -1229,6 +1255,8 @@ namespace Dd2Autobattler.Combat
                 if (def == null)
                     continue;
                 try { if (def.IsItemSkill || def.IsMoveSkill) continue; } catch { }
+                if (IsPassHeal(id))
+                    continue;
                 if (!LooksLikeHeal(id, null) && !PartyKit.DescribeSkill(def).Heals)
                     continue;
                 try

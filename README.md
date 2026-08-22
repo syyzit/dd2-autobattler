@@ -12,7 +12,7 @@ Competent on road trash (playtested Plague Doctor / Grave Robber / Highwayman / 
 
 If the skill heal is spent, food/bandage/antivenom still fire on Death's Door. A last-enemy kill does not skip a Death's Door heal.
 
-Not done: Ravenous Reach, Body of Work, gambits. Retreat is opt-in and off. Cursed relationship skills lose to a clean alternative. A healer who cannot launch their heal will walk into rank if an ally is in crisis. A damage dealer who cannot reach the last living enemy (corpses in front) will walk onto a launch rank. Pouch of Lye clears a corpse, especially then. Round memory stops a second crisis heal on the same ally and stops Combo apply after the spender already acted. Support skills that heal stress (Inspiring Tune, Bolster) score like laudanum. AoE that splashes a must-kill is not vetoed just because the click target is an add.
+Not done: Ravenous Reach, Body of Work, gambits. Retreat is opt-in and off. Cursed relationship skills lose to a clean alternative. A healer who cannot launch their heal will walk into rank if an ally is in crisis (`pass_heal` does not count). A damage dealer who cannot reach the last living enemy, or the current must-kill, will walk onto a launch rank. Pouch of Lye clears a corpse, especially then. Round memory stops a second crisis heal on the same ally and stops Combo apply after the spender already acted. Support skills that heal stress (Inspiring Tune, Bolster) score like laudanum. AoE that splashes a must-kill is not vetoed just because the click target is an add.
 
 ## Requirements
 
