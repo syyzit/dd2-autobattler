@@ -103,7 +103,8 @@ Do not encode a fallback that only we invented.
   - While the Hand is up and not dying to DoT, it is `must_kill`. The body is deferred. Wiki: "the hand is by far the most important target"; "only once the hand is dead (or dying from DoT) should the heroes focus on damaging the Leviathan itself." Recast next round is expected — kill it again.
   - If the Hand is dying to DoT, defer it and hit the body.
   - Body-only (Hand not out yet, or already dead this round): no extra rule; default boss scoring.
-- **Not encoded:** Taunt/Guard to bait Undertow onto high Move RES; Ceremonial Drums; DoT-RES piercing / blight-burn skill picks; moving Call of the Deep marks out of ranks 1-2. Those are inn/token/hero picks, not a targeting rule.
+  - Undertow captures a `call_of_the_deep` mark in hero ranks 1-2 only (CSV `target_has_call_of_the_deep`; wiki: ignores Taunt / Dodge / Blind / Immobilize). If this hero is marked in ranks 1-2 and cannot kill the Hand this click, walk toward ranks 3-4 so Undertow has no legal target.
+- **Not encoded:** Guard / Move RES bait; Ceremonial Drums; DoT-RES piercing / blight-burn skill picks. Wiki: do not Taunt-bait Undertow (it ignores Taunt).
 
 ## Cultists (Oblivion's Ingress / Rampart)
 
@@ -112,14 +113,17 @@ Do not encode a fallback that only we invented.
   - Deacon or Cardinal on the board: kill regular cultists first (Altar included). The boss is deferred while any regular is alive. Wiki: "imperative to kill regular Cultist enemies, especially Altars, as quickly as possible before they can empower their bosses."
   - Exemplar (Act 3+ last-region Rampart): Exemplar is `must_kill`. Altar / Cherub / Evangelist are deferred (wiki: he will Pillar of Sacrifice them; damage on them is often wasted). Herald is not deferred — wiki: worth considering a kill — but not forced over the Exemplar if both are legal.
   - Holy Water / Combo-strip on a hero who has Combo: spend it. Wiki: The Fall on Combo is how Exemplar gains Worship for Exultation.
-- **Not encoded:** Shred of Decency as a named item (it already classifies as a strip if the CSV says so); Taunt-rank-4 The Fall bait; inn blight resist. Kingdoms Tundra Exemplar.
+  - The Fall (CSV `exemplar_the_fall`): Combo-gated, `target_ranks` 1-3. Taunt on a rank-4 hero skips it (wiki: forces Prelude / Rapturous Beauty). If Combo is live in ranks 1-3 and this hero cannot strip it, walk onto rank 4 when an equipped Taunt skill launches from there (not Hold the Line / Toe to Toe — those walk you forward).
+  - Defender / Guard on a Combo ally when this hero does not also have Combo: The Fall hits the guarder; Worship only if that guarder has Combo.
+- **Not encoded:** Shred of Decency as a named item (it already classifies as a strip if the CSV says so); inn blight resist. Kingdoms Tundra Exemplar.
 
 ## Ravenous Reach (Ambition / Confession 4)
 
 - **Sources:** [wiki Strategy](https://darkestdungeon.wiki.gg/wiki/Ravenous_Reach#Strategy). CSV: `boss_arms_phase1` / `_phase2` / `_phase3`. p1 Ideation Block+ x3 and Setback (Combo: ignore Dodge, +100% DMG, Stun). p2 Dodge x2 and Teardown. p3 Riposte x2.
 - **Rules encoded:**
   - The arms are `must_kill` (only target; marks walk-for-reach).
-  - p1: Combo-strip on heroes (Setback). Token-strip on the boss is the existing consume/remove scorer (Double Cross, Tracking Shot, Highway Robbery, Bellow).
+  - p1: Combo-strip on heroes (Setback).
+  - p2 Dodge x2 / p3 Riposte x2: a legal strip (Tracking Shot, Highway Robbery, Bellow, Magnesium Rain) beats a non-kill attack. Last-enemy Riposte no longer waives the peel — the arms *are* the last enemy.
 - **Not encoded:** inn bleed-RES / Fate's Foreteller plan; Sergeant immobility trophy; hero-path skill picks; Bastard's Beacon extra riders. Bleed cleanse on allies is the existing DoT-item policy.
 
 ## Body of Work (Cowardice / Confession 5)
@@ -127,10 +131,10 @@ Do not encode a fallback that only we invented.
 - **Sources:** [wiki Body of Work](https://darkestdungeon.wiki.gg/wiki/Body_of_Work) phase Strategy sections. CSV: p1 `boss_body_phase1` (Gut), p2 `boss_body_phase2` (Gaze), p3 `boss_body_phase3` (God 999 HP); Proclaimers `boss_body_cherub`; Spectres `boss_body_failure_*`. Contempt token `torso_target`; Gastric Juice `gastric_juice`. Face Your Failure after both Proclaimers die; Spectre kill unlocks the 200-damage confession attack.
 - **Rules encoded:**
   - p1/p2: the body is `must_kill`.
-  - p2: do not stack a 4th positive token (wiki: Covetous Glance steals all at 4+). Guard/heal the hero with `torso_target` (Haymaker mark). Breaking Windup is just "hit the boss" — default damage scoring.
+  - p2: do not stack a 4th positive token (wiki: Covetous Glance steals all at 4+). Guard the hero with `torso_target` (Haymaker redirects onto the tank; wiki: Guard, not Taunt — Haymaker ignores Taunt/Dodge/Stealth/Blind). Heal the mark if Guard is not legal. Weak or Block on the Gaze blunts Haymaker.
   - p3: Proclaimers `must_kill`, God deferred. Then Spectre `must_kill`, God deferred. Then the God. Wiki: defeating both Proclaimers unlocks Face Your Failure; the Spectre pay-off is 200 damage (x4 = 800 of the 999).
   - p3: do not pile extra Strength/Block/Dodge (wiki: Strange Axis inverts positives).
-- **Not encoded:** inn blight-RES for Catabolize; Block/Weak to blunt Haymaker; hero-specific 200-damage skill; Bastard's Beacon. Blight cleanse on Gastric Juice is the existing DoT-item policy.
+- **Not encoded:** inn blight-RES for Catabolize; hero-specific 200-damage skill; Bastard's Beacon. Blight cleanse on Gastric Juice is the existing DoT-item policy.
 
 ## Ordainment
 

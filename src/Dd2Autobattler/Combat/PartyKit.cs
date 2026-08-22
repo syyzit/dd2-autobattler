@@ -45,6 +45,7 @@ namespace Dd2Autobattler.Combat
         public bool AppliesStrength;
         public bool AppliesBlock;
         public bool AppliesGuard;
+        public bool AppliesTaunt;
     }
 
     internal sealed class PartyKit
@@ -346,6 +347,8 @@ namespace Dd2Autobattler.Combat
                     intel.AppliesBlock = true;
                 if (IdHas(effect.m_TokenAddId, "guard"))
                     intel.AppliesGuard = true;
+                if (IdHas(effect.m_TokenAddId, "taunt"))
+                    intel.AppliesTaunt = true;
                 if (IdHas(effect.m_DotAddId, "bleed"))
                     intel.Bleed = true;
                 if (IdHas(effect.m_DotAddId, "blight"))

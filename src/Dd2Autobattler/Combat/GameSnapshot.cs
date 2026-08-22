@@ -39,6 +39,9 @@ namespace Dd2Autobattler.Combat
         public bool LungInflate;
         public bool TorsoTarget;
         public int PositiveTokens;
+        public int Rank;
+        public bool Taunt;
+        public bool CallOfTheDeep;
     }
 
     public static class GameSnapshot
@@ -112,6 +115,8 @@ namespace Dd2Autobattler.Combat
                 ["tangled_lock"] = info.TangledLock,
                 ["eyes_focus"] = info.EyesFocus,
                 ["lung_inflate"] = info.LungInflate,
+                ["taunt"] = info.Taunt,
+                ["call_of_the_deep"] = info.CallOfTheDeep,
                 ["tokens"] = tokens
             };
         }
@@ -152,6 +157,9 @@ namespace Dd2Autobattler.Combat
             info.TorsoTarget = CountToken(actor, "torso_target") > 0;
             info.PositiveTokens = info.StrengthCount + info.BlockCount + info.DodgeCount
                                   + (info.Riposte ? 1 : 0) + CountToken(actor, "crit");
+            try { info.Rank = actor.TeamPosition; } catch { }
+            info.Taunt = CountToken(actor, "taunt") > 0;
+            info.CallOfTheDeep = CountToken(actor, "call_of_the_deep") > 0;
             return info;
         }
 
