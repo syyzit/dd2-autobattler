@@ -66,5 +66,26 @@ namespace Dd2Autobattler.Tests
             Assert.Equal(-250f, eval.Score);
             Assert.Equal("item_skip_corpse", eval.Reason);
         }
+
+        [Fact]
+        public void Rag_on_blind_is_strip_use_now()
+        {
+            var preview = new PreviewScore { Ok = true };
+            var target = new TargetInfo { Blind = true, Hp = 20f, HpPct = 1f };
+            var eval = ItemPolicy.Evaluate("rag", null, SkillKind.Support, false, preview, target, null, 3, 2);
+            Assert.True(eval.UseNow);
+            Assert.True(eval.Crisis);
+            Assert.Equal("item_strip", eval.Reason);
+        }
+
+        [Fact]
+        public void Single_leech_on_ally_is_disease_use_now()
+        {
+            var preview = new PreviewScore { Ok = true };
+            var target = new TargetInfo { Hp = 20f, HpPct = 1f };
+            var eval = ItemPolicy.Evaluate("single_leech", null, SkillKind.Support, false, preview, target, null, 3, 2);
+            Assert.True(eval.UseNow);
+            Assert.Equal("item_disease", eval.Reason);
+        }
     }
 }

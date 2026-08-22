@@ -57,7 +57,7 @@ Do not encode a fallback that only we invented.
 - Cleanse items that also heal (antivenom, bandage) are spent on Death's Door / <=30% instead of being scored as a wasted cleanse.
 - If the skill heal is spent (`m_Limit`) and someone is on Death's Door or <=30%, food/bandage/antivenom that still heal are forced. A last-enemy kill does not skip a Death's Door heal. Support (Ounce of Prevention) is penalized while the party is in crisis.
 - Last living enemy behind corpses: if no damaging attack is legal, walk onto a launch rank of an equipped attack that can hit that rank. 0-damage Combo marks do not count as a hit. Do not un-veto every swap.
-- Pouch of Lye (`pouch_of_lye`, CSV `target_is_corpse_hidden` / `clear_corpse`, performer `stress_heal_1_if_target_is_corpse`, free action): spend on a corpse, especially when one enemy is left. Grenades that happen to click a corpse still skip.
+- Combat items are classified from CSV conditions/tags, not a name list: `target_is_corpse_hidden` (Pouch of Lye), `target_has_*_dot` (DoT cleanse), `target_is_diseased` (Single Leech), `target_has_blind` (Rag), `stress_heal`, `heal`. Enemy items stay attacks (witchbane). Grenades that click a corpse still skip. Buffs (powders, war horn, The Blood) stay on the token/buff scorer — do not dump them.
 
 ## Chirurgeon (Gaunt table)
 

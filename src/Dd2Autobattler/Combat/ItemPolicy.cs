@@ -82,7 +82,7 @@ namespace Dd2Autobattler.Combat
 
             var lastEnemy = livingEnemies <= 1 && enemyTarget && !target.Corpse;
             var fightClosing = livingEnemies <= 1 && !enemyTarget;
-            var role = ClassifyItem(skillId, def, kind, preview);
+            var role = ClassifyItem(skillId, def, kind, preview, enemyTarget);
             // Antivenom/bandage are cleanses first, but they still heal. On Death's Door
             // that heal is the point - do not treat them as a wasted cleanse.
             if (!enemyTarget && preview.Heal > 0f
@@ -103,6 +103,9 @@ namespace Dd2Autobattler.Combat
                     break;
                 case ItemRole.Strip:
                     ScoreStrip(eval, target, tokens);
+                    break;
+                case ItemRole.Disease:
+                    ScoreDisease(eval, target);
                     break;
                 case ItemRole.Attack:
                     ScoreAttack(eval, preview, target, lastEnemy, livingEnemies);
@@ -143,23 +146,36 @@ namespace Dd2Autobattler.Combat
             Strip,
             Attack,
             Buff,
-            CorpseClear
+            CorpseClear,
+            Disease
         }
 
-        private static ItemRole ClassifyItem(string skillId, ActorDataSkill def, SkillKind kind, PreviewScore preview)
+        // CSV conditions/tags first so a new salve/rag/leech does not need a name.
+        // Enemy items stay Attack even if they also mention a DoT (witchbane).
+        private static ItemRole ClassifyItem(string skillId, ActorDataSkill def, SkillKind kind, PreviewScore preview, bool enemyTarget)
         {
             if (IsCorpseClear(skillId, def))
                 return ItemRole.CorpseClear;
-            if (LooksLike(skillId, def, "laudanum", "stress_heal", "horror"))
-                return ItemRole.Stress;
-            if (LooksLike(skillId, def, "antivenom", "bandage", "burn_salve", "medicinal", "blight", "bleed", "burn"))
-                return ItemRole.Cleanse;
-            if (LooksLike(skillId, def, "holy_water", "smelling_salt", "invigorating"))
-                return ItemRole.Strip;
-            if (kind == SkillKind.Heal || (preview != null && preview.Heal > 0f && kind != SkillKind.Attack))
-                return ItemRole.Heal;
-            if (kind == SkillKind.Attack)
+            if (!enemyTarget)
+            {
+                if (HasDotCleanseCondition(def)
+                    || LooksLike(skillId, def, "antivenom", "bandage", "burn_salve", "medicinal", "blight", "bleed", "burn"))
+                    return ItemRole.Cleanse;
+                if (HasCondition(def, "target_is_diseased") || LooksLike(skillId, def, "leech", "disease"))
+                    return ItemRole.Disease;
+                if (HasStripCondition(def)
+                    || LooksLike(skillId, def, "holy_water", "smelling_salt", "invigorating", "rag"))
+                    return ItemRole.Strip;
+                if (LooksLike(skillId, def, "laudanum", "stress_heal", "horror"))
+                    return ItemRole.Stress;
+                if (kind == SkillKind.Heal || LooksLike(skillId, def, "heal")
+                    || (preview != null && preview.Heal > 0f && kind != SkillKind.Attack))
+                    return ItemRole.Heal;
+            }
+            if (kind == SkillKind.Attack || enemyTarget)
                 return ItemRole.Attack;
+            if (kind == SkillKind.Heal || (preview != null && preview.Heal > 0f))
+                return ItemRole.Heal;
             return ItemRole.Buff;
         }
 
@@ -262,6 +278,14 @@ namespace Dd2Autobattler.Combat
                 return;
             }
 
+            if (target.Blind)
+            {
+                eval.Score = 28f;
+                eval.Reason = "item_strip";
+                eval.Crisis = true;
+                return;
+            }
+
             if (bad)
             {
                 eval.Score = 22f;
@@ -310,11 +334,40 @@ namespace Dd2Autobattler.Combat
             eval.Reason = "item_clear_corpse";
         }
 
+        private static void ScoreDisease(ItemEval eval, TargetInfo target)
+        {
+            if (target == null || target.Corpse)
+            {
+                eval.Score = -40f;
+                eval.Reason = "item_disease_waste";
+                return;
+            }
+
+            eval.Score = 30f;
+            eval.Reason = "item_disease";
+            eval.Crisis = true;
+        }
+
         private static bool IsCorpseClear(string skillId, ActorDataSkill def)
         {
             // Do not match target_is_not_corpse_hidden (substring trap).
             return LooksLike(skillId, def, "pouch_of_lye", "lye")
                    || HasCondition(def, "target_is_corpse_hidden");
+        }
+
+        private static bool HasDotCleanseCondition(ActorDataSkill def)
+        {
+            return HasCondition(def, "target_has_blight_dot")
+                   || HasCondition(def, "target_has_bleed_dot")
+                   || HasCondition(def, "target_has_burn_dot");
+        }
+
+        private static bool HasStripCondition(ActorDataSkill def)
+        {
+            return HasCondition(def, "target_has_blind")
+                   || HasCondition(def, "target_has_stun")
+                   || HasCondition(def, "target_has_daze")
+                   || HasCondition(def, "target_has_weak");
         }
 
         private static void ScoreAttack(ItemEval eval, PreviewScore preview, TargetInfo target, bool lastEnemy, int livingEnemies)
@@ -358,9 +411,12 @@ namespace Dd2Autobattler.Combat
 
         private static float MatchingDot(string skillId, ActorDataSkill def, TargetInfo target)
         {
-            var blight = LooksLike(skillId, def, "antivenom", "blight");
-            var bleed = LooksLike(skillId, def, "bandage", "bleed");
-            var burn = LooksLike(skillId, def, "burn_salve", "burn");
+            var blight = LooksLike(skillId, def, "antivenom", "blight")
+                         || HasCondition(def, "target_has_blight_dot");
+            var bleed = LooksLike(skillId, def, "bandage", "bleed")
+                        || HasCondition(def, "target_has_bleed_dot");
+            var burn = LooksLike(skillId, def, "burn_salve", "burn")
+                       || HasCondition(def, "target_has_burn_dot");
             var any = LooksLike(skillId, def, "medicinal") || (!blight && !bleed && !burn);
 
             var amount = 0f;
