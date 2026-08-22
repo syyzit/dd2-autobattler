@@ -6,17 +6,17 @@ Not an official Red Hook mod. **Not a Steam Workshop item** (Workshop is data/CS
 
 ## Status
 
-Competent on road trash (playtested Plague Doctor / Grave Robber / Highwayman / Man-at-Arms). Named fights use **cited notes** only (`notes/cited-bosses.md`: wiki Strategy + game CSVs). Current notes: Dreaming General Taproot cadence, Tangle Bishop→Drummer, Shackles of Denial lock order, Harvest Child (table, not the meats), Librarian (hit him, do not finish the books), Chirurgeon (kill him, not the patients), Leviathan (Hand first, body after it is dead or dying to DoT), Cultists (Altar/regulars before Deacon/Cardinal; Exemplar over its minions), Seething Sigh (pop inflate, then the core), Focused Fault (kill stalks, then the mass; protect Seen), Ravenous Reach (arms + Combo-strip on Setback), Body of Work (Proclaimers then Spectre then the God).
+Playtested on a Confession party (Plague Doctor / Grave Robber / Highwayman / Man-at-Arms). It will throw fights.
 
-1-ply: paper-apply preview HP/kills/Combo onto the board so a real hit beats a 0-damage Combo mark. If a later ally acts before that enemy, do not dump a big hit into a 1 HP chip. Overlay `one_ply`; JSONL `ply`.
+Named fights use **cited notes** only (`notes/cited-bosses.md`: wiki Strategy plus game CSVs). A rule ships if that file says so. Roaming bosses without a note use default scoring.
 
-If the skill heal is spent, food/bandage/antivenom still fire on Death's Door. A last-enemy kill does not skip a Death's Door heal.
+Each turn it scores legal skills from the live preview: damage, kills, heals, tokens, items. One ply of leftover HP so a real hit beats a 0-damage Combo mark. If a later ally acts before that enemy, it will not dump a big hit into a 1 HP chip. Early rounds with a full pack pay more for setup (Combo, stun, DoT, Strength) than a chip.
 
-Rounds 1-2 with 3+ living enemies pay more for setup (Combo apply, stun, Weak/Blind/Vulnerable, Strength, party DoT) so a real kill still wins but a 0-damage mark is less likely to lose to a chip.
+Death's Door still gets a skill heal, then food / bandage / antivenom. A last-enemy kill does not skip that. Crisis heals once per ally per round. Cursed relationship skills lose to a clean alternative. Stress support (Inspiring Tune, Bolster) scores like laudanum.
 
-Rank/token clicks (wiki Strategy, not inn): Exemplar rank-4 Taunt / Guard-the-Combo-ally; Leviathan walk a Call of the Deep mark out of ranks 1-2; Haymaker Guard (then Weak/Block); Reach p2/p3 strip Dodge/Riposte before a non-kill swing.
+If a healer cannot launch their heal, they walk onto a launch rank (`pass_heal` is Rest, not a heal). If a damage dealer cannot reach the last living enemy or the current must-kill, they walk onto a launch rank. Rank walks also fire when a cited note says this hero's tokens are illegal in this rank. Pouch of Lye clears a corpse, especially then. Token strip (Dodge, Riposte, Combo, Stealth) can beat a non-kill swing. AoE that splashes a must-kill is not vetoed just because the click target is an add.
 
-Not done: last-enemy stall, Librarian knockback, Harvest immobilize-the-meats. Roaming Collector/Death/Shambler use default boss scoring. Retreat is opt-in and off. Cursed relationship skills lose to a clean alternative. A healer who cannot launch their heal will walk into rank if an ally is in crisis (`pass_heal` does not count). A damage dealer who cannot reach the last living enemy, or the current must-kill, will walk onto a launch rank. Pouch of Lye clears a corpse, especially then. Round memory stops a second crisis heal on the same ally and stops Combo apply after the spender already acted. Support skills that heal stress (Inspiring Tune, Bolster) score like laudanum. AoE that splashes a must-kill is not vetoed just because the click target is an add.
+Overlay **AUTO** / **SHADOW** (top-left): Auto clicks for you. Shadow lets you click and logs what the bot would have picked. Retreat is opt-in and off.
 
 ## Requirements
 
