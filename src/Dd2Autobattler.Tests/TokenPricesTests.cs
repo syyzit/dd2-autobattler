@@ -47,5 +47,31 @@ namespace Dd2Autobattler.Tests
             var eval = TokenPrices.Evaluate(SkillKind.Attack, true, preview, target, 3, party, 1, null);
             Assert.Equal(0f, eval.Score);
         }
+
+        [Fact]
+        public void Early_setup_is_rounds_1_and_2_with_a_pack()
+        {
+            Assert.False(TokenPrices.IsEarlySetup(0, 3));
+            Assert.True(TokenPrices.IsEarlySetup(1, 3));
+            Assert.True(TokenPrices.IsEarlySetup(2, 4));
+            Assert.False(TokenPrices.IsEarlySetup(3, 4));
+            Assert.False(TokenPrices.IsEarlySetup(1, 1));
+            Assert.Equal(1.5f, TokenPrices.EarlySetupScale(1, 3));
+            Assert.Equal(1f, TokenPrices.EarlySetupScale(3, 3));
+        }
+
+        [Fact]
+        public void Early_round_pays_more_to_apply_combo()
+        {
+            CombatMemory.NoteRound(1);
+            var preview = new PreviewScore { Ok = true };
+            preview.ApplyTarget.Add("combo");
+            var target = new TargetInfo { Hp = 20f };
+            var party = new PartyKit();
+            party.PartySpendsCombo = true;
+            party.Heroes.Add(new HeroKit { Guid = 2, Living = true, SpendsCombo = true });
+            var eval = TokenPrices.Evaluate(SkillKind.Attack, true, preview, target, 3, party, 1, null);
+            Assert.Equal(21f, eval.Score);
+        }
     }
 }

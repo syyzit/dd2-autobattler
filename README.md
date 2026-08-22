@@ -12,6 +12,8 @@ Competent on road trash (playtested Plague Doctor / Grave Robber / Highwayman / 
 
 If the skill heal is spent, food/bandage/antivenom still fire on Death's Door. A last-enemy kill does not skip a Death's Door heal.
 
+Rounds 1-2 with 3+ living enemies pay more for setup (Combo apply, stun, Weak/Blind/Vulnerable, Strength, party DoT) so a real kill still wins but a 0-damage mark is less likely to lose to a chip.
+
 Not done: gambits. Roaming Collector/Death/Shambler use default boss scoring. Retreat is opt-in and off. Cursed relationship skills lose to a clean alternative. A healer who cannot launch their heal will walk into rank if an ally is in crisis (`pass_heal` does not count). A damage dealer who cannot reach the last living enemy, or the current must-kill, will walk onto a launch rank. Pouch of Lye clears a corpse, especially then. Round memory stops a second crisis heal on the same ally and stops Combo apply after the spender already acted. Support skills that heal stress (Inspiring Tune, Bolster) score like laudanum. AoE that splashes a must-kill is not vetoed just because the click target is an add.
 
 ## Requirements
@@ -32,15 +34,17 @@ A successful build copies `Dd2Autobattler.dll` into `BepInEx\plugins`. Then **re
 
 Config: `BepInEx\config\drednot.dd2.autobattler.cfg`
 
-- `Combat.Enabled` - turn the bot off to play a fight yourself
+- `Combat.Enabled` - bot scores hero turns (off = you play, no log of a bot pick)
+- `Combat.ShadowMode` - with Enabled, you click and the bot only logs what it would have clicked
+- Overlay **AUTO** / **SHADOW** buttons (top-left) switch that live, no restart
 - `Logging.LogPreviews` - include every scored action in the JSONL
-- `UI.ShowOverlay` - last decision on screen
+- `UI.ShowOverlay` - toggles plus the last decision on screen
 
 ## Logs
 
 `BepInEx\Dd2Autobattler\logs\<timestamp>\decisions.jsonl`
 
-Each turn has actor state, both sides, legal actions with scores, and the chosen skill/target/reason. Session report:
+Each turn has actor state, both sides, legal actions with scores, and the chosen skill/target/reason. Shadow mode adds `mode: shadow` on the bot proposal and a `shadow_result` line when you confirm a click (`match`, bot vs human, score `gap`, human `rank` in the bot's list). Session report:
 
 ```
 powershell -File _tools\analyze-log.ps1

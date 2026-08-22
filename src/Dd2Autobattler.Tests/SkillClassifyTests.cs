@@ -29,6 +29,34 @@ namespace Dd2Autobattler.Tests
         }
 
         [Fact]
+        public void Shadow_rank_is_1_when_human_matches_the_top_score()
+        {
+            var legal = new System.Collections.Generic.List<Newtonsoft.Json.Linq.JObject>
+            {
+                new Newtonsoft.Json.Linq.JObject { ["skill"] = "maa_crush", ["target"] = 10, ["score"] = 40f },
+                new Newtonsoft.Json.Linq.JObject { ["skill"] = "maa_bellow", ["target"] = 10, ["score"] = 22f }
+            };
+            Assert.Equal(1, TurnDecider.RankInLegal(legal, "maa_crush", 10));
+            Assert.Equal(2, TurnDecider.RankInLegal(legal, "maa_bellow", 10));
+            Assert.Equal(-1, TurnDecider.RankInLegal(legal, "pd_noxious", 10));
+        }
+
+        [Fact]
+        public void Shadow_compare_flags_a_mismatch_and_the_score_gap()
+        {
+            var bot = new ChosenAction { SkillId = "maa_bellow", TargetGuid = 10, Reason = "peel", Score = 30f };
+            var legal = new System.Collections.Generic.List<Newtonsoft.Json.Linq.JObject>
+            {
+                new Newtonsoft.Json.Linq.JObject { ["skill"] = "maa_bellow", ["target"] = 10, ["score"] = 30f },
+                new Newtonsoft.Json.Linq.JObject { ["skill"] = "maa_crush", ["target"] = 10, ["score"] = 12f }
+            };
+            var row = TurnDecider.ShadowCompare(bot, legal, "maa_crush", 10);
+            Assert.False(row.Value<bool>("match"));
+            Assert.Equal(2, row["human"].Value<int>("rank"));
+            Assert.Equal(18f, row.Value<float>("gap"));
+        }
+
+        [Fact]
         public void Leave_chip_ply_makes_overkill_worse_than_a_real_hit()
         {
             var overkill = TurnDecider.LeaveChipPly(14f);

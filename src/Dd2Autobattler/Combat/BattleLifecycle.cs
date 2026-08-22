@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using Assets.Code.Combat;
 using Assets.Code.Combat.Events;
 using Assets.Code.Events;
@@ -20,6 +21,7 @@ namespace Dd2Autobattler.Combat
                 EventManager.AddListener<EventBattleBegin>(OnBattleBegin, false, EventManager.PRIORITY_DEFAULT);
                 EventManager.AddListener<EventBattleStartRound>(OnBattleStartRound, false, EventManager.PRIORITY_DEFAULT);
                 EventManager.AddListener<EventBattleResult>(OnBattleResult, false, EventManager.PRIORITY_DEFAULT);
+                EventManager.AddListener<EventSkillTargetSelected>(OnSkillTargetSelected, false, EventManager.PRIORITY_DEFAULT);
                 _subscribed = true;
                 DecisionLog.Info("Subscribed to battle begin/end.");
             }
@@ -38,6 +40,7 @@ namespace Dd2Autobattler.Combat
                 EventManager.RemoveListener<EventBattleBegin>(OnBattleBegin);
                 EventManager.RemoveListener<EventBattleStartRound>(OnBattleStartRound);
                 EventManager.RemoveListener<EventBattleResult>(OnBattleResult);
+                EventManager.RemoveListener<EventSkillTargetSelected>(OnSkillTargetSelected);
             }
             catch
             {
@@ -94,6 +97,49 @@ namespace Dd2Autobattler.Combat
             catch { }
             CombatMemory.ResetFight();
             DecisionLog.EndFight(extra);
+        }
+
+        private static void OnSkillTargetSelected(EventSkillTargetSelected evt)
+        {
+            if (!Plugin.IsShadow || evt == null)
+                return;
+            if (CombatMemory.ShadowBot == null && CombatMemory.ShadowActor == 0)
+                return;
+
+            string skill = null;
+            uint target = 0;
+            uint actor = 0;
+            try { skill = evt.SkillId; } catch { }
+            try { target = evt.TargetGuid; } catch { }
+            actor = ReadActorGuid(evt);
+            if (CombatMemory.ShadowActor != 0 && actor != 0 && actor != CombatMemory.ShadowActor)
+                return;
+
+            var compare = TurnDecider.ShadowCompare(CombatMemory.ShadowBot, CombatMemory.ShadowLegal, skill, target);
+            DecisionLog.ShadowResult(compare);
+            CombatMemory.ClearShadow();
+        }
+
+        private static uint ReadActorGuid(object evt)
+        {
+            if (evt == null)
+                return 0;
+            var type = evt.GetType();
+            while (type != null)
+            {
+                var field = type.GetField("m_ActorGuid", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                if (field != null)
+                {
+                    try { return Convert.ToUInt32(field.GetValue(evt)); } catch { return 0; }
+                }
+                var prop = type.GetProperty("ActorGuid", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                if (prop != null)
+                {
+                    try { return Convert.ToUInt32(prop.GetValue(evt, null)); } catch { return 0; }
+                }
+                type = type.BaseType;
+            }
+            return 0;
         }
     }
 }

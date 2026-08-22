@@ -18,6 +18,7 @@ namespace Dd2Autobattler.Combat
         public uint TargetGuid;
         public string Reason;
         public bool IsItem;
+        public float Score;
     }
 
     public static class TurnDecider
@@ -32,7 +33,17 @@ namespace Dd2Autobattler.Combat
             return t;
         }
 
-        public static ChosenAction Decide(ActorControllerBase controller)
+        public static void EnsureShadow(ActorControllerBase controller)
+        {
+            var performer = GetPerformer(controller);
+            if (performer == null)
+                return;
+            if (CombatMemory.ShadowActor == performer.ActorGuid)
+                return;
+            Decide(controller, false);
+        }
+
+        public static ChosenAction Decide(ActorControllerBase controller, bool commit)
         {
             var performer = controller != null ? GetPerformer(controller) : null;
             if (performer == null)
@@ -86,9 +97,12 @@ namespace Dd2Autobattler.Combat
                         var item = isItem
                             ? ItemPolicy.Evaluate(entry.m_SkillId, skillDef, kind, enemyTarget, preview, target, tokens, livingEnemies, qty)
                             : null;
+                        var setup = party != null ? party.SetupBonus(role, target, enemyTarget) : 0f;
+                        if (TokenPrices.IsEarlySetup(CombatMemory.Round, livingEnemies))
+                            setup *= 1.5f;
                         var score = ScoreAction(entry.m_SkillId, kind, enemyTarget, stealthed || target.Stealth, preview, target, livingEnemies, party, focus)
                                     + tokens.Score
-                                    + (party != null ? party.SetupBonus(role, target, enemyTarget) : 0f);
+                                    + setup;
                         if (item != null)
                             score = item.Score;
                         candidates.Add(new ScoredAction
@@ -145,14 +159,24 @@ namespace Dd2Autobattler.Combat
                     SkillId = picked.SkillId,
                     TargetGuid = picked.TargetGuid,
                     Reason = ReasonFor(picked, livingEnemies, allowSetup),
-                    IsItem = picked.IsItem
+                    IsItem = picked.IsItem,
+                    Score = picked.Score
                 };
             var rows = ToLogRows(candidates, focus);
 
             if (best == null)
             {
-                LogTurn(controller, performer, rows, null, "no_legal_action", party, focus);
+                if (!commit)
+                    CombatMemory.NoteShadowPick(performerGuid, null, rows);
+                LogTurn(controller, performer, rows, null, "no_legal_action", party, focus, commit);
                 return null;
+            }
+
+            if (!commit)
+            {
+                CombatMemory.NoteShadowPick(performerGuid, best, rows);
+                LogTurn(controller, performer, rows, best, best.Reason, party, focus, false);
+                return best;
             }
 
             var wasSetup = picked.Kind == SkillKind.Support || picked.Kind == SkillKind.Pass;
@@ -170,7 +194,7 @@ namespace Dd2Autobattler.Combat
             if (!picked.IsItem && picked.EnemyTarget && focus != null && focus.IsTaproot(picked.TargetGuid))
                 CombatMemory.NoteTaprootHit();
             _pendingTarget = best.TargetGuid;
-            LogTurn(controller, performer, rows, best, best.Reason, party, focus);
+            LogTurn(controller, performer, rows, best, best.Reason, party, focus, true);
             return best;
         }
 
@@ -1463,7 +1487,76 @@ namespace Dd2Autobattler.Combat
             return arr;
         }
 
-        private static void LogTurn(ActorControllerBase controller, ActorInstance performer, List<JObject> candidates, ChosenAction chosen, string reason, PartyKit party, EnemyFocus focus)
+        internal static JObject ShadowCompare(ChosenAction bot, List<JObject> legal, string humanSkill, uint humanTarget)
+        {
+            var match = bot != null
+                        && string.Equals(bot.SkillId, humanSkill, StringComparison.OrdinalIgnoreCase)
+                        && bot.TargetGuid == humanTarget;
+            var human = FindLegal(legal, humanSkill, humanTarget);
+            var botScore = bot != null ? bot.Score : 0f;
+            var humanScore = human != null ? human.Value<float>("score") : 0f;
+            var rank = RankInLegal(legal, humanSkill, humanTarget);
+            return new JObject
+            {
+                ["match"] = match,
+                ["bot"] = bot == null ? JValue.CreateNull() : new JObject
+                {
+                    ["skill"] = bot.SkillId,
+                    ["target"] = bot.TargetGuid,
+                    ["reason"] = bot.Reason,
+                    ["score"] = bot.Score,
+                    ["item"] = bot.IsItem
+                },
+                ["human"] = new JObject
+                {
+                    ["skill"] = humanSkill,
+                    ["target"] = humanTarget,
+                    ["score"] = humanScore,
+                    ["rank"] = rank
+                },
+                ["gap"] = botScore - humanScore
+            };
+        }
+
+        internal static int RankInLegal(List<JObject> legal, string skill, uint target)
+        {
+            if (legal == null || string.IsNullOrEmpty(skill))
+                return -1;
+            var scored = new List<JObject>(legal);
+            scored.Sort((a, b) => b.Value<float>("score").CompareTo(a.Value<float>("score")));
+            for (var i = 0; i < scored.Count; i++)
+            {
+                var row = scored[i];
+                if (row == null)
+                    continue;
+                if (!string.Equals(row.Value<string>("skill"), skill, StringComparison.OrdinalIgnoreCase))
+                    continue;
+                if (row.Value<uint>("target") != target)
+                    continue;
+                return i + 1;
+            }
+            return -1;
+        }
+
+        private static JObject FindLegal(List<JObject> legal, string skill, uint target)
+        {
+            if (legal == null)
+                return null;
+            for (var i = 0; i < legal.Count; i++)
+            {
+                var row = legal[i];
+                if (row == null)
+                    continue;
+                if (!string.Equals(row.Value<string>("skill"), skill, StringComparison.OrdinalIgnoreCase))
+                    continue;
+                if (row.Value<uint>("target") != target)
+                    continue;
+                return row;
+            }
+            return null;
+        }
+
+        private static void LogTurn(ActorControllerBase controller, ActorInstance performer, List<JObject> candidates, ChosenAction chosen, string reason, PartyKit party, EnemyFocus focus, bool commit)
         {
             JArray heroes = new JArray();
             JArray enemies = new JArray();
@@ -1481,8 +1574,10 @@ namespace Dd2Autobattler.Combat
                 DecisionLog.Warn("Snapshot failed: " + ex.Message);
             }
 
+            var mode = commit ? "auto" : "shadow";
             var record = new JObject
             {
+                ["mode"] = mode,
                 ["actor"] = GameSnapshot.Actor(performer),
                 ["heroes"] = heroes,
                 ["enemies"] = enemies,
@@ -1492,16 +1587,18 @@ namespace Dd2Autobattler.Combat
                     ["skill"] = chosen.SkillId,
                     ["target"] = chosen.TargetGuid,
                     ["reason"] = chosen.Reason,
-                    ["item"] = chosen.IsItem
+                    ["item"] = chosen.IsItem,
+                    ["score"] = chosen.Score
                 },
                 ["reason"] = reason,
                 ["synergy"] = party != null ? party.ToJson() : null,
                 ["focus"] = focus != null ? focus.ToJson() : null
             };
 
-            var summary = chosen == null
-                ? $"R? {GameSnapshot.OneLine(performer)}: NO LEGAL ACTION"
+            var line = chosen == null
+                ? $"{GameSnapshot.OneLine(performer)}: NO LEGAL ACTION"
                 : $"{GameSnapshot.OneLine(performer)}: {chosen.SkillId} -> {chosen.TargetGuid} ({reason})";
+            var summary = commit ? line : "SHADOW would " + line;
 
             if (!Plugin.LogPreviews.Value)
                 record.Remove("legal");

@@ -30,6 +30,7 @@ namespace Dd2Autobattler.Combat
             var followUpCombo = party == null || party.FollowUpSpendsCombo(performerGuid);
             var partySpends = party != null && party.PartySpendsCombo;
             var partyAttacks = party == null || party.PartyAttacks;
+            var setup = EarlySetupScale(CombatMemory.Round, livingEnemies);
             var bestReason = (string)null;
             var bestPart = 0f;
 
@@ -56,19 +57,19 @@ namespace Dd2Autobattler.Combat
                     Add(spend, "spend_combo");
                 }
                 if (HasId(eval.Apply, "combo") && !target.Combo && !lastEnemy && followUpCombo)
-                    Add(14f, "apply_combo");
+                    Add(14f * setup, "apply_combo");
                 if (!consumesCombo && target.Combo && !preview.Kills && followUpCombo)
                     Add(-32f, "save_combo");
                 if (HasId(eval.Apply, "stun") && !target.Stun)
-                    Add(StunPrice(target, lastEnemy, party), "stun_threat");
+                    Add(StunPrice(target, lastEnemy, party) * setup, "stun_threat");
                 if (HasId(eval.Apply, "daze") && !target.Stun)
-                    Add(lastEnemy && (target.Riposte || target.Dodge) ? 10f : 4f, "stun_threat");
+                    Add((lastEnemy && (target.Riposte || target.Dodge) ? 10f : 4f) * setup, "stun_threat");
                 if (HasId(eval.Apply, "vulnerable") && !target.Vulnerable && partyAttacks)
-                    Add(party != null && party.AttackerCount >= 2 ? 10f : 7f, "apply_token");
+                    Add((party != null && party.AttackerCount >= 2 ? 10f : 7f) * setup, "apply_token");
                 if (HasId(eval.Apply, "weak") && !target.Weak)
-                    Add(5f, "apply_token");
+                    Add(5f * setup, "apply_token");
                 if (HasId(eval.Apply, "blind") && !target.Blind)
-                    Add(5f, "apply_token");
+                    Add(5f * setup, "apply_token");
                 Add(StripEnemy(eval.Remove, target, partySpends), "strip_token");
             }
             else if (!enemyTarget)
@@ -77,7 +78,7 @@ namespace Dd2Autobattler.Combat
                 {
                     var allyAttacks = party == null || target.Actor == null || party.HeroAttacks(target.Actor.ActorGuid);
                     if (allyAttacks)
-                        Add(target.StrengthCount == 0 ? 9f : 3f, "apply_strength");
+                        Add((target.StrengthCount == 0 ? 9f : 3f) * setup, "apply_strength");
                 }
                 if (HasId(eval.Apply, "block") && target.BlockCount < 3)
                     Add(BlockPrice(target) + (party != null ? party.ProtectBonus(target) * 0.35f : 0f), "apply_block");
@@ -97,6 +98,16 @@ namespace Dd2Autobattler.Combat
             if (Math.Abs(bestPart) >= 6f)
                 eval.Reason = bestReason;
             return eval;
+        }
+
+        internal static bool IsEarlySetup(int round, int livingEnemies)
+        {
+            return round >= 1 && round <= 2 && livingEnemies >= 3;
+        }
+
+        internal static float EarlySetupScale(int round, int livingEnemies)
+        {
+            return IsEarlySetup(round, livingEnemies) ? 1.5f : 1f;
         }
 
         public static bool HasId(List<string> ids, string key)
