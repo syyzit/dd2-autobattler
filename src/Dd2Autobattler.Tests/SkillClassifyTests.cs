@@ -230,6 +230,99 @@ namespace Dd2Autobattler.Tests
             Assert.True(focus.HasMustKillFirst);
             Assert.True(arms.MustKillFirst);
             Assert.False(arms.Defer);
+            Assert.True(focus.ReachPhase2);
+            Assert.False(focus.ReachPhase3);
+        }
+
+        [Fact]
+        public void Rank_0_1_are_wiki_front_two_and_3_is_back()
+        {
+            Assert.True(TurnDecider.RankIsFrontTwo(0));
+            Assert.True(TurnDecider.RankIsFrontTwo(1));
+            Assert.False(TurnDecider.RankIsFrontTwo(2));
+            Assert.True(TurnDecider.RankIsBack(3));
+            Assert.False(TurnDecider.RankIsBack(2));
+        }
+
+        [Fact]
+        public void Undertow_walk_when_marked_in_front_and_hand_lives()
+        {
+            Assert.True(TurnDecider.ShouldWalkOffUndertow(true, true, 0, false));
+            Assert.True(TurnDecider.ShouldWalkOffUndertow(true, true, 1, false));
+            Assert.False(TurnDecider.ShouldWalkOffUndertow(true, true, 0, true));
+            Assert.False(TurnDecider.ShouldWalkOffUndertow(true, true, 2, false));
+            Assert.False(TurnDecider.ShouldWalkOffUndertow(true, false, 0, false));
+            Assert.False(TurnDecider.ShouldWalkOffUndertow(false, true, 0, false));
+        }
+
+        [Fact]
+        public void Exemplar_taunt_skip_only_from_rank_4()
+        {
+            Assert.Equal(50f, TurnDecider.ExemplarTauntSkip(true, true, 3));
+            Assert.Equal(0f, TurnDecider.ExemplarTauntSkip(true, true, 0));
+            Assert.Equal(0f, TurnDecider.ExemplarTauntSkip(true, false, 3));
+            Assert.Equal(0f, TurnDecider.ExemplarTauntSkip(false, true, 3));
+        }
+
+        [Fact]
+        public void Exemplar_guard_redirects_combo_unless_the_tank_also_has_combo()
+        {
+            Assert.Equal(40f, TurnDecider.ExemplarGuardCombo(true, true, true, false));
+            Assert.Equal(0f, TurnDecider.ExemplarGuardCombo(true, true, true, true));
+            Assert.Equal(0f, TurnDecider.ExemplarGuardCombo(true, true, false, false));
+        }
+
+        [Fact]
+        public void Haymaker_guard_beats_heal_on_the_contempt_mark()
+        {
+            var guard = TurnDecider.HaymakerGuardBonus(true, true, true);
+            var heal = TurnDecider.HaymakerHealBonus(true, true, true);
+            Assert.True(guard > heal);
+            Assert.Equal(0f, TurnDecider.HaymakerGuardBonus(true, true, false));
+            Assert.Equal(22f, TurnDecider.HaymakerBluntBonus(true, true, true, false));
+            Assert.Equal(22f, TurnDecider.HaymakerBluntBonus(true, true, false, true));
+            Assert.Equal(0f, TurnDecider.HaymakerBluntBonus(true, false, true, true));
+        }
+
+        [Fact]
+        public void Peel_bonus_prices_riposte_above_a_small_hit()
+        {
+            var riposte = TurnDecider.PeelBonus(new TargetInfo { Riposte = true });
+            var dodge = TurnDecider.PeelBonus(new TargetInfo { Dodge = true });
+            Assert.True(riposte > dodge);
+            Assert.True(riposte >= 16f);
+        }
+
+        [Fact]
+        public void Leviathan_note_flags_the_hand_even_when_dying_to_dot()
+        {
+            var focus = new EnemyFocus();
+            var hand = new EnemyThreat
+            {
+                Guid = 674,
+                ClassId = "coastal_boss_leviathan_hand",
+                Boss = true,
+                DiesToDot = true
+            };
+            var body = new EnemyThreat
+            {
+                Guid = 673,
+                ClassId = "coastal_boss_leviathan",
+                Boss = true
+            };
+            focus.Enemies.Add(hand);
+            focus.Enemies.Add(body);
+            EnemyFocus.ApplyLeviathanNote(focus);
+            Assert.True(focus.LeviathanHandUp);
+        }
+
+        [Fact]
+        public void Exemplar_note_sets_exemplar_up()
+        {
+            var focus = new EnemyFocus();
+            focus.Enemies.Add(new EnemyThreat { Guid = 3, ClassId = "cultist_exemplar", Boss = true });
+            EnemyFocus.ApplyCultistNote(focus);
+            Assert.True(focus.ExemplarUp);
         }
     }
 }

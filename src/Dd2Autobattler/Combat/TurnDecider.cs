@@ -117,14 +117,12 @@ namespace Dd2Autobattler.Combat
             ApplyCursePenalty(candidates);
             if (AllyInCrisis(teams) && !HasLegalAllyHeal(candidates))
                 ApplyHealReposition(candidates, performer);
-            var reachTarget = ReachWalkTarget(candidates, performer, teams, focus, livingEnemies, performerGuid);
-            if (reachTarget != null)
-                ApplyReachReposition(candidates, performer, reachTarget);
             ApplyHarvestHungerGuard(candidates, performer, teams, focus);
             ApplyLibrarianBookVeto(candidates, focus);
             ApplySighLungVeto(candidates, focus);
             ApplyFocusedFaultNotes(candidates, focus);
-            ApplyLaterActNotes(candidates, focus);
+            ApplyLaterActNotes(candidates, focus, performer);
+            ApplyRankWalks(candidates, performer, teams, focus, livingEnemies, performerGuid);
             var remaining = ReadRemainingTurns();
             ApplyOnePly(candidates, livingEnemies, performerGuid, remaining, teams, party);
             ApplyCrisisStabilize(candidates, teams);
@@ -157,7 +155,7 @@ namespace Dd2Autobattler.Combat
 
             var wasSetup = picked.Kind == SkillKind.Support || picked.Kind == SkillKind.Pass;
             CombatMemory.NoteChosen(lastGuid, wasSetup && allowSetup && !picked.IsItem);
-            if (picked.ReachReposition)
+            if (picked.ReachReposition || picked.MustRankWalk)
                 CombatMemory.NoteReachWalk(performerGuid);
             if (picked.IsItem)
                 CombatMemory.NoteItemUsed(performerGuid);
@@ -194,6 +192,8 @@ namespace Dd2Autobattler.Combat
             public bool Cursed;
             public bool HealReposition;
             public bool ReachReposition;
+            public bool MustRankWalk;
+            public string NoteReason;
             public float Ply;
             public bool LeaveChip;
         }
@@ -344,8 +344,8 @@ namespace Dd2Autobattler.Combat
             {
                 if (stealthed || (target != null && target.Stealth))
                     score -= lastEnemy ? 20f : 200f;
-                if (target != null && target.Riposte && !preview.Kills && !lastEnemy)
-                    score -= 90f;
+                if (target != null && target.Riposte && !preview.Kills)
+                    score -= lastEnemy ? 40f : 90f;
                 if (preview.HitChance > 0f && preview.HitChance < 0.99f)
                     score -= (1f - preview.HitChance) * (lastEnemy ? 15f : 55f);
             }
@@ -410,12 +410,15 @@ namespace Dd2Autobattler.Combat
 
             var priorityLegal = false;
             var mustKillLegal = false;
+            var peelLegal = false;
             if (focus != null)
             {
                 foreach (var c in candidates)
                 {
                     if (c.IsItem && c.FreeAction)
                         continue;
+                    if (NeedsReachPeel(c, focus) && StripsReachDefense(c))
+                        peelLegal = true;
                     if (c.Kind != SkillKind.Attack || !c.EnemyTarget || c.Target == null || c.Target.Actor == null)
                         continue;
                     if (focus.HasPriorityTarget && focus.IsPriority(c.Target.Actor.ActorGuid))
@@ -457,6 +460,9 @@ namespace Dd2Autobattler.Combat
                 if (realHit && !splashFocus && performerCrisis && livingEnemies > 1 && focus != null
                     && focus.IsAdd(c.Target.Actor.ActorGuid))
                     continue;
+                if (realHit && peelLegal && NeedsReachPeel(c, focus) && !StripsReachDefense(c)
+                    && (c.Preview == null || !c.Preview.Kills))
+                    continue;
                 if (realHit && (bestAttack == null || c.Score > bestAttack.Score))
                     bestAttack = c;
                 if (allowSetup && (c.Kind == SkillKind.Support || c.Kind == SkillKind.Pass)
@@ -486,9 +492,10 @@ namespace Dd2Autobattler.Combat
             }
             // A legal click on the must-kill (even Tracking Shot) is playing.
             // Walking every turn just swaps the front two back and forth.
+            // MustRankWalk is Undertow / Exemplar rank-4 — do not skip it to punch.
             if (bestReposition != null)
             {
-                if (!bestReposition.ReachReposition)
+                if (!bestReposition.ReachReposition || bestReposition.MustRankWalk)
                     return bestReposition;
                 var alreadyOnFocus = bestAttack != null && bestAttack.Target != null
                     && bestAttack.Target.Actor != null && focus != null
@@ -569,6 +576,8 @@ namespace Dd2Autobattler.Combat
             var target = picked.Target;
             var tokens = picked.Tokens;
             if (picked.HealReposition) return "heal_reposition";
+            if (!string.IsNullOrEmpty(picked.NoteReason)) return picked.NoteReason;
+            if (picked.MustRankWalk) return "rank_walk";
             if (picked.ReachReposition) return "reach_reposition";
             if (IsHarvestHungerGuard(picked.SkillId) && picked.Score >= 80f)
                 return "hunger_guard";
@@ -902,23 +911,23 @@ namespace Dd2Autobattler.Combat
         }
 
         // wiki.gg/Exemplar: The Fall needs Combo on a hero; Holy Water / strip
-        // Combo to stop Worship. wiki.gg/Ravenous_Reach p1 Setback the same.
-        // wiki.gg/Body_of_Work p2 Covetous Glance steals 4+ positives; p3
-        // Strange Axis inverts them. Guard the Contempt (torso_target) mark.
-        private static void ApplyLaterActNotes(List<ScoredAction> candidates, EnemyFocus focus)
+        // Combo to stop Worship. Rank-4 Taunt skips The Fall. Guard a Combo
+        // ally so Fall hits the tank (Worship only if that tank also has Combo).
+        // wiki.gg/Ravenous_Reach p1 Setback Combo-strip; p2 Dodge / p3 Riposte
+        // peel before you swing. wiki.gg/Body_of_Work p2 Covetous Glance steals
+        // 4+ positives; Guard the Contempt mark (Haymaker); Weak/Block blunt it.
+        private static void ApplyLaterActNotes(List<ScoredAction> candidates, EnemyFocus focus, ActorInstance performer)
         {
             if (candidates == null || focus == null)
                 return;
-            var exemplar = false;
+            var exemplar = focus.ExemplarUp;
             var reachP1 = false;
             var bodyP2 = false;
             var bodyP3 = false;
             for (var i = 0; i < focus.Enemies.Count; i++)
             {
                 var id = focus.Enemies[i].ClassId;
-                if (IdHasClass(id, "cultist_exemplar"))
-                    exemplar = true;
-                else if (IdHasClass(id, "boss_arms_phase1"))
+                if (IdHasClass(id, "boss_arms_phase1"))
                     reachP1 = true;
                 else if (IdHasClass(id, "boss_body_phase2"))
                     bodyP2 = true;
@@ -926,8 +935,10 @@ namespace Dd2Autobattler.Combat
                          || IdHasClass(id, "boss_body_failure"))
                     bodyP3 = true;
             }
-            if (!exemplar && !reachP1 && !bodyP2 && !bodyP3)
-                return;
+
+            var performerBody = GameSnapshot.Describe(performer);
+            var performerRank = performerBody != null ? performerBody.Rank : 0;
+            var performerCombo = performerBody != null && performerBody.Combo;
 
             var punishCombo = exemplar || reachP1;
             for (var i = 0; i < candidates.Count; i++)
@@ -937,11 +948,31 @@ namespace Dd2Autobattler.Combat
                     && StripsCombo(c))
                 {
                     c.Score += 45f;
+                    c.NoteReason = "strip_combo";
                     if (c.Item != null)
                     {
                         c.Item.UseNow = true;
                         if (c.Item.Score < 28f)
                             c.Item.Score = 28f;
+                    }
+                }
+                if (exemplar && !c.EnemyTarget)
+                {
+                    var taunt = AppliesTaunt(c);
+                    var skip = ExemplarTauntSkip(true, taunt, performerRank);
+                    if (skip > 0f)
+                    {
+                        c.Score += skip;
+                        c.NoteReason = "fall_taunt";
+                    }
+                    var guard = AppliesGuard(c);
+                    var redirect = ExemplarGuardCombo(true, guard,
+                        c.Target != null && c.Target.Combo, performerCombo);
+                    if (redirect > 0f)
+                    {
+                        c.Score += redirect;
+                        if (string.IsNullOrEmpty(c.NoteReason))
+                            c.NoteReason = "fall_guard";
                     }
                 }
                 if ((bodyP2 || bodyP3) && !c.EnemyTarget && c.Target != null
@@ -952,10 +983,44 @@ namespace Dd2Autobattler.Combat
                         || TokenPrices.HasId(c.Tokens.Apply, "riposte")
                         || TokenPrices.HasId(c.Tokens.Apply, "crit")))
                     c.Score -= 25f;
-                if (bodyP2 && !c.EnemyTarget && c.Target != null && c.Target.TorsoTarget
-                    && (c.Kind == SkillKind.Heal || c.Kind == SkillKind.Support
-                        || (c.Tokens != null && TokenPrices.HasId(c.Tokens.Apply, "guard"))))
-                    c.Score += 18f;
+                if (bodyP2 && !c.EnemyTarget && c.Target != null && c.Target.TorsoTarget)
+                {
+                    var guard = HaymakerGuardBonus(true, true, AppliesGuard(c));
+                    var heal = HaymakerHealBonus(true, true, c.Kind == SkillKind.Heal);
+                    if (guard > 0f)
+                    {
+                        c.Score += guard;
+                        c.NoteReason = "haymaker_guard";
+                    }
+                    else if (heal > 0f)
+                        c.Score += heal;
+                }
+                if (bodyP2 && c.EnemyTarget && c.Target != null && c.Target.Actor != null)
+                {
+                    string classId = null;
+                    try { classId = c.Target.Actor.ActorDataClass != null ? c.Target.Actor.ActorDataClass.GetKey() : null; } catch { }
+                    var onBody = IdHasClass(classId, "boss_body_phase2");
+                    var blunt = HaymakerBluntBonus(true, onBody,
+                        TokenPrices.HasId(c.Tokens != null ? c.Tokens.Apply : null, "weak"),
+                        TokenPrices.HasId(c.Tokens != null ? c.Tokens.Apply : null, "block"));
+                    if (blunt > 0f)
+                    {
+                        c.Score += blunt;
+                        if (string.IsNullOrEmpty(c.NoteReason))
+                            c.NoteReason = "haymaker_blunt";
+                    }
+                }
+                if (c.EnemyTarget && c.Target != null && !c.Target.Corpse && StripsDefense(c, c.Target))
+                {
+                    c.Score += PeelBonus(c.Target);
+                    if (NeedsReachPeel(c, focus) && StripsReachDefense(c))
+                    {
+                        c.Score += 20f;
+                        c.NoteReason = "reach_peel";
+                    }
+                    else if (string.IsNullOrEmpty(c.NoteReason))
+                        c.NoteReason = "peel";
+                }
             }
         }
 
@@ -969,6 +1034,269 @@ namespace Dd2Autobattler.Combat
                 return true;
             return c.Item != null && !string.IsNullOrEmpty(c.Item.Reason)
                    && c.Item.Reason.IndexOf("combo", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        // CSV launch/target ranks are 1-4; ActorInstance.TeamPosition is 0-3.
+        internal static bool RankIsFrontTwo(int rank)
+        {
+            return rank <= 1;
+        }
+
+        internal static bool RankIsBack(int rank)
+        {
+            return rank >= 3;
+        }
+
+        internal static bool ShouldWalkOffUndertow(bool handUp, bool callOfTheDeep, int rank, bool killsHand)
+        {
+            return handUp && callOfTheDeep && RankIsFrontTwo(rank) && !killsHand;
+        }
+
+        internal static float ExemplarTauntSkip(bool exemplar, bool appliesTaunt, int performerRank)
+        {
+            if (!exemplar || !appliesTaunt || !RankIsBack(performerRank))
+                return 0f;
+            return 50f;
+        }
+
+        internal static float ExemplarGuardCombo(bool exemplar, bool appliesGuard, bool targetCombo, bool performerCombo)
+        {
+            if (!exemplar || !appliesGuard || !targetCombo || performerCombo)
+                return 0f;
+            return 40f;
+        }
+
+        internal static float HaymakerGuardBonus(bool bodyP2, bool torsoTarget, bool appliesGuard)
+        {
+            if (!bodyP2 || !torsoTarget || !appliesGuard)
+                return 0f;
+            return 50f;
+        }
+
+        internal static float HaymakerHealBonus(bool bodyP2, bool torsoTarget, bool isHeal)
+        {
+            if (!bodyP2 || !torsoTarget || !isHeal)
+                return 0f;
+            return 18f;
+        }
+
+        internal static float HaymakerBluntBonus(bool bodyP2, bool enemyBody, bool appliesWeak, bool appliesBlock)
+        {
+            if (!bodyP2 || !enemyBody || (!appliesWeak && !appliesBlock))
+                return 0f;
+            return 22f;
+        }
+
+        internal static float PeelBonus(TargetInfo target)
+        {
+            if (target == null)
+                return 0f;
+            var n = 0f;
+            if (target.Riposte)
+                n += 16f;
+            if (target.Dodge)
+                n += 12f;
+            if (target.Stealth)
+                n += 12f;
+            if (target.BlockCount >= 2)
+                n += 10f;
+            else if (target.BlockCount > 0)
+                n += 6f;
+            return n;
+        }
+
+        private static bool AppliesTaunt(ScoredAction c)
+        {
+            return c != null && c.Tokens != null && TokenPrices.HasId(c.Tokens.Apply, "taunt");
+        }
+
+        private static bool AppliesGuard(ScoredAction c)
+        {
+            return c != null && c.Tokens != null && TokenPrices.HasId(c.Tokens.Apply, "guard");
+        }
+
+        private static bool NeedsReachPeel(ScoredAction c, EnemyFocus focus)
+        {
+            if (c == null || c.Target == null || focus == null)
+                return false;
+            return (focus.ReachPhase2 && c.Target.Dodge) || (focus.ReachPhase3 && c.Target.Riposte);
+        }
+
+        private static bool StripsReachDefense(ScoredAction c)
+        {
+            if (c == null || c.Target == null)
+                return false;
+            if (c.Target.Dodge && TokenHas(c, "dodge"))
+                return true;
+            if (c.Target.Riposte && TokenHas(c, "riposte"))
+                return true;
+            return false;
+        }
+
+        private static bool StripsDefense(ScoredAction c, TargetInfo target)
+        {
+            if (c == null || target == null)
+                return false;
+            if (target.Dodge && TokenHas(c, "dodge"))
+                return true;
+            if (target.Riposte && TokenHas(c, "riposte"))
+                return true;
+            if (target.Stealth && TokenHas(c, "stealth"))
+                return true;
+            if (target.BlockCount > 0 && TokenHas(c, "block"))
+                return true;
+            return false;
+        }
+
+        private static bool TokenHas(ScoredAction c, string key)
+        {
+            if (c == null || c.Tokens == null)
+                return false;
+            return TokenPrices.HasId(c.Tokens.Remove, key) || TokenPrices.HasId(c.Tokens.Consume, key);
+        }
+
+        private static void ApplyRankWalks(List<ScoredAction> candidates, ActorInstance performer, BattleTeams teams, EnemyFocus focus, int livingEnemies, uint performerGuid)
+        {
+            if (candidates == null || performer == null)
+                return;
+            if (CombatMemory.ReachWalkedThisRound(performerGuid))
+                return;
+
+            var body = GameSnapshot.Describe(performer);
+            var rank = body != null ? body.Rank : 0;
+            var marked = body != null && body.CallOfTheDeep;
+            var killsHand = HasKillOnMustKill(candidates, focus);
+
+            if (ShouldWalkOffUndertow(focus != null && focus.LeviathanHandUp, marked, rank, killsHand))
+            {
+                ApplyWalkBack(candidates, performer, "undertow_walk");
+                if (HasRankWalk(candidates))
+                    return;
+            }
+
+            if (focus != null && focus.ExemplarUp && FallIsLive(teams)
+                && !RankIsBack(rank) && HasTauntLaunchFromBack(performer)
+                && !HasComboStripLegal(candidates))
+            {
+                ApplyWalkBack(candidates, performer, "fall_rank");
+                if (HasRankWalk(candidates))
+                    return;
+            }
+
+            var reachTarget = ReachWalkTarget(candidates, performer, teams, focus, livingEnemies, performerGuid);
+            if (reachTarget != null)
+                ApplyReachReposition(candidates, performer, reachTarget);
+        }
+
+        private static void ApplyWalkBack(List<ScoredAction> candidates, ActorInstance performer, string reason)
+        {
+            if (candidates == null || performer == null)
+                return;
+            var current = 0;
+            try { current = performer.TeamPosition; } catch { return; }
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                var c = candidates[i];
+                if (c.Kind != SkillKind.Move || c.Target == null || c.Target.Actor == null)
+                    continue;
+                var dest = 0;
+                try { dest = c.Target.Actor.TeamPosition; } catch { continue; }
+                if (dest <= current)
+                    continue;
+                c.ReachReposition = true;
+                c.MustRankWalk = true;
+                c.NoteReason = reason;
+                c.Score = dest >= 3 ? 195f : dest >= 2 ? 188f : 170f;
+            }
+        }
+
+        private static bool HasRankWalk(List<ScoredAction> candidates)
+        {
+            if (candidates == null)
+                return false;
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                if (candidates[i].MustRankWalk)
+                    return true;
+            }
+            return false;
+        }
+
+        private static bool HasKillOnMustKill(List<ScoredAction> candidates, EnemyFocus focus)
+        {
+            if (candidates == null || focus == null)
+                return false;
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                var c = candidates[i];
+                if (c.Kind != SkillKind.Attack || !c.EnemyTarget || c.Target == null || c.Target.Corpse)
+                    continue;
+                if (c.Target.Actor == null || c.Preview == null || !c.Preview.Kills)
+                    continue;
+                if (focus.IsMustKillFirst(c.Target.Actor.ActorGuid))
+                    return true;
+            }
+            return false;
+        }
+
+        private static bool FallIsLive(BattleTeams teams)
+        {
+            if (teams == null)
+                return false;
+            foreach (var hero in GameSnapshot.TeamActors(teams, BattleTeams.HERO_TEAM_INDEX))
+            {
+                if (hero == null || !hero.IsLiving || GameSnapshot.IsCorpse(hero))
+                    continue;
+                var info = GameSnapshot.Describe(hero);
+                if (info.Combo && info.Rank <= 2)
+                    return true;
+            }
+            return false;
+        }
+
+        private static bool HasComboStripLegal(List<ScoredAction> candidates)
+        {
+            if (candidates == null)
+                return false;
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                var c = candidates[i];
+                if (!c.EnemyTarget && c.Target != null && c.Target.Combo && StripsCombo(c))
+                    return true;
+            }
+            return false;
+        }
+
+        private static bool HasTauntLaunchFromBack(ActorInstance performer)
+        {
+            if (performer == null)
+                return false;
+            IReadOnlyList<string> skillIds = null;
+            try { skillIds = performer.GetEquippedCombatSkillIds(); } catch { }
+            if (skillIds == null)
+                return false;
+            var size = 1;
+            try { size = performer.Size; } catch { }
+            for (var i = 0; i < skillIds.Count; i++)
+            {
+                var id = skillIds[i];
+                if (IsHarvestHungerGuard(id))
+                    continue;
+                var def = GetSkill(id);
+                if (def == null)
+                    continue;
+                try { if (def.IsItemSkill || def.IsMoveSkill) continue; } catch { }
+                var role = PartyKit.DescribeSkill(def);
+                if (role == null || !role.AppliesTaunt)
+                    continue;
+                try
+                {
+                    if (def.GetHasLaunchRank(3, size))
+                        return true;
+                }
+                catch { }
+            }
+            return false;
         }
 
         private static bool HitsFocusTarget(ScoredAction c, EnemyFocus focus)
