@@ -44,7 +44,13 @@ namespace Dd2Autobattler.Combat
                 if (controller == null)
                     return true;
 
-                var chosen = TurnDecider.Decide(controller);
+                if (Plugin.IsShadow)
+                {
+                    TurnDecider.EnsureShadow(controller);
+                    return true;
+                }
+
+                var chosen = TurnDecider.Decide(controller, true);
                 if (chosen == null || string.IsNullOrEmpty(chosen.SkillId))
                     return true;
 
@@ -60,7 +66,7 @@ namespace Dd2Autobattler.Combat
 
         private static bool SelectTargetPrefix(ref uint __result)
         {
-            if (Plugin.Enabled == null || !Plugin.Enabled.Value)
+            if (!Plugin.IsAuto)
                 return true;
             if (CombatMemory.HandsOff)
                 return true;

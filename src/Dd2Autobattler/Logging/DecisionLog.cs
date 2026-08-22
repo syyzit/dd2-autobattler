@@ -67,6 +67,27 @@ namespace Dd2Autobattler.Logging
             SetSummary(summary);
         }
 
+        public static void ShadowResult(JObject compare)
+        {
+            var obj = compare ?? new JObject();
+            obj["type"] = "shadow_result";
+            obj["fight"] = _fightId;
+            obj["turn_index"] = _turnIndex;
+            obj["utc"] = DateTime.UtcNow.ToString("o");
+            WriteLine(obj);
+
+            var match = obj.Value<bool>("match");
+            var bot = obj["bot"] as JObject;
+            var human = obj["human"] as JObject;
+            var botSkill = bot != null ? bot.Value<string>("skill") : "?";
+            var humanSkill = human != null ? human.Value<string>("skill") : "?";
+            var gap = obj.Value<float>("gap");
+            var summary = match
+                ? "SHADOW agree " + humanSkill
+                : "SHADOW you " + humanSkill + " | bot " + botSkill + " gap " + gap.ToString("0.0");
+            SetSummary(summary);
+        }
+
         public static void Info(string message)
         {
             _log?.LogInfo(message);

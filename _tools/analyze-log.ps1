@@ -70,6 +70,9 @@ $supportTurns = 0
 $errorCount = 0
 $errorNotes = New-Object System.Collections.Generic.List[string]
 $gapBuckets = [ordered]@{ "0-4" = 0; "4-10" = 0; "10-25" = 0; "25+" = 0 }
+$shadowAgree = 0
+$shadowDisagree = 0
+$shadowNotes = New-Object System.Collections.Generic.List[string]
 $fight = $null
 
 Write-Host "LOGS $($files.Count)"
@@ -98,6 +101,21 @@ foreach ($file in $files) {
                     ControllerHits = 0
                 }
                 $fights.Add($fight) | Out-Null
+            }
+            "shadow_result" {
+                $match = [bool]$o.match
+                if ($match) { $shadowAgree++ } else { $shadowDisagree++ }
+                $botSkill = "?"
+                $humanSkill = "?"
+                $botReason = ""
+                $rank = -1
+                $gap = 0
+                if ($o.bot) { $botSkill = [string]$o.bot.skill; $botReason = [string]$o.bot.reason }
+                if ($o.human) { $humanSkill = [string]$o.human.skill; $rank = [int]$o.human.rank }
+                if ($o.gap -ne $null) { $gap = [double]$o.gap }
+                if (-not $match) {
+                    $shadowNotes.Add(("{0} t{1} you={2} bot={3} ({4}) rank={5} gap={6:0.0}" -f $o.fight, $o.turn_index, $humanSkill, $botSkill, $botReason, $rank, $gap))
+                }
             }
             "error" {
                 $errorCount++
@@ -269,6 +287,16 @@ Write-Host ("  punched Combo without spending: {0}" -f $punchedCombo)
 Write-Host ("  save_combo reasons:             {0}" -f $savedCombo)
 Write-Host ("  focus_boss/summoner/rezzer:     {0}" -f $focusBoss)
 Write-Host ("  pass / support / move:          {0} / {1} / {2}" -f $passTurns, $supportTurns, $moveTurns)
+$shadowTotal = $shadowAgree + $shadowDisagree
+if ($shadowTotal -gt 0) {
+    Write-Host ("  shadow agree / disagree:        {0} / {1}" -f $shadowAgree, $shadowDisagree)
+}
+
+if ($shadowNotes.Count -gt 0) {
+    Write-Host ""
+    Write-Host "======== SHADOW DISAGREEMENTS (first 25) ========"
+    $shadowNotes | Select-Object -First 25 | ForEach-Object { Write-Host ("  {0}" -f $_) }
+}
 
 if ($errorNotes.Count -gt 0) {
     Write-Host ""

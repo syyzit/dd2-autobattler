@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Assets.Code.Combat;
 using Dd2Autobattler.Logging;
+using Newtonsoft.Json.Linq;
 
 namespace Dd2Autobattler.Combat
 {
@@ -24,6 +25,9 @@ namespace Dd2Autobattler.Combat
         public static string HandsOffReason { get; private set; }
         public static int Round { get { return _round; } }
         public static int TaprootHitsThisRound { get { return _taprootHitsThisRound; } }
+        public static uint ShadowActor { get; private set; }
+        public static ChosenAction ShadowBot { get; private set; }
+        public static List<JObject> ShadowLegal { get; private set; }
 
         public static void ResetFight()
         {
@@ -38,6 +42,7 @@ namespace Dd2Autobattler.Combat
             _reachWalkedThisRound.Clear();
             HandsOff = false;
             HandsOffReason = null;
+            ClearShadow();
         }
 
         public static void NoteRound(int round)
@@ -50,6 +55,21 @@ namespace Dd2Autobattler.Combat
             _comboSpendersActed.Clear();
             _crisisHealsThisRound.Clear();
             _reachWalkedThisRound.Clear();
+            ClearShadow();
+        }
+
+        public static void NoteShadowPick(uint actorGuid, ChosenAction bot, List<JObject> legal)
+        {
+            ShadowActor = actorGuid;
+            ShadowBot = bot;
+            ShadowLegal = legal;
+        }
+
+        public static void ClearShadow()
+        {
+            ShadowActor = 0;
+            ShadowBot = null;
+            ShadowLegal = null;
         }
 
         public static void NoteReachWalk(uint actorGuid)
