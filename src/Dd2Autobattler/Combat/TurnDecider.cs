@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Assets.Code.Actor;
 using Assets.Code.Actor.ActorController;
 using Assets.Code.Combat;
+using Assets.Code.Combat.Queries;
 using Assets.Code.Library;
 using Assets.Code.Skill;
 using Assets.Code.Utils;
@@ -116,14 +117,16 @@ namespace Dd2Autobattler.Combat
             ApplyCursePenalty(candidates);
             if (AllyInCrisis(teams) && !HasLegalAllyHeal(candidates))
                 ApplyHealReposition(candidates, performer);
-            var reachTarget = ReachWalkTarget(candidates, performer, teams, focus, livingEnemies);
+            var reachTarget = ReachWalkTarget(candidates, performer, teams, focus, livingEnemies, performerGuid);
             if (reachTarget != null)
                 ApplyReachReposition(candidates, performer, reachTarget);
             ApplyHarvestHungerGuard(candidates, performer, teams, focus);
             ApplyLibrarianBookVeto(candidates, focus);
             ApplySighLungVeto(candidates, focus);
             ApplyFocusedFaultNotes(candidates, focus);
-            ApplyOnePly(candidates);
+            ApplyLaterActNotes(candidates, focus);
+            var remaining = ReadRemainingTurns();
+            ApplyOnePly(candidates, livingEnemies, performerGuid, remaining, teams, party);
             ApplyCrisisStabilize(candidates, teams);
 
             var lastEnemy = FindLastLivingEnemy(candidates);
@@ -154,6 +157,8 @@ namespace Dd2Autobattler.Combat
 
             var wasSetup = picked.Kind == SkillKind.Support || picked.Kind == SkillKind.Pass;
             CombatMemory.NoteChosen(lastGuid, wasSetup && allowSetup && !picked.IsItem);
+            if (picked.ReachReposition)
+                CombatMemory.NoteReachWalk(performerGuid);
             if (picked.IsItem)
                 CombatMemory.NoteItemUsed(performerGuid);
             if (!picked.IsItem && party != null && party.HeroSpendsCombo(performerGuid))
@@ -190,6 +195,7 @@ namespace Dd2Autobattler.Combat
             public bool HealReposition;
             public bool ReachReposition;
             public float Ply;
+            public bool LeaveChip;
         }
 
         // Crush on Combo heals the performer. That is still an attack: do not
@@ -414,7 +420,7 @@ namespace Dd2Autobattler.Combat
                         continue;
                     if (focus.HasPriorityTarget && focus.IsPriority(c.Target.Actor.ActorGuid))
                         priorityLegal = true;
-                    if (focus.HasMustKillFirst && focus.IsMustKillFirst(c.Target.Actor.ActorGuid))
+                    if (focus.HasMustKillFirst && focus.IsMustKillFirst(c.Target.Actor.ActorGuid) && !c.LeaveChip)
                         mustKillLegal = true;
                 }
             }
@@ -478,8 +484,19 @@ namespace Dd2Autobattler.Combat
                 if (bestReposition == null || c.Score > bestReposition.Score)
                     bestReposition = c;
             }
+            // A legal click on the must-kill (even Tracking Shot) is playing.
+            // Walking every turn just swaps the front two back and forth.
             if (bestReposition != null)
-                return bestReposition;
+            {
+                if (!bestReposition.ReachReposition)
+                    return bestReposition;
+                var alreadyOnFocus = bestAttack != null && bestAttack.Target != null
+                    && bestAttack.Target.Actor != null && focus != null
+                    && (focus.IsMustKillFirst(bestAttack.Target.Actor.ActorGuid)
+                        || focus.IsPriority(bestAttack.Target.Actor.ActorGuid));
+                if (!alreadyOnFocus)
+                    return bestReposition;
+            }
 
             // One setup while the last enemy is awkward, then we must swing.
             if (allowSetup && bestSetup != null && bestAttack != null)
@@ -641,8 +658,9 @@ namespace Dd2Autobattler.Combat
         }
 
         // Paper-apply this click's preview onto the board. Remaining enemy HP and
-        // kills beat a 0-damage Combo mark. Does not clone legal skills for the next hero.
-        private static void ApplyOnePly(List<ScoredAction> candidates)
+        // kills beat a 0-damage Combo mark. If a later ally acts before this
+        // enemy, do not dump a 15 dmg swing into a 1 HP chip.
+        private static void ApplyOnePly(List<ScoredAction> candidates, int livingEnemies, uint performerGuid, List<uint> remaining, BattleTeams teams, PartyKit party)
         {
             if (candidates == null)
                 return;
@@ -652,9 +670,79 @@ namespace Dd2Autobattler.Combat
                 if (c.IsItem)
                     continue;
                 var ply = BoardDelta(c);
+                var leave = ShouldLeaveChip(c, livingEnemies, performerGuid, remaining, teams, party);
+                if (leave)
+                {
+                    var dmg = c.Preview != null ? c.Preview.Damage : 0f;
+                    var hp = c.Target != null ? c.Target.Hp : 0f;
+                    var leftover = dmg - hp;
+                    ply = LeaveChipPly(leftover);
+                    c.LeaveChip = true;
+                    c.Score -= 40f;
+                }
                 c.Ply = ply;
                 c.Score += ply;
             }
+        }
+
+        internal static float LeaveChipPly(float leftover)
+        {
+            return 8f - leftover * 1.2f;
+        }
+
+        private static bool ShouldLeaveChip(ScoredAction c, int livingEnemies, uint performerGuid, List<uint> remaining, BattleTeams teams, PartyKit party)
+        {
+            if (c == null || c.Kind != SkillKind.Attack || !c.EnemyTarget || c.Target == null || c.Target.Corpse)
+                return false;
+            if (livingEnemies <= 1)
+                return false;
+            if (c.Preview == null || !c.Preview.Kills)
+                return false;
+            var hp = c.Target.Hp;
+            var leftover = c.Preview.Damage - hp;
+            if (hp > 3f && leftover < 6f)
+                return false;
+            var enemyGuid = c.Target.Actor != null ? c.Target.Actor.ActorGuid : 0u;
+            return LaterAllyBeforeEnemy(remaining, performerGuid, enemyGuid, teams, party);
+        }
+
+        private static List<uint> ReadRemainingTurns()
+        {
+            var list = new List<uint>();
+            try
+            {
+                var q = QueryTurnOrder.Trigger(false);
+                if (q == null || q.m_RemainingTurnOrder == null)
+                    return list;
+                for (var i = 0; i < q.m_RemainingTurnOrder.Count; i++)
+                {
+                    var g = q.m_RemainingTurnOrder[i];
+                    if (g != 0)
+                        list.Add(g);
+                }
+            }
+            catch { }
+            return list;
+        }
+
+        private static bool LaterAllyBeforeEnemy(List<uint> remaining, uint performerGuid, uint enemyGuid, BattleTeams teams, PartyKit party)
+        {
+            if (remaining == null || party == null || enemyGuid == 0)
+                return false;
+            for (var i = 0; i < remaining.Count; i++)
+            {
+                var g = remaining[i];
+                if (g == 0 || g == performerGuid)
+                    continue;
+                if (g == enemyGuid)
+                    return false;
+                if (!party.HeroAttacks(g))
+                    continue;
+                var actor = GetActor(teams, g);
+                if (actor != null && actor.IsLiving)
+                    return true;
+            }
+            return false;
         }
 
         private static float BoardDelta(ScoredAction c)
@@ -811,6 +899,76 @@ namespace Dd2Autobattler.Combat
                         || TokenPrices.HasId(c.Tokens.Apply, "dodge")))
                     c.Score -= 25f;
             }
+        }
+
+        // wiki.gg/Exemplar: The Fall needs Combo on a hero; Holy Water / strip
+        // Combo to stop Worship. wiki.gg/Ravenous_Reach p1 Setback the same.
+        // wiki.gg/Body_of_Work p2 Covetous Glance steals 4+ positives; p3
+        // Strange Axis inverts them. Guard the Contempt (torso_target) mark.
+        private static void ApplyLaterActNotes(List<ScoredAction> candidates, EnemyFocus focus)
+        {
+            if (candidates == null || focus == null)
+                return;
+            var exemplar = false;
+            var reachP1 = false;
+            var bodyP2 = false;
+            var bodyP3 = false;
+            for (var i = 0; i < focus.Enemies.Count; i++)
+            {
+                var id = focus.Enemies[i].ClassId;
+                if (IdHasClass(id, "cultist_exemplar"))
+                    exemplar = true;
+                else if (IdHasClass(id, "boss_arms_phase1"))
+                    reachP1 = true;
+                else if (IdHasClass(id, "boss_body_phase2"))
+                    bodyP2 = true;
+                else if (IdHasClass(id, "boss_body_phase3") || IdHasClass(id, "boss_body_cherub")
+                         || IdHasClass(id, "boss_body_failure"))
+                    bodyP3 = true;
+            }
+            if (!exemplar && !reachP1 && !bodyP2 && !bodyP3)
+                return;
+
+            var punishCombo = exemplar || reachP1;
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                var c = candidates[i];
+                if (punishCombo && !c.EnemyTarget && c.Target != null && c.Target.Combo
+                    && StripsCombo(c))
+                {
+                    c.Score += 45f;
+                    if (c.Item != null)
+                    {
+                        c.Item.UseNow = true;
+                        if (c.Item.Score < 28f)
+                            c.Item.Score = 28f;
+                    }
+                }
+                if ((bodyP2 || bodyP3) && !c.EnemyTarget && c.Target != null
+                    && c.Target.PositiveTokens >= (bodyP2 ? 3 : 2) && c.Tokens != null
+                    && (TokenPrices.HasId(c.Tokens.Apply, "strength")
+                        || TokenPrices.HasId(c.Tokens.Apply, "block")
+                        || TokenPrices.HasId(c.Tokens.Apply, "dodge")
+                        || TokenPrices.HasId(c.Tokens.Apply, "riposte")
+                        || TokenPrices.HasId(c.Tokens.Apply, "crit")))
+                    c.Score -= 25f;
+                if (bodyP2 && !c.EnemyTarget && c.Target != null && c.Target.TorsoTarget
+                    && (c.Kind == SkillKind.Heal || c.Kind == SkillKind.Support
+                        || (c.Tokens != null && TokenPrices.HasId(c.Tokens.Apply, "guard"))))
+                    c.Score += 18f;
+            }
+        }
+
+        private static bool StripsCombo(ScoredAction c)
+        {
+            if (c == null)
+                return false;
+            if (c.Tokens != null
+                && (TokenPrices.HasId(c.Tokens.Remove, "combo")
+                    || TokenPrices.HasId(c.Tokens.Consume, "combo")))
+                return true;
+            return c.Item != null && !string.IsNullOrEmpty(c.Item.Reason)
+                   && c.Item.Reason.IndexOf("combo", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private static bool HitsFocusTarget(ScoredAction c, EnemyFocus focus)
@@ -1117,8 +1275,11 @@ namespace Dd2Autobattler.Combat
             return false;
         }
 
-        private static ActorInstance ReachWalkTarget(List<ScoredAction> candidates, ActorInstance performer, BattleTeams teams, EnemyFocus focus, int livingEnemies)
+        private static ActorInstance ReachWalkTarget(List<ScoredAction> candidates, ActorInstance performer, BattleTeams teams, EnemyFocus focus, int livingEnemies, uint performerGuid)
         {
+            if (CombatMemory.ReachWalkedThisRound(performerGuid))
+                return null;
+
             if (livingEnemies <= 1 && !HasDamagingHitOn(candidates, 0))
             {
                 var last = FindLastLivingEnemy(candidates);

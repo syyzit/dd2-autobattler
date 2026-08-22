@@ -29,6 +29,15 @@ namespace Dd2Autobattler.Tests
         }
 
         [Fact]
+        public void Leave_chip_ply_makes_overkill_worse_than_a_real_hit()
+        {
+            var overkill = TurnDecider.LeaveChipPly(14f);
+            Assert.True(overkill < 0f);
+            var small = TurnDecider.LeaveChipPly(2f);
+            Assert.True(small > overkill);
+        }
+
+        [Fact]
         public void Librarian_stack_guid_matches()
         {
             var focus = new EnemyFocus();
@@ -72,6 +81,155 @@ namespace Dd2Autobattler.Tests
             Assert.True(patient.Defer);
             Assert.True(patient.Add);
             Assert.False(patient.Boss);
+        }
+
+        [Fact]
+        public void Leviathan_note_must_kills_the_hand()
+        {
+            var focus = new EnemyFocus();
+            var hand = new EnemyThreat
+            {
+                Guid = 674,
+                ClassId = "coastal_boss_leviathan_hand",
+                Boss = true,
+                Add = true
+            };
+            var body = new EnemyThreat
+            {
+                Guid = 673,
+                ClassId = "coastal_boss_leviathan",
+                Boss = true,
+                Summons = true
+            };
+            focus.Enemies.Add(hand);
+            focus.Enemies.Add(body);
+            EnemyFocus.ApplyLeviathanNote(focus);
+            Assert.True(focus.HasMustKillFirst);
+            Assert.True(hand.MustKillFirst);
+            Assert.False(hand.Defer);
+            Assert.False(hand.Add);
+            Assert.True(body.Defer);
+            Assert.True(body.Add);
+            Assert.False(body.MustKillFirst);
+        }
+
+        [Fact]
+        public void Leviathan_note_defers_a_hand_dying_to_dot()
+        {
+            var focus = new EnemyFocus();
+            var hand = new EnemyThreat
+            {
+                Guid = 674,
+                ClassId = "coastal_boss_leviathan_hand",
+                Boss = true,
+                DiesToDot = true
+            };
+            var body = new EnemyThreat
+            {
+                Guid = 673,
+                ClassId = "coastal_boss_leviathan",
+                Boss = true,
+                Summons = true
+            };
+            focus.Enemies.Add(hand);
+            focus.Enemies.Add(body);
+            EnemyFocus.ApplyLeviathanNote(focus);
+            Assert.False(hand.MustKillFirst);
+            Assert.True(hand.Defer);
+            Assert.True(hand.Add);
+            Assert.False(body.Defer);
+            Assert.False(body.Add);
+            Assert.False(body.MustKillFirst);
+        }
+
+        [Fact]
+        public void Leviathan_note_noop_without_the_hand()
+        {
+            var focus = new EnemyFocus();
+            var body = new EnemyThreat
+            {
+                Guid = 673,
+                ClassId = "coastal_boss_leviathan",
+                Boss = true,
+                Summons = true
+            };
+            focus.Enemies.Add(body);
+            EnemyFocus.ApplyLeviathanNote(focus);
+            Assert.False(focus.HasMustKillFirst);
+            Assert.False(body.Defer);
+            Assert.False(body.MustKillFirst);
+        }
+
+        [Fact]
+        public void Deacon_note_kills_altar_before_the_boss()
+        {
+            var focus = new EnemyFocus();
+            var altar = new EnemyThreat { Guid = 1, ClassId = "cultist_altar", Supports = true };
+            var deacon = new EnemyThreat { Guid = 2, ClassId = "cultist_deacon", Boss = true };
+            focus.Enemies.Add(altar);
+            focus.Enemies.Add(deacon);
+            EnemyFocus.ApplyCultistNote(focus);
+            Assert.True(altar.MustKillFirst);
+            Assert.False(altar.Defer);
+            Assert.True(deacon.Defer);
+            Assert.False(deacon.MustKillFirst);
+        }
+
+        [Fact]
+        public void Exemplar_note_focuses_the_boss_and_defers_the_altar()
+        {
+            var focus = new EnemyFocus();
+            var altar = new EnemyThreat { Guid = 1, ClassId = "cultist_altar", Supports = true };
+            var herald = new EnemyThreat { Guid = 2, ClassId = "cultist_herald" };
+            var exemplar = new EnemyThreat { Guid = 3, ClassId = "cultist_exemplar", Boss = true, Add = true };
+            focus.Enemies.Add(altar);
+            focus.Enemies.Add(herald);
+            focus.Enemies.Add(exemplar);
+            EnemyFocus.ApplyCultistNote(focus);
+            Assert.True(exemplar.MustKillFirst);
+            Assert.False(exemplar.Add);
+            Assert.True(altar.Defer);
+            Assert.False(herald.Defer);
+            Assert.False(herald.Add);
+        }
+
+        [Fact]
+        public void Body_of_work_kills_proclaimers_before_the_god()
+        {
+            var focus = new EnemyFocus();
+            var cherub = new EnemyThreat { Guid = 1, ClassId = "boss_body_cherub" };
+            var god = new EnemyThreat { Guid = 2, ClassId = "boss_body_phase3", Boss = true };
+            focus.Enemies.Add(cherub);
+            focus.Enemies.Add(god);
+            EnemyFocus.ApplyBodyOfWorkNote(focus);
+            Assert.True(cherub.MustKillFirst);
+            Assert.True(god.Defer);
+            Assert.False(god.MustKillFirst);
+        }
+
+        [Fact]
+        public void Body_of_work_kills_the_spectre_before_the_god()
+        {
+            var focus = new EnemyFocus();
+            var spectre = new EnemyThreat { Guid = 1, ClassId = "boss_body_failure_pd" };
+            var god = new EnemyThreat { Guid = 2, ClassId = "boss_body_phase3", Boss = true };
+            focus.Enemies.Add(spectre);
+            focus.Enemies.Add(god);
+            EnemyFocus.ApplyBodyOfWorkNote(focus);
+            Assert.True(spectre.MustKillFirst);
+            Assert.True(god.Defer);
+        }
+
+        [Fact]
+        public void Ravenous_reach_is_must_kill()
+        {
+            var focus = new EnemyFocus();
+            var arms = new EnemyThreat { Guid = 1, ClassId = "boss_arms_phase2", Boss = true };
+            focus.Enemies.Add(arms);
+            EnemyFocus.ApplyRavenousReachNote(focus);
+            Assert.True(focus.HasMustKillFirst);
+            Assert.True(arms.MustKillFirst);
+            Assert.False(arms.Defer);
         }
     }
 }

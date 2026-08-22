@@ -24,6 +24,7 @@ namespace Dd2Autobattler.Combat
         public bool Defer;
         public bool Commander;
         public bool LungInflate;
+        public bool DiesToDot;
         public int Size;
         public float Score;
         public string Why;
@@ -73,6 +74,10 @@ namespace Dd2Autobattler.Combat
             ApplyHarvestChildNote(focus);
             ApplyLibrarianNote(focus);
             ApplyChirurgeonNote(focus);
+            ApplyLeviathanNote(focus);
+            ApplyCultistNote(focus);
+            ApplyRavenousReachNote(focus);
+            ApplyBodyOfWorkNote(focus);
             ApplySeethingSighNote(focus, teams);
             ApplyFocusedFaultNote(focus);
 
@@ -243,6 +248,22 @@ namespace Dd2Autobattler.Combat
                     why += "librarian+";
                 else if (IdHas(e.ClassId, "chirurgeon"))
                     why += "chirurgeon+";
+                else if (IdHas(e.ClassId, "leviathan_hand"))
+                    why += "leviathan_hand+";
+                else if (IdHas(e.ClassId, "cultist_exemplar"))
+                    why += "exemplar+";
+                else if (IdHas(e.ClassId, "cultist_altar"))
+                    why += "altar+";
+                else if (IdHas(e.ClassId, "cultist_"))
+                    why += "cultist+";
+                else if (IdHas(e.ClassId, "boss_arms"))
+                    why += "reach+";
+                else if (IdHas(e.ClassId, "boss_body_failure"))
+                    why += "spectre+";
+                else if (IdHas(e.ClassId, "boss_body_cherub"))
+                    why += "proclaimer+";
+                else if (IdHas(e.ClassId, "boss_body"))
+                    why += "body_work+";
                 else if (IdHas(e.ClassId, "lungs_core") || IdHas(e.ClassId, "lungs_front") || IdHas(e.ClassId, "lungs_back"))
                     why += e.LungInflate ? "sigh_lung+" : "sigh_core+";
                 else if (IdHas(e.ClassId, "eyes"))
@@ -452,6 +473,251 @@ namespace Dd2Autobattler.Combat
             mass.MustKillFirst = true;
             mass.Defer = false;
             mass.Boss = true;
+        }
+
+        // wiki.gg/Cultists Strategy: kill regulars (especially Altars) before they
+        // Worship Deacon/Cardinal into Exultation. wiki.gg/Exemplar: the Exemplar
+        // itself is the kill; minions are usually not worth it (he will sacrifice
+        // them). Herald is the exception that is allowed, not forced.
+        internal static void ApplyCultistNote(EnemyFocus focus)
+        {
+            if (focus == null)
+                return;
+            EnemyThreat exemplar = null;
+            var bosses = new List<EnemyThreat>();
+            var regulars = new List<EnemyThreat>();
+            for (var i = 0; i < focus.Enemies.Count; i++)
+            {
+                var e = focus.Enemies[i];
+                if (IdHas(e.ClassId, "cultist_exemplar"))
+                    exemplar = e;
+                else if (IdHas(e.ClassId, "cultist_deacon") || IdHas(e.ClassId, "cultist_cardinal"))
+                    bosses.Add(e);
+                else if (IsRegularCultist(e.ClassId))
+                    regulars.Add(e);
+            }
+
+            if (exemplar != null)
+            {
+                focus.HasPriorityTarget = true;
+                focus.HasMustKillFirst = true;
+                exemplar.MustKillFirst = true;
+                exemplar.Defer = false;
+                exemplar.Add = false;
+                exemplar.Boss = true;
+                for (var i = 0; i < regulars.Count; i++)
+                {
+                    var e = regulars[i];
+                    if (IdHas(e.ClassId, "cultist_herald"))
+                    {
+                        e.Defer = false;
+                        e.Add = false;
+                        e.MustKillFirst = false;
+                    }
+                    else
+                    {
+                        e.MustKillFirst = false;
+                        e.Defer = true;
+                        e.Add = true;
+                    }
+                }
+                return;
+            }
+
+            if (bosses.Count == 0)
+                return;
+
+            focus.HasPriorityTarget = true;
+            if (regulars.Count == 0)
+            {
+                focus.HasMustKillFirst = true;
+                for (var i = 0; i < bosses.Count; i++)
+                {
+                    bosses[i].MustKillFirst = true;
+                    bosses[i].Defer = false;
+                    bosses[i].Add = false;
+                    bosses[i].Boss = true;
+                }
+                return;
+            }
+
+            focus.HasMustKillFirst = true;
+            for (var i = 0; i < regulars.Count; i++)
+            {
+                regulars[i].MustKillFirst = true;
+                regulars[i].Defer = false;
+                regulars[i].Add = false;
+            }
+            for (var i = 0; i < bosses.Count; i++)
+            {
+                bosses[i].MustKillFirst = false;
+                bosses[i].Defer = true;
+            }
+        }
+
+        // wiki.gg/Ravenous_Reach Strategy: one target, three phases. Token-strip
+        // and bleed cleanse are click-level (TurnDecider). Here just mark the arms.
+        internal static void ApplyRavenousReachNote(EnemyFocus focus)
+        {
+            if (focus == null)
+                return;
+            var arms = false;
+            for (var i = 0; i < focus.Enemies.Count; i++)
+            {
+                var e = focus.Enemies[i];
+                if (!IdHas(e.ClassId, "boss_arms_phase"))
+                    continue;
+                arms = true;
+                e.MustKillFirst = true;
+                e.Defer = false;
+                e.Add = false;
+                e.Boss = true;
+            }
+            if (!arms)
+                return;
+            focus.HasPriorityTarget = true;
+            focus.HasMustKillFirst = true;
+        }
+
+        // wiki.gg/Body_of_Work: p1/p2 are the body. p3 God is 999 HP; Proclaimers
+        // unlock Face Your Failure, then the Spectre pays 200. Kill those first.
+        internal static void ApplyBodyOfWorkNote(EnemyFocus focus)
+        {
+            if (focus == null)
+                return;
+            var proclaimers = new List<EnemyThreat>();
+            var spectres = new List<EnemyThreat>();
+            EnemyThreat god = null;
+            EnemyThreat body = null;
+            for (var i = 0; i < focus.Enemies.Count; i++)
+            {
+                var e = focus.Enemies[i];
+                if (IdHas(e.ClassId, "spacer"))
+                    continue;
+                if (IdHas(e.ClassId, "boss_body_cherub"))
+                    proclaimers.Add(e);
+                else if (IdHas(e.ClassId, "boss_body_failure"))
+                    spectres.Add(e);
+                else if (IdHas(e.ClassId, "boss_body_phase3"))
+                    god = e;
+                else if (IdHas(e.ClassId, "boss_body_phase"))
+                    body = e;
+            }
+            if (proclaimers.Count == 0 && spectres.Count == 0 && god == null && body == null)
+                return;
+
+            focus.HasPriorityTarget = true;
+            focus.HasMustKillFirst = true;
+
+            if (proclaimers.Count > 0)
+            {
+                for (var i = 0; i < proclaimers.Count; i++)
+                {
+                    proclaimers[i].MustKillFirst = true;
+                    proclaimers[i].Defer = false;
+                    proclaimers[i].Add = false;
+                }
+                if (god != null)
+                {
+                    god.MustKillFirst = false;
+                    god.Defer = true;
+                    god.Add = true;
+                }
+                return;
+            }
+
+            if (spectres.Count > 0)
+            {
+                for (var i = 0; i < spectres.Count; i++)
+                {
+                    spectres[i].MustKillFirst = true;
+                    spectres[i].Defer = false;
+                    spectres[i].Add = false;
+                }
+                if (god != null)
+                {
+                    god.MustKillFirst = false;
+                    god.Defer = true;
+                    god.Add = true;
+                }
+                return;
+            }
+
+            if (god != null)
+            {
+                god.MustKillFirst = true;
+                god.Defer = false;
+                god.Add = false;
+                god.Boss = true;
+                return;
+            }
+
+            if (body != null)
+            {
+                body.MustKillFirst = true;
+                body.Defer = false;
+                body.Add = false;
+                body.Boss = true;
+            }
+        }
+
+        private static bool IsRegularCultist(string classId)
+        {
+            return IdHas(classId, "cultist_altar")
+                   || IdHas(classId, "cultist_cherub")
+                   || IdHas(classId, "cultist_herald")
+                   || IdHas(classId, "cultist_evangelist");
+        }
+
+        // wiki.gg/Leviathan Strategy: the Hand is the most important target.
+        // Undertow drowns a Call of the Deep mark until the Hand dies; recast
+        // next round is expected. Hit the body only once the Hand is dead or
+        // dying from DoT. CSV: coastal_boss_leviathan / _hand. Deep Rising
+        // summons the Hand, so the generic add tag would skip it.
+        internal static void ApplyLeviathanNote(EnemyFocus focus)
+        {
+            if (focus == null)
+                return;
+            EnemyThreat hand = null;
+            EnemyThreat body = null;
+            for (var i = 0; i < focus.Enemies.Count; i++)
+            {
+                var e = focus.Enemies[i];
+                if (IdHas(e.ClassId, "leviathan_hand"))
+                    hand = e;
+                else if (IdHas(e.ClassId, "coastal_boss_leviathan"))
+                    body = e;
+            }
+            if (hand == null)
+                return;
+
+            focus.HasPriorityTarget = true;
+            if (hand.DiesToDot)
+            {
+                hand.MustKillFirst = false;
+                hand.Defer = true;
+                hand.Add = true;
+                if (body != null)
+                {
+                    body.MustKillFirst = false;
+                    body.Defer = false;
+                    body.Add = false;
+                    body.Boss = true;
+                }
+                return;
+            }
+
+            focus.HasMustKillFirst = true;
+            hand.MustKillFirst = true;
+            hand.Defer = false;
+            hand.Add = false;
+            hand.Boss = true;
+            if (body != null)
+            {
+                body.MustKillFirst = false;
+                body.Defer = true;
+                body.Add = true;
+            }
         }
 
         // wiki.gg/Chirurgeon Strategy: he is a support boss. Leucotomy heals
@@ -767,6 +1033,14 @@ namespace Dd2Autobattler.Combat
 
             if (HasTag(actor, "boss") || IdHas(threat.Name, "boss"))
                 threat.Boss = true;
+
+            try
+            {
+                var info = GameSnapshot.Describe(actor);
+                if (info != null)
+                    threat.DiesToDot = info.DiesToDot;
+            }
+            catch { }
 
             IReadOnlyList<string> skillIds = null;
             try { skillIds = actor.GetEquippedCombatSkillIds(); } catch { }

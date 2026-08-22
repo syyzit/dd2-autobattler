@@ -37,6 +37,7 @@ namespace Dd2Autobattler.Combat
         public bool TangledLock;
         public int EyesFocus;
         public bool LungInflate;
+        public bool TorsoTarget;
         public int PositiveTokens;
     }
 
@@ -148,6 +149,7 @@ namespace Dd2Autobattler.Combat
                            || CountToken(actor, "taproot_tangle") > 0;
             info.EyesFocus = CountToken(actor, "eyes_focus");
             info.LungInflate = CountToken(actor, "lung_inflate") > 0;
+            info.TorsoTarget = CountToken(actor, "torso_target") > 0;
             info.PositiveTokens = info.StrengthCount + info.BlockCount + info.DodgeCount
                                   + (info.Riposte ? 1 : 0) + CountToken(actor, "crit");
             return info;
@@ -260,7 +262,16 @@ namespace Dd2Autobattler.Combat
                         if (string.IsNullOrEmpty(id) || id.IndexOf(idContains, StringComparison.OrdinalIgnoreCase) < 0)
                             continue;
                     }
-                    total += Math.Abs(dot.m_EffectValueChange);
+                    // Tooltip magnitude: definition HP damage + instance change, times multiplier.
+                    // m_EffectValueChange alone is only the modifier, so blight 3 always read as 0.
+                    var mag = 0;
+                    try { mag = DotDescription.GetDotMagnitude(dot); } catch { }
+                    if (mag == 0)
+                    {
+                        try { if (def != null) mag = DotDescription.GetDotMagnitude(def); } catch { }
+                        try { mag += (int)Math.Abs(dot.m_EffectValueChange); } catch { }
+                    }
+                    total += Math.Abs(mag);
                 }
                 return total;
             }
