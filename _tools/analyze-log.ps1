@@ -67,6 +67,9 @@ $focusBoss = 0
 $passTurns = 0
 $moveTurns = 0
 $supportTurns = 0
+$errorCount = 0
+$errorNotes = New-Object System.Collections.Generic.List[string]
+$gapBuckets = [ordered]@{ "0-4" = 0; "4-10" = 0; "10-25" = 0; "25+" = 0 }
 $fight = $null
 
 Write-Host "LOGS $($files.Count)"
@@ -95,6 +98,12 @@ foreach ($file in $files) {
                     ControllerHits = 0
                 }
                 $fights.Add($fight) | Out-Null
+            }
+            "error" {
+                $errorCount++
+                $msg = [string]$o.message
+                $ex = [string]$o.exception
+                $errorNotes.Add(("{0} {1}: {2}" -f $o.fight, $ex, $msg))
             }
             "fight_end" {
                 if ($fight) {
@@ -133,6 +142,10 @@ foreach ($file in $files) {
                     if ($sorted.Count -ge 2) {
                         $gap = [double]$sorted[0].score - [double]$sorted[1].score
                         if ($gap -ge 0 -and $gap -lt 4) { $close++ }
+                        if ($gap -lt 4) { $gapBuckets["0-4"]++ }
+                        elseif ($gap -lt 10) { $gapBuckets["4-10"]++ }
+                        elseif ($gap -lt 25) { $gapBuckets["10-25"]++ }
+                        else { $gapBuckets["25+"]++ }
                     }
 
                     $controllerLegal = $false
@@ -242,7 +255,12 @@ if ($items.Count -gt 0) {
 
 Write-Host ""
 Write-Host "======== OPPORTUNITIES ========"
+Write-Host ("  silent_fallbacks (jsonl error): {0}" -f $errorCount)
 Write-Host ("  close_scores (<4 gap):          {0}" -f $close)
+Write-Host "  score_margin histogram:"
+foreach ($k in $gapBuckets.Keys) {
+    Write-Host ("    {0,-6} {1}" -f $k, $gapBuckets[$k])
+}
 Write-Host ("  hit ADD while controller legal: {0}" -f $hitAddWithController)
 Write-Host ("  skipped heal on Deaths Door:    {0}" -f $healSkippedDd)
 Write-Host ("  skipped heal on ally <=35pct:   {0}" -f $healSkippedLow)
@@ -251,6 +269,12 @@ Write-Host ("  punched Combo without spending: {0}" -f $punchedCombo)
 Write-Host ("  save_combo reasons:             {0}" -f $savedCombo)
 Write-Host ("  focus_boss/summoner/rezzer:     {0}" -f $focusBoss)
 Write-Host ("  pass / support / move:          {0} / {1} / {2}" -f $passTurns, $supportTurns, $moveTurns)
+
+if ($errorNotes.Count -gt 0) {
+    Write-Host ""
+    Write-Host "======== SILENT FALLBACKS (first 15) ========"
+    $errorNotes | Select-Object -First 15 | ForEach-Object { Write-Host ("  {0}" -f $_) }
+}
 
 if ($notes.Count -gt 0) {
     Write-Host ""

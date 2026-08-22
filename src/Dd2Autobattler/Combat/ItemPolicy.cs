@@ -61,7 +61,23 @@ namespace Dd2Autobattler.Combat
         public static ItemEval Evaluate(string skillId, ActorDataSkill def, SkillKind kind, bool enemyTarget, PreviewScore preview, TargetInfo target, TokenEval tokens, int livingEnemies, int qty)
         {
             var eval = new ItemEval();
-            if (target == null || preview == null || !preview.Ok)
+            if (target == null)
+                return eval;
+
+            // CSV pouch_of_lye: target_is_corpse, clear_corpse, stress_heal on performer.
+            // Attack items that happen to click a corpse still take the skip below.
+            if (IsCorpseClear(skillId, def) && target.Corpse)
+            {
+                ScoreCorpseClear(eval, livingEnemies);
+                if (qty <= 1)
+                    eval.Score -= eval.Crisis ? 2f : 6f;
+                else if (qty == 2)
+                    eval.Score -= eval.Crisis ? 0f : 2f;
+                eval.UseNow = eval.Score >= UseThreshold;
+                return eval;
+            }
+
+            if (preview == null || !preview.Ok)
                 return eval;
 
             var lastEnemy = livingEnemies <= 1 && enemyTarget && !target.Corpse;
@@ -91,6 +107,10 @@ namespace Dd2Autobattler.Combat
                 case ItemRole.Attack:
                     ScoreAttack(eval, preview, target, lastEnemy, livingEnemies);
                     break;
+                case ItemRole.CorpseClear:
+                    eval.Score = -40f;
+                    eval.Reason = "item_clear_corpse_waste";
+                    break;
                 default:
                     ScoreBuff(eval, target, tokens, livingEnemies, lastEnemy || fightClosing);
                     break;
@@ -105,6 +125,11 @@ namespace Dd2Autobattler.Combat
                 eval.Score -= 12f;
 
             eval.UseNow = eval.Score >= UseThreshold;
+            if (!enemyTarget && preview.Heal > 0f && (target.DeathsDoor || target.HpPct <= 0.25f))
+            {
+                eval.UseNow = true;
+                eval.Crisis = true;
+            }
             if (string.IsNullOrEmpty(eval.Reason))
                 eval.Reason = "item";
             return eval;
@@ -117,11 +142,14 @@ namespace Dd2Autobattler.Combat
             Stress,
             Strip,
             Attack,
-            Buff
+            Buff,
+            CorpseClear
         }
 
         private static ItemRole ClassifyItem(string skillId, ActorDataSkill def, SkillKind kind, PreviewScore preview)
         {
+            if (IsCorpseClear(skillId, def))
+                return ItemRole.CorpseClear;
             if (LooksLike(skillId, def, "laudanum", "stress_heal", "horror"))
                 return ItemRole.Stress;
             if (LooksLike(skillId, def, "antivenom", "bandage", "burn_salve", "medicinal", "blight", "bleed", "burn"))
@@ -257,6 +285,36 @@ namespace Dd2Autobattler.Combat
 
             eval.Score = -30f;
             eval.Reason = "item_strip_waste";
+        }
+
+        // CSV: pouch_of_lye target_effects clear_corpse; performer stress_heal_1.
+        // Use it when corpses are clogging ranks, especially the last living enemy.
+        private static void ScoreCorpseClear(ItemEval eval, int livingEnemies)
+        {
+            if (livingEnemies <= 1)
+            {
+                eval.Score = 42f;
+                eval.Reason = "item_clear_corpse";
+                eval.Crisis = true;
+                return;
+            }
+
+            if (livingEnemies <= 2)
+            {
+                eval.Score = 28f;
+                eval.Reason = "item_clear_corpse";
+                return;
+            }
+
+            eval.Score = 20f;
+            eval.Reason = "item_clear_corpse";
+        }
+
+        private static bool IsCorpseClear(string skillId, ActorDataSkill def)
+        {
+            // Do not match target_is_not_corpse_hidden (substring trap).
+            return LooksLike(skillId, def, "pouch_of_lye", "lye")
+                   || HasCondition(def, "target_is_corpse_hidden");
         }
 
         private static void ScoreAttack(ItemEval eval, PreviewScore preview, TargetInfo target, bool lastEnemy, int livingEnemies)

@@ -83,6 +83,17 @@ namespace Dd2Autobattler.Logging
                 _log?.LogError($"{message}\n{ex}");
             else
                 _log?.LogError(message);
+
+            var obj = new JObject
+            {
+                ["type"] = "error",
+                ["fight"] = _fightId,
+                ["utc"] = DateTime.UtcNow.ToString("o"),
+                ["message"] = message,
+                ["exception"] = ex != null ? ex.GetType().Name : null,
+                ["detail"] = ex != null ? ex.Message : null
+            };
+            WriteLine(obj);
         }
 
         private static void SetSummary(string summary)
@@ -93,6 +104,8 @@ namespace Dd2Autobattler.Logging
 
         private static void WriteLine(JObject obj)
         {
+            if (string.IsNullOrEmpty(_jsonlPath))
+                return;
             try
             {
                 File.AppendAllText(_jsonlPath, obj.ToString(Formatting.None) + Environment.NewLine);

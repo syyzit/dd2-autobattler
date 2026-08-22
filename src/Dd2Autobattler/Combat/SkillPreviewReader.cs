@@ -29,6 +29,7 @@ namespace Dd2Autobattler.Combat
         public readonly List<string> ConsumePerformer = new List<string>();
         public readonly List<string> ApplyTarget = new List<string>();
         public readonly List<string> RemoveTarget = new List<string>();
+        public readonly List<uint> HitGuids = new List<uint>();
     }
 
     public static class SkillPreviewReader
@@ -54,6 +55,7 @@ namespace Dd2Autobattler.Combat
 
                 foreach (var item in previews)
                     ReadPreview(item, result);
+                AddHitGuid(result, targetGuid);
 
                 if (!_loggedShape && previews.Count > 0)
                 {
@@ -124,6 +126,7 @@ namespace Dd2Autobattler.Combat
             result.HitChance = hit;
             result.Kills |= AsBool(GetMember(item, "IsKill")) || AsBool(GetMember(item, "IsDamageKill"));
             result.HealsDeathsDoor |= result.Heal > 0f && AsBool(GetMember(item, "TargetIsAtDeathsDoor"));
+            AddHitGuid(result, AsUInt(GetMember(item, "m_TargetActorGuid")));
 
             AddStrings(GetMember(item, "m_TargetAttemptedTokenConsumeIds"), result.ConsumeTarget);
             AddStrings(GetMember(item, "m_PerformerAttemptedTokenConsumeIds"), result.ConsumePerformer);
@@ -279,6 +282,24 @@ namespace Dd2Autobattler.Combat
         {
             if (value == null) return false;
             try { return Convert.ToBoolean(value); } catch { return false; }
+        }
+
+        private static uint AsUInt(object value)
+        {
+            if (value == null) return 0;
+            try { return Convert.ToUInt32(value); } catch { return 0; }
+        }
+
+        private static void AddHitGuid(PreviewScore result, uint guid)
+        {
+            if (result == null || guid == 0)
+                return;
+            for (var i = 0; i < result.HitGuids.Count; i++)
+            {
+                if (result.HitGuids[i] == guid)
+                    return;
+            }
+            result.HitGuids.Add(guid);
         }
     }
 }
