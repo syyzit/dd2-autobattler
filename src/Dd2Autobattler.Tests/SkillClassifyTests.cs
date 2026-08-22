@@ -22,6 +22,13 @@ namespace Dd2Autobattler.Tests
         }
 
         [Fact]
+        public void Pass_heal_without_preview_is_rest_not_a_skill_heal()
+        {
+            var kind = TurnDecider.Classify("pass_heal", null, null, false);
+            Assert.Equal(SkillKind.Pass, kind);
+        }
+
+        [Fact]
         public void Librarian_stack_guid_matches()
         {
             var focus = new EnemyFocus();

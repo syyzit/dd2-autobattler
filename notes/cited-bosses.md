@@ -56,7 +56,7 @@ Do not encode a fallback that only we invented.
 - **Rules encoded:** if an ally is in crisis (Death's Door or <=35%) and no skill heal is legal, allow a move that lands the healer on a launch rank of an equipped heal that still has uses. Do not un-veto every swap.
 - Cleanse items that also heal (antivenom, bandage) are spent on Death's Door / <=30% instead of being scored as a wasted cleanse.
 - If the skill heal is spent (`m_Limit`) and someone is on Death's Door or <=30%, food/bandage/antivenom that still heal are forced. A last-enemy kill does not skip a Death's Door heal. Support (Ounce of Prevention) is penalized while the party is in crisis.
-- Last living enemy behind corpses: if no damaging attack is legal, walk onto a launch rank of an equipped attack that can hit that rank. 0-damage Combo marks do not count as a hit. Do not un-veto every swap.
+- Last living enemy behind corpses, or a must-kill this hero cannot damage (Librarian after Categorize): if no damaging attack is legal on that target, walk onto a launch rank of an equipped attack that can hit that rank. 0-damage Combo marks do not count as a hit. `pass_heal` is Rest, not a skill heal — do not walk for it. Do not un-veto every swap.
 - Combat items are classified from CSV conditions/tags, not a name list: `target_is_corpse_hidden` (Pouch of Lye), `target_has_*_dot` (DoT cleanse), `target_is_diseased` (Single Leech), `target_has_blind` (Rag), `stress_heal`, `heal`. Enemy items stay attacks (witchbane). Grenades that click a corpse still skip. Buffs (powders, war horn, The Blood) stay on the token/buff scorer — do not dump them.
 
 ## Chirurgeon (Gaunt table)
