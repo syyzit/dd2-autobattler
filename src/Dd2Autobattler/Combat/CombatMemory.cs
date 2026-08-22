@@ -18,6 +18,7 @@ namespace Dd2Autobattler.Combat
         private static int _taprootHitsThisRound;
         private static readonly HashSet<uint> _comboSpendersActed = new HashSet<uint>();
         private static readonly HashSet<uint> _crisisHealsThisRound = new HashSet<uint>();
+        private static readonly HashSet<uint> _reachWalkedThisRound = new HashSet<uint>();
 
         public static bool HandsOff { get; private set; }
         public static string HandsOffReason { get; private set; }
@@ -34,6 +35,7 @@ namespace Dd2Autobattler.Combat
             _taprootHitsThisRound = 0;
             _comboSpendersActed.Clear();
             _crisisHealsThisRound.Clear();
+            _reachWalkedThisRound.Clear();
             HandsOff = false;
             HandsOffReason = null;
         }
@@ -47,6 +49,18 @@ namespace Dd2Autobattler.Combat
             _taprootHitsThisRound = 0;
             _comboSpendersActed.Clear();
             _crisisHealsThisRound.Clear();
+            _reachWalkedThisRound.Clear();
+        }
+
+        public static void NoteReachWalk(uint actorGuid)
+        {
+            if (actorGuid != 0)
+                _reachWalkedThisRound.Add(actorGuid);
+        }
+
+        public static bool ReachWalkedThisRound(uint actorGuid)
+        {
+            return actorGuid != 0 && _reachWalkedThisRound.Contains(actorGuid);
         }
 
         public static void NoteComboSpenderActed(uint actorGuid)

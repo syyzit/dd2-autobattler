@@ -96,6 +96,42 @@ Do not encode a fallback that only we invented.
   - Do not stack a third positive token onto a hero who is not Seen while the mass is up (wiki: Suppress on ≥3 positives).
 - **Not encoded:** inn prep, outspeed-then-Taunt plan, Dodge-to-avoid-Seen plan. Those are inn/speed, not a targeting rule.
 
+## Leviathan (Shroud lair)
+
+- **Sources:** [wiki Strategy](https://darkestdungeon.wiki.gg/wiki/Leviathan#Strategy). CSV: body `coastal_boss_leviathan` (155 HP, size 2, summons Hand via Deep Rising / `leviathan_summon_hand`); Hand `coastal_boss_leviathan_hand` (24 HP, size 2, 2 turns, tags `boss_hand`). Undertow captures a Call of the Deep mark (per-turn HP drain, per-round stress) until the Hand dies; recast at round end after death.
+- **Rules encoded:**
+  - While the Hand is up and not dying to DoT, it is `must_kill`. The body is deferred. Wiki: "the hand is by far the most important target"; "only once the hand is dead (or dying from DoT) should the heroes focus on damaging the Leviathan itself." Recast next round is expected — kill it again.
+  - If the Hand is dying to DoT, defer it and hit the body.
+  - Body-only (Hand not out yet, or already dead this round): no extra rule; default boss scoring.
+- **Not encoded:** Taunt/Guard to bait Undertow onto high Move RES; Ceremonial Drums; DoT-RES piercing / blight-burn skill picks; moving Call of the Deep marks out of ranks 1-2. Those are inn/token/hero picks, not a targeting rule.
+
+## Cultists (Oblivion's Ingress / Rampart)
+
+- **Sources:** [wiki Cultists Strategy](https://darkestdungeon.wiki.gg/wiki/Cultists_(Darkest_Dungeon_II)#Strategy); [wiki Exemplar Strategy](https://darkestdungeon.wiki.gg/wiki/Exemplar#Strategy_and_advice). CSV: `cultist_deacon`, `cultist_cardinal`, `cultist_exemplar`, `cultist_altar`, `cultist_herald`, `cultist_cherub`, `cultist_evangelist`. Worship token cap 2 enables Exultation / the minion **Worship** heal.
+- **Rules encoded:**
+  - Deacon or Cardinal on the board: kill regular cultists first (Altar included). The boss is deferred while any regular is alive. Wiki: "imperative to kill regular Cultist enemies, especially Altars, as quickly as possible before they can empower their bosses."
+  - Exemplar (Act 3+ last-region Rampart): Exemplar is `must_kill`. Altar / Cherub / Evangelist are deferred (wiki: he will Pillar of Sacrifice them; damage on them is often wasted). Herald is not deferred — wiki: worth considering a kill — but not forced over the Exemplar if both are legal.
+  - Holy Water / Combo-strip on a hero who has Combo: spend it. Wiki: The Fall on Combo is how Exemplar gains Worship for Exultation.
+- **Not encoded:** Shred of Decency as a named item (it already classifies as a strip if the CSV says so); Taunt-rank-4 The Fall bait; inn blight resist. Kingdoms Tundra Exemplar.
+
+## Ravenous Reach (Ambition / Confession 4)
+
+- **Sources:** [wiki Strategy](https://darkestdungeon.wiki.gg/wiki/Ravenous_Reach#Strategy). CSV: `boss_arms_phase1` / `_phase2` / `_phase3`. p1 Ideation Block+ x3 and Setback (Combo: ignore Dodge, +100% DMG, Stun). p2 Dodge x2 and Teardown. p3 Riposte x2.
+- **Rules encoded:**
+  - The arms are `must_kill` (only target; marks walk-for-reach).
+  - p1: Combo-strip on heroes (Setback). Token-strip on the boss is the existing consume/remove scorer (Double Cross, Tracking Shot, Highway Robbery, Bellow).
+- **Not encoded:** inn bleed-RES / Fate's Foreteller plan; Sergeant immobility trophy; hero-path skill picks; Bastard's Beacon extra riders. Bleed cleanse on allies is the existing DoT-item policy.
+
+## Body of Work (Cowardice / Confession 5)
+
+- **Sources:** [wiki Body of Work](https://darkestdungeon.wiki.gg/wiki/Body_of_Work) phase Strategy sections. CSV: p1 `boss_body_phase1` (Gut), p2 `boss_body_phase2` (Gaze), p3 `boss_body_phase3` (God 999 HP); Proclaimers `boss_body_cherub`; Spectres `boss_body_failure_*`. Contempt token `torso_target`; Gastric Juice `gastric_juice`. Face Your Failure after both Proclaimers die; Spectre kill unlocks the 200-damage confession attack.
+- **Rules encoded:**
+  - p1/p2: the body is `must_kill`.
+  - p2: do not stack a 4th positive token (wiki: Covetous Glance steals all at 4+). Guard/heal the hero with `torso_target` (Haymaker mark). Breaking Windup is just "hit the boss" — default damage scoring.
+  - p3: Proclaimers `must_kill`, God deferred. Then Spectre `must_kill`, God deferred. Then the God. Wiki: defeating both Proclaimers unlocks Face Your Failure; the Spectre pay-off is 200 damage (x4 = 800 of the 999).
+  - p3: do not pile extra Strength/Block/Dodge (wiki: Strange Axis inverts positives).
+- **Not encoded:** inn blight-RES for Catabolize; Block/Weak to blunt Haymaker; hero-specific 200-damage skill; Bastard's Beacon. Blight cleanse on Gastric Juice is the existing DoT-item policy.
+
 ## Ordainment
 
 - **Sources:** [wiki Ordainment](https://darkestdungeon.wiki.gg/wiki/Ordainment). HP/DMG (and confession-specific) buffs on trash as the mountain run goes on. Act/lair bosses are never ordained except Bastard's Beacon.
@@ -104,4 +140,6 @@ Do not encode a fallback that only we invented.
 
 ## How to add the next boss
 
-Copy the wiki Strategy paragraph into this file, quote the CSV keys that back the numbers, then encode only those sentences. If a live log looks drunk, write the mismatch here - do not invent a new rule from the log. Remaining Confession bosses: Ravenous Reach, Body of Work.
+Copy the wiki Strategy paragraph into this file, quote the CSV keys that back the numbers, then encode only those sentences. If a live log looks drunk, write the mismatch here - do not invent a new rule from the log.
+
+Confession mountain bosses are all cited (Denial, Resentment/Seething Sigh, Obsession/Focused Fault, Ambition/Ravenous Reach, Cowardice/Body of Work) plus the Act 3+ Exemplar gate. Roaming (Collector, Death, Shambler, Antiquarian, Warlord) and Kingdoms (Meat Hook, Mother of Threads, Archduke) have no extra targeting note — they play as default boss/support scoring unless a wiki Strategy sentence appears later.
