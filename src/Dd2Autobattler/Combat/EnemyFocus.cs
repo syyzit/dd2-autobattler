@@ -23,6 +23,7 @@ namespace Dd2Autobattler.Combat
         public bool MustKillFirst;
         public bool Defer;
         public bool Commander;
+        public bool LungInflate;
         public int Size;
         public float Score;
         public string Why;
@@ -71,6 +72,9 @@ namespace Dd2Autobattler.Combat
             ApplyDenialLocksNote(focus, teams);
             ApplyHarvestChildNote(focus);
             ApplyLibrarianNote(focus);
+            ApplyChirurgeonNote(focus);
+            ApplySeethingSighNote(focus, teams);
+            ApplyFocusedFaultNote(focus);
 
             if (focus.HasPriorityTarget)
             {
@@ -123,6 +127,12 @@ namespace Dd2Autobattler.Combat
         {
             var t = Find(guid);
             return t != null && t.Defer;
+        }
+
+        public bool IsLibrarianStack(uint guid)
+        {
+            var t = Find(guid);
+            return t != null && IdHas(t.ClassId, "librarian_stack");
         }
 
         public static bool IsTangleWasteSkill(string skillId)
@@ -231,6 +241,12 @@ namespace Dd2Autobattler.Combat
                     why += "harvest_table+";
                 else if (IdHas(e.ClassId, "librarian") && !IdHas(e.ClassId, "stack"))
                     why += "librarian+";
+                else if (IdHas(e.ClassId, "chirurgeon"))
+                    why += "chirurgeon+";
+                else if (IdHas(e.ClassId, "lungs_core") || IdHas(e.ClassId, "lungs_front") || IdHas(e.ClassId, "lungs_back"))
+                    why += e.LungInflate ? "sigh_lung+" : "sigh_core+";
+                else if (IdHas(e.ClassId, "eyes"))
+                    why += "eyes+";
                 else
                     why += "bishop+";
             }
@@ -329,6 +345,150 @@ namespace Dd2Autobattler.Combat
             if (anyLocked && budget < 1)
                 budget = 1;
             return budget;
+        }
+
+        // wiki.gg/Seething_Sigh Strategy: pop lung_inflate (6% max HP) so
+        // Sundering Exhalation does not fire; hit the core otherwise. Rarely
+        // finish a lung - dead lungs make the core multi-target.
+        private static void ApplySeethingSighNote(EnemyFocus focus, BattleTeams teams)
+        {
+            EnemyThreat core = null;
+            var lungs = new List<EnemyThreat>();
+            for (var i = 0; i < focus.Enemies.Count; i++)
+            {
+                var e = focus.Enemies[i];
+                if (IdHas(e.ClassId, "lungs_core"))
+                    core = e;
+                else if (IdHas(e.ClassId, "lungs_front") || IdHas(e.ClassId, "lungs_back"))
+                    lungs.Add(e);
+            }
+            if (core == null)
+                return;
+
+            for (var i = 0; i < lungs.Count; i++)
+            {
+                var lung = lungs[i];
+                foreach (var actor in GameSnapshot.TeamActors(teams, BattleTeams.ENEMY_TEAM_INDEX))
+                {
+                    if (actor == null || actor.ActorGuid != lung.Guid)
+                        continue;
+                    lung.LungInflate = GameSnapshot.CountToken(actor, "lung_inflate") > 0;
+                    break;
+                }
+            }
+
+            focus.HasPriorityTarget = true;
+            focus.HasMustKillFirst = true;
+            core.Boss = true;
+
+            var inflated = 0;
+            for (var i = 0; i < lungs.Count; i++)
+            {
+                if (lungs[i].LungInflate)
+                    inflated++;
+            }
+
+            if (inflated > 0)
+            {
+                core.MustKillFirst = false;
+                core.Defer = true;
+                for (var i = 0; i < lungs.Count; i++)
+                {
+                    var lung = lungs[i];
+                    if (lung.LungInflate)
+                    {
+                        lung.MustKillFirst = true;
+                        lung.Defer = false;
+                    }
+                    else
+                    {
+                        lung.MustKillFirst = false;
+                        lung.Defer = true;
+                        lung.Add = true;
+                    }
+                }
+                return;
+            }
+
+            core.MustKillFirst = true;
+            core.Defer = false;
+            for (var i = 0; i < lungs.Count; i++)
+            {
+                lungs[i].MustKillFirst = false;
+                lungs[i].Defer = true;
+                lungs[i].Add = true;
+            }
+        }
+
+        // wiki.gg/Focused_Fault: kill the stalks (phase 1), then the mass (phase 2).
+        private static void ApplyFocusedFaultNote(EnemyFocus focus)
+        {
+            var stalks = new List<EnemyThreat>();
+            EnemyThreat mass = null;
+            for (var i = 0; i < focus.Enemies.Count; i++)
+            {
+                var e = focus.Enemies[i];
+                if (IdHas(e.ClassId, "eyes_stalk"))
+                    stalks.Add(e);
+                else if (IdHas(e.ClassId, "boss_eyes") && !IdHas(e.ClassId, "stalk"))
+                    mass = e;
+            }
+            if (stalks.Count == 0 && mass == null)
+                return;
+
+            focus.HasPriorityTarget = true;
+            focus.HasMustKillFirst = true;
+            if (stalks.Count > 0)
+            {
+                for (var i = 0; i < stalks.Count; i++)
+                {
+                    stalks[i].MustKillFirst = true;
+                    stalks[i].Defer = false;
+                    stalks[i].Boss = true;
+                }
+                return;
+            }
+
+            mass.MustKillFirst = true;
+            mass.Defer = false;
+            mass.Boss = true;
+        }
+
+        // wiki.gg/Chirurgeon Strategy: he is a support boss. Leucotomy heals
+        // 33% and buffs the patients each round. Kill him; the rest are adds.
+        // Boss-node modifier otherwise marks every gaunt as a boss.
+        internal static void ApplyChirurgeonNote(EnemyFocus focus)
+        {
+            if (focus == null)
+                return;
+            EnemyThreat chirurgeon = null;
+            var adds = new List<EnemyThreat>();
+            for (var i = 0; i < focus.Enemies.Count; i++)
+            {
+                var e = focus.Enemies[i];
+                if (IdHas(e.ClassId, "chirurgeon"))
+                    chirurgeon = e;
+                else if (IdHas(e.ClassId, "lost_soul") || IdHas(e.ClassId, "patient")
+                         || IdHas(e.ClassId, "widow") || IdHas(e.ClassId, "yeoman")
+                         || IdHas(e.ClassId, "woodsman") || IdHas(e.ClassId, "urchin"))
+                    adds.Add(e);
+            }
+            if (chirurgeon == null)
+                return;
+
+            focus.HasPriorityTarget = true;
+            focus.HasMustKillFirst = true;
+            chirurgeon.MustKillFirst = true;
+            chirurgeon.Defer = false;
+            chirurgeon.Boss = true;
+            chirurgeon.Add = false;
+            for (var i = 0; i < adds.Count; i++)
+            {
+                adds[i].MustKillFirst = false;
+                adds[i].Defer = true;
+                adds[i].Add = true;
+                adds[i].Boss = false;
+            }
         }
 
         // wiki.gg/Librarian Strategy: do not destroy the book stacks. Killing a

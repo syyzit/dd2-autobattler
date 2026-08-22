@@ -113,9 +113,24 @@ namespace Dd2Autobattler.Combat
             return kit;
         }
 
-        public bool FollowUpSpendsCombo()
+        public bool FollowUpSpendsCombo(uint performerGuid)
         {
-            return PartySpendsCombo;
+            if (!PartySpendsCombo)
+                return false;
+            for (var i = 0; i < Heroes.Count; i++)
+            {
+                var hero = Heroes[i];
+                if (!hero.Living || !hero.SpendsCombo || hero.Guid == performerGuid)
+                    continue;
+                if (!CombatMemory.ComboSpenderActedThisRound(hero.Guid))
+                    return true;
+            }
+            return false;
+        }
+
+        public bool HeroSpendsCombo(uint guid)
+        {
+            return Hero(guid)?.SpendsCombo == true;
         }
 
         public bool HeroAttacks(uint guid)
@@ -145,6 +160,16 @@ namespace Dd2Autobattler.Combat
             }
             else if (HeroAttacks(guid) && (target.DeathsDoor || target.HpPct <= 0.35f))
                 score += 6f;
+            // wiki.gg/Focused_Fault: support the Seen hero with heals.
+            if (target.EyesFocus > 0)
+            {
+                if (target.DeathsDoor)
+                    score += 35f;
+                else if (target.HpPct <= 0.55f)
+                    score += 20f;
+                else
+                    score += 10f;
+            }
             return score;
         }
 

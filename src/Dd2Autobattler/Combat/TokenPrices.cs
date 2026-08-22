@@ -27,7 +27,7 @@ namespace Dd2Autobattler.Combat
             Copy(preview.RemoveTarget, eval.Remove);
 
             var lastEnemy = livingEnemies <= 1 && enemyTarget && !target.Corpse;
-            var followUpCombo = party == null || party.FollowUpSpendsCombo();
+            var followUpCombo = party == null || party.FollowUpSpendsCombo(performerGuid);
             var partySpends = party != null && party.PartySpendsCombo;
             var partyAttacks = party == null || party.PartyAttacks;
             var bestReason = (string)null;
@@ -94,7 +94,7 @@ namespace Dd2Autobattler.Combat
             if (kind == SkillKind.Support && eval.Score > SupportCap)
                 eval.Score = SupportCap;
 
-            if (bestPart >= 6f)
+            if (Math.Abs(bestPart) >= 6f)
                 eval.Reason = bestReason;
             return eval;
         }

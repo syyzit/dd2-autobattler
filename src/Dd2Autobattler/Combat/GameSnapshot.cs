@@ -35,6 +35,9 @@ namespace Dd2Autobattler.Combat
         public int DodgeCount;
         public bool Tangled;
         public bool TangledLock;
+        public int EyesFocus;
+        public bool LungInflate;
+        public int PositiveTokens;
     }
 
     public static class GameSnapshot
@@ -106,6 +109,8 @@ namespace Dd2Autobattler.Combat
                 ["weak"] = info.Weak,
                 ["tangled"] = info.Tangled,
                 ["tangled_lock"] = info.TangledLock,
+                ["eyes_focus"] = info.EyesFocus,
+                ["lung_inflate"] = info.LungInflate,
                 ["tokens"] = tokens
             };
         }
@@ -141,6 +146,10 @@ namespace Dd2Autobattler.Combat
             info.Tangled = info.TangledLock
                            || CountToken(actor, "taproot_tangle_b") > 0
                            || CountToken(actor, "taproot_tangle") > 0;
+            info.EyesFocus = CountToken(actor, "eyes_focus");
+            info.LungInflate = CountToken(actor, "lung_inflate") > 0;
+            info.PositiveTokens = info.StrengthCount + info.BlockCount + info.DodgeCount
+                                  + (info.Riposte ? 1 : 0) + CountToken(actor, "crit");
             return info;
         }
 

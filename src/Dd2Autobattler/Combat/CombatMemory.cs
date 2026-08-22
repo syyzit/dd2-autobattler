@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Assets.Code.Combat;
 using Dd2Autobattler.Logging;
 
@@ -15,6 +16,8 @@ namespace Dd2Autobattler.Combat
         private static int _itemsUsedThisActorTurn;
         private static int _round;
         private static int _taprootHitsThisRound;
+        private static readonly HashSet<uint> _comboSpendersActed = new HashSet<uint>();
+        private static readonly HashSet<uint> _crisisHealsThisRound = new HashSet<uint>();
 
         public static bool HandsOff { get; private set; }
         public static string HandsOffReason { get; private set; }
@@ -29,6 +32,8 @@ namespace Dd2Autobattler.Combat
             _itemsUsedThisActorTurn = 0;
             _round = 0;
             _taprootHitsThisRound = 0;
+            _comboSpendersActed.Clear();
+            _crisisHealsThisRound.Clear();
             HandsOff = false;
             HandsOffReason = null;
         }
@@ -40,6 +45,30 @@ namespace Dd2Autobattler.Combat
             else
                 _round++;
             _taprootHitsThisRound = 0;
+            _comboSpendersActed.Clear();
+            _crisisHealsThisRound.Clear();
+        }
+
+        public static void NoteComboSpenderActed(uint actorGuid)
+        {
+            if (actorGuid != 0)
+                _comboSpendersActed.Add(actorGuid);
+        }
+
+        public static bool ComboSpenderActedThisRound(uint actorGuid)
+        {
+            return actorGuid != 0 && _comboSpendersActed.Contains(actorGuid);
+        }
+
+        public static void NoteCrisisHeal(uint targetGuid)
+        {
+            if (targetGuid != 0)
+                _crisisHealsThisRound.Add(targetGuid);
+        }
+
+        public static bool CrisisHealThisRound(uint targetGuid)
+        {
+            return targetGuid != 0 && _crisisHealsThisRound.Contains(targetGuid);
         }
 
         public static void NoteTaprootHit()

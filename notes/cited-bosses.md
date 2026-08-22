@@ -55,15 +55,53 @@ Do not encode a fallback that only we invented.
 - **Sources:** Battlefield Medicine `launch_ranks` 3,4; `m_Limit` 3. Hero `*_move` is adjacent swap (`m_IsMoveToTarget`, relative -1/+1).
 - **Rules encoded:** if an ally is in crisis (Death's Door or <=35%) and no skill heal is legal, allow a move that lands the healer on a launch rank of an equipped heal that still has uses. Do not un-veto every swap.
 - Cleanse items that also heal (antivenom, bandage) are spent on Death's Door / <=30% instead of being scored as a wasted cleanse.
+- If the skill heal is spent (`m_Limit`) and someone is on Death's Door or <=30%, food/bandage/antivenom that still heal are forced. A last-enemy kill does not skip a Death's Door heal. Support (Ounce of Prevention) is penalized while the party is in crisis.
+- Last living enemy behind corpses: if no damaging attack is legal, walk onto a launch rank of an equipped attack that can hit that rank. 0-damage Combo marks do not count as a hit. Do not un-veto every swap.
+- Pouch of Lye (`pouch_of_lye`, CSV `target_is_corpse_hidden` / `clear_corpse`, performer `stress_heal_1_if_target_is_corpse`, free action): spend on a corpse, especially when one enemy is left. Grenades that happen to click a corpse still skip.
+
+## Chirurgeon (Gaunt table)
+
+- **Sources:** [wiki Strategy](https://darkestdungeon.wiki.gg/wiki/Chirurgeon#Strategy). CSV: `shared_lost_soul_chirurgeon`, `shared_lost_soul_patient`, `_widow`, `_yeoman`. Leucotomy heals 33% and buffs patients each round. Boss-node modifier otherwise marks every gaunt as a boss.
+- **Rules encoded:**
+  - While the Chirurgeon is up, he is `must_kill`. Patients / Widow / Yeoman (and other lost-soul / gaunt packmates) are deferred adds; their boss flag is cleared.
+  - Wave 1 with no Chirurgeon is unchanged (Yeoman still scores as large support).
+- **Not encoded:** inn prep, DoT-then-Cause-of-Death, Trepanation negative-token bait.
 
 ## Librarian (Sprawl lair)
 
 - **Sources:** [wiki Strategy](https://darkestdungeon.wiki.gg/wiki/Librarian#Strategy). CSV: `fanatic_librarian` / `_ignited`, stacks `fanatic_librarian_stack_l` / `_m` / `_s`. Page Burner `librarian_books_destroyed` extra action; Ignite when no books left.
 - **Rules encoded:**
-  - Focus the Librarian. Book stacks are deferred while he is a legal attack.
+  - Focus the Librarian. Book stacks are deferred while he is up, including when he is out of reach — support/pass rather than punch a stack.
   - Do not finish a stack. Wiki: destroying books lets him Ignite sooner and grants a free party-wide Burning Bright. Kill him before the stacks are gone (about 6-7 rounds of his own Page Burner).
+  - A self-heal rider on an enemy attack (Crush on Combo) is still an attack, so MAA can actually hit him.
+  - AoE that splashes a stack (Flashing Daggers) is penalized the same as clicking the stack.
 - **Not encoded:** knockback to slide books behind him; Categorize alphabetical reorder; ignite-phase item/Burn-salve inn prep.
+
+## Seething Sigh
+
+- **Sources:** [wiki Strategy & Advice](https://darkestdungeon.wiki.gg/wiki/Seething_Sigh#Strategy_and_advice). CSV: `boss_lungs_core`, `boss_lungs_front`, `boss_lungs_back`; inflate token `lung_inflate` / `lung_inflate_front` / `lung_inflate_back`; exhale `lungs_core_exhale` clears inflate. Wiki: 6% max HP pops inflate (front 12, back 9).
+- **Rules encoded:**
+  - If a living lung has `lung_inflate`, hit that lung. The core is deferred while an inflated lung is a legal attack. Clear at least one token; double-token Sundering Exhalation is the wipe.
+  - If no lung is inflated, hit the core. Uninflated lungs are deferred.
+  - Do not finish a lung when a non-kill pop is legal, or when the lung has no inflate. Wiki: dead lungs make Wrath/Hysteria multi-target; "rarely recommended to kill the lungs"; "preferable to kill a lung than to withstand a Sundering Exhalation."
+- **Not encoded:** inn prep (Apples and Cheese, Restorative Herbs). Hero-specific lung-pop skill picks. Bastard's Beacon modifiers.
+
+## Focused Fault
+
+- **Sources:** [wiki Strategy](https://darkestdungeon.wiki.gg/wiki/Focused_Fault#Strategy). CSV: `boss_eyes_stalk_l` / `_m` / `_s`, `boss_eyes`; Seen token `eyes_focus`. Limerence +8 DMG per Seen; Suppress requires ≥3 positive tokens on a hero without Seen.
+- **Rules encoded:**
+  - Phase 1 (`eyes_stalk_*`): every stalk is `must_kill`. Kill them; they split Cluster → Bifurcated → Cloistered.
+  - Phase 2 (`boss_eyes`): the mass is `must_kill`. Weak on the mass is extra (wiki: Weak/Block blunt Limerence).
+  - Heal/guard the hero with `eyes_focus`.
+  - Do not stack a third positive token onto a hero who is not Seen while the mass is up (wiki: Suppress on ≥3 positives).
+- **Not encoded:** inn prep, outspeed-then-Taunt plan, Dodge-to-avoid-Seen plan. Those are inn/speed, not a targeting rule.
+
+## Ordainment
+
+- **Sources:** [wiki Ordainment](https://darkestdungeon.wiki.gg/wiki/Ordainment). HP/DMG (and confession-specific) buffs on trash as the mountain run goes on. Act/lair bosses are never ordained except Bastard's Beacon.
+- **Rules encoded:** none. Extra HP and damage already sit in the snapshot and in `QuerySkillPreview`. The wiki has no targeting rule ("kill ordained first" is ours).
+- **Not encoded:** confession-specific on-crit token copy, Block→Block+ conversion, invert-on-crit. No combat click follows from those sentences.
 
 ## How to add the next boss
 
-Copy the wiki Strategy paragraph into this file, quote the CSV keys that back the numbers, then encode only those sentences. If a live log looks drunk, write the mismatch here - do not invent a new rule from the log.
+Copy the wiki Strategy paragraph into this file, quote the CSV keys that back the numbers, then encode only those sentences. If a live log looks drunk, write the mismatch here - do not invent a new rule from the log. Remaining Confession bosses: Ravenous Reach, Body of Work.
