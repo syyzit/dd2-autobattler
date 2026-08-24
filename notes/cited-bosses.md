@@ -1,5 +1,7 @@
 # Cited boss notes
 
+Hero resource loops (Winded, Blind/Ruin, Pain, Combo reach) live in `cited-classes.md`. Same stack.
+
 A rule ships only if it comes from this stack, in order:
 
 1. Game CSVs / in-game data - the fact
@@ -19,6 +21,9 @@ Do not encode a fallback that only we invented.
   - If someone is already at `_c` (Nightmare lock), allow one Taproot hit that round so the root still retracts. Wiki: Nightmare is almost never seen if you keep hitting the root on schedule.
   - After the round budget is spent, defer Taproot and hit the General.
   - Never use `taproot_tangle_*` hero skills if a real skill is legal.
+  - Taproot is healthless: preview damage is always 0. A connecting attack still counts as the wiki "when Hit" tap. Do not walk to reach Taproot — if this hero cannot tap it, hit the General.
+  - Tracking Shot / Blinding Gas on Taproot is a wasted Combo mark. Never pick it; use a connecting swing if one is legal, otherwise hit the General.
+  - Healthless fixtures do not count as killable enemies. A last-General kill (or a slap on Death Armor at 0 HP) is allowed even if Taproot is still up and someone is on Death's Door.
 - **Not encoded:** “slap Taproot whenever anyone has vine B/C” (our v1/v2 guess). The wiki is a scheduled cadence, not an emergency-only slap.
 
 ## Shackles of Denial
@@ -53,7 +58,7 @@ Do not encode a fallback that only we invented.
 ## Healer rank
 
 - **Sources:** Battlefield Medicine `launch_ranks` 3,4; `m_Limit` 3. Hero `*_move` is adjacent swap (`m_IsMoveToTarget`, relative -1/+1).
-- **Rules encoded:** if an ally is in crisis (Death's Door or <=35%) and no skill heal is legal, allow a move that lands the healer on a launch rank of an equipped heal that still has uses. Do not un-veto every swap.
+- **Rules encoded:** if an ally is in crisis (Death's Door or <=35%) and no skill heal is legal, allow a move that lands the healer on a launch rank of an equipped heal that still has uses. Do not un-veto every swap. An enemy attack with a self-heal rider (Crush on Combo) is not a skill heal — do not walk for it.
 - Cleanse items that also heal (antivenom, bandage) are spent on Death's Door / <=30% instead of being scored as a wasted cleanse.
 - If the skill heal is spent (`m_Limit`) and someone is on Death's Door or <=30%, food/bandage/antivenom that still heal are forced. A last-enemy kill does not skip a Death's Door heal. Support (Ounce of Prevention) is penalized while the party is in crisis.
 - Last living enemy behind corpses, or a must-kill this hero cannot damage (Librarian after Categorize): if no damaging attack is legal on that target, walk onto a launch rank of an equipped attack that can hit that rank. 0-damage Combo marks do not count as a hit. `pass_heal` is Rest, not a skill heal — do not walk for it. Do not un-veto every swap.
@@ -75,6 +80,8 @@ Do not encode a fallback that only we invented.
   - Do not finish a stack. Wiki: destroying books lets him Ignite sooner and grants a free party-wide Burning Bright. Kill him before the stacks are gone (about 6-7 rounds of his own Page Burner).
   - A self-heal rider on an enemy attack (Crush on Combo) is still an attack, so MAA can actually hit him.
   - AoE that splashes a stack (Flashing Daggers) is penalized the same as clicking the stack.
+  - A 0-damage Combo mark is not a hit. If this hero cannot damage him from this rank, walk onto a launch rank of a damaging attack (Pistol, Chop, Judgement). Do not restack Combo. If a damaging attack on him is already legal, take it over Tracking Shot.
+  - One reach walk per round for the party. Do not swap the ally who already reaches him (Categorize ping-pong). Out of reach after that: support/pass, not another walk.
 - **Not encoded:** knockback to slide books behind him; Categorize alphabetical reorder; ignite-phase item/Burn-salve inn prep.
 
 ## Seething Sigh

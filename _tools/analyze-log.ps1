@@ -61,6 +61,7 @@ $healSkippedLow = 0
 $comboApplyNoSpender = 0
 $punchedCombo = 0
 $savedCombo = 0
+$kitReasons = @{}
 $itemWaste = 0
 $itemGood = 0
 $focusBoss = 0
@@ -147,6 +148,9 @@ foreach ($file in $files) {
                 if ($r -eq "support") { $supportTurns++ }
                 if ($r -like "focus_boss*" -or $r -like "focus_summoner*" -or $r -like "focus_rezzer*") { $focusBoss++ }
                 if ($r -eq "save_combo") { $savedCombo++ }
+                if ($r -eq "howling_end" -or $r -eq "kit_winded" -or $r -eq "kit_blind" -or $r -eq "clear_blind" -or $r -eq "ruin_charge" -or $r -eq "kit_taunt" -or $r -eq "rank_occupied" -or $r -eq "rank_walk" -or $r -eq "wasted_finale" -or $r -eq "wyrd_healthy" -or $r -eq "transform_beast" -or $r -eq "stay_beast" -or $r -eq "stance_keep" -or $r -eq "chaotic_offering" -or $r -eq "extra_action" -or $r -eq "conviction" -or $r -eq "dot_host" -or $r -eq "hearthlight" -or $r -eq "firestarter" -or $r -eq "form_mismatch" -or $r -eq "stun_next" -or $r -eq "self_riposte" -or $r -eq "blocked_hit" -or $r -eq "peel_block" -or $r -eq "pull_reach" -or $r -eq "knock_reach" -or $r -eq "corpse_reach") {
+                    Add-Count $kitReasons $r
+                }
 
                 if (-not $fight.StartHeroes -and $o.heroes) { $fight.StartHeroes = $o.heroes }
                 if ($o.heroes) { $fight.LastHeroes = $o.heroes }
@@ -285,6 +289,11 @@ Write-Host ("  skipped heal on ally <=35pct:   {0}" -f $healSkippedLow)
 Write-Host ("  applied Combo with no spender:  {0}" -f $comboApplyNoSpender)
 Write-Host ("  punched Combo without spending: {0}" -f $punchedCombo)
 Write-Host ("  save_combo reasons:             {0}" -f $savedCombo)
+if ($kitReasons.Count -gt 0) {
+    Write-Host "  kit / synergy reasons:"
+    $kitReasons.GetEnumerator() | Sort-Object Value -Descending |
+        ForEach-Object { Write-Host ("    {0,5}  {1}" -f $_.Value, $_.Key) }
+}
 Write-Host ("  focus_boss/summoner/rezzer:     {0}" -f $focusBoss)
 Write-Host ("  pass / support / move:          {0} / {1} / {2}" -f $passTurns, $supportTurns, $moveTurns)
 $shadowTotal = $shadowAgree + $shadowDisagree

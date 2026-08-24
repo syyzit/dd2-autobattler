@@ -83,6 +83,11 @@ namespace Dd2Autobattler.Combat
             return actorGuid != 0 && _reachWalkedThisRound.Contains(actorGuid);
         }
 
+        public static bool PartyReachWalkedThisRound()
+        {
+            return _reachWalkedThisRound.Count > 0;
+        }
+
         public static void NoteComboSpenderActed(uint actorGuid)
         {
             if (actorGuid != 0)

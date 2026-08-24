@@ -21,6 +21,17 @@ namespace Dd2Autobattler.Tests
         }
 
         [Fact]
+        public void Open_vein_on_combo_is_a_spend_not_a_save()
+        {
+            var preview = new PreviewScore { Ok = true };
+            var target = new TargetInfo { Combo = true, Hp = 20f };
+            var role = new SkillRole { SpendsCombo = true, Bleed = true, ComboSpendValue = 12f };
+            var eval = TokenPrices.Evaluate(SkillKind.Attack, true, preview, target, 3, null, 1, role);
+            Assert.True(eval.Score > 0f);
+            Assert.Equal("spend_combo", eval.Reason);
+        }
+
+        [Fact]
         public void Applying_combo_with_a_follow_up_spender_is_14()
         {
             var preview = new PreviewScore { Ok = true };
@@ -32,6 +43,102 @@ namespace Dd2Autobattler.Tests
             var eval = TokenPrices.Evaluate(SkillKind.Attack, true, preview, target, 3, party, 1, null);
             Assert.Equal(14f, eval.Score);
             Assert.Equal("apply_combo", eval.Reason);
+        }
+
+        [Fact]
+        public void Attack_self_riposte_is_paid_on_the_performer()
+        {
+            var preview = new PreviewScore { Ok = true };
+            preview.ApplyPerformer.Add("riposte");
+            var target = new TargetInfo { Hp = 10f };
+            var performer = new TargetInfo { Rank = 0, Riposte = false };
+            var eval = TokenPrices.Evaluate(SkillKind.Attack, true, preview, target, 2, null, 1, null, performer);
+            Assert.Equal(8f, eval.Score);
+            Assert.Equal("self_riposte", eval.Reason);
+        }
+
+        [Fact]
+        public void Blocked_zero_damage_hit_is_penalized_unless_it_strips_block()
+        {
+            var bounce = new PreviewScore { Ok = true, Blocked = true, Damage = 0f };
+            var peel = new PreviewScore { Ok = true, Blocked = true, Damage = 0f };
+            peel.RemoveTarget.Add("block");
+            var target = new TargetInfo { Hp = 20f, BlockCount = 2 };
+            var miss = TokenPrices.Evaluate(SkillKind.Attack, true, bounce, target, 2, null, 1, null);
+            var strip = TokenPrices.Evaluate(SkillKind.Attack, true, peel, target, 2, null, 1, null);
+            Assert.True(miss.Score < 0f);
+            Assert.Equal("blocked_hit", miss.Reason);
+            Assert.True(strip.Score > miss.Score);
+            Assert.Equal("peel_block", strip.Reason);
+        }
+
+        [Fact]
+        public void Guard_redirect_does_not_count_as_killing_the_click_target()
+        {
+            var preview = new PreviewScore { Ok = true, Damage = 8f, GuardGuid = 99 };
+            var add = new TargetInfo { Guid = 1, Hp = 5f };
+            TurnDecider.NoteKillFromHp(preview, add, null);
+            Assert.False(preview.Kills);
+        }
+
+        [Fact]
+        public void Stun_the_next_enemy_in_order_pays_extra()
+        {
+            var preview = new PreviewScore { Ok = true };
+            preview.ApplyTarget.Add("stun");
+            var target = new TargetInfo { Hp = 10f, Guid = 50 };
+            var later = TokenPrices.Evaluate(SkillKind.Attack, true, preview, target, 2, null, 1, null, null, 99);
+            var next = TokenPrices.Evaluate(SkillKind.Attack, true, preview, target, 2, null, 1, null, null, 50);
+            Assert.True(next.Score > later.Score);
+            Assert.Equal("stun_next", next.Reason);
+        }
+
+        [Fact]
+        public void Stun_pay_scales_with_preview_resist()
+        {
+            var preview = new PreviewScore { Ok = true, ResistOk = true, ResistStun = 0.80f };
+            preview.ApplyTarget.Add("stun");
+            var target = new TargetInfo { Hp = 10f };
+            var eval = TokenPrices.Evaluate(SkillKind.Attack, true, preview, target, 2, null, 1, null);
+            Assert.True(eval.Score > 1.1f && eval.Score < 1.3f);
+        }
+
+        [Fact]
+        public void Applying_combo_to_a_1hp_chip_is_zero()
+        {
+            CombatMemory.NoteRound(1);
+            var preview = new PreviewScore { Ok = true };
+            preview.ApplyTarget.Add("combo");
+            var target = new TargetInfo { Hp = 1f };
+            var party = new PartyKit();
+            party.PartySpendsCombo = true;
+            party.Heroes.Add(new HeroKit { Guid = 2, Living = true, SpendsCombo = true });
+            var eval = TokenPrices.Evaluate(SkillKind.Attack, true, preview, target, 3, party, 1, null);
+            Assert.Equal(0f, eval.Score);
+            Assert.Null(eval.Reason);
+        }
+
+        [Fact]
+        public void Applying_combo_to_deaths_door_is_zero()
+        {
+            CombatMemory.NoteRound(1);
+            var preview = new PreviewScore { Ok = true };
+            preview.ApplyTarget.Add("combo");
+            var target = new TargetInfo { Hp = 0f, DeathsDoor = true };
+            var party = new PartyKit();
+            party.PartySpendsCombo = true;
+            party.Heroes.Add(new HeroKit { Guid = 2, Living = true, SpendsCombo = true });
+            var eval = TokenPrices.Evaluate(SkillKind.Attack, true, preview, target, 3, party, 1, null);
+            Assert.Equal(0f, eval.Score);
+        }
+
+        [Fact]
+        public void Chip_hp_is_three_or_less()
+        {
+            Assert.True(TokenPrices.IsChipHp(1f));
+            Assert.True(TokenPrices.IsChipHp(3f));
+            Assert.False(TokenPrices.IsChipHp(3.1f));
+            Assert.False(TokenPrices.IsChipHp(0f));
         }
 
         [Fact]
