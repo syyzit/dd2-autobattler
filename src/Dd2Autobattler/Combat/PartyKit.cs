@@ -17,6 +17,7 @@ namespace Dd2Autobattler.Combat
     {
         public uint Guid;
         public string Name;
+        public string ClassId;
         public int Rank;
         public bool Living;
         public bool Attacks;
@@ -25,6 +26,8 @@ namespace Dd2Autobattler.Combat
         public bool SpendsCombo;
         public bool AppliesCombo;
         public float ComboSpendValue;
+        public int ComboHitRanks = PartySynergy.ComboRanksUnknown;
+        public int AttackHitRanks = PartySynergy.ComboRanksUnknown;
         public bool Bleed;
         public bool Blight;
         public bool Burn;
@@ -139,6 +142,19 @@ namespace Dd2Autobattler.Combat
             return Hero(guid)?.Attacks == true;
         }
 
+        public bool HitsEnemyRank(uint guid, int enemyRank)
+        {
+            var hero = Hero(guid);
+            if (hero == null || !hero.Living || !hero.Attacks)
+                return false;
+            return PartySynergy.HitsRankMask(hero.AttackHitRanks, enemyRank);
+        }
+
+        public bool HeroHeals(uint guid)
+        {
+            return Hero(guid)?.Heals == true;
+        }
+
         public bool IsUniqueHealer(uint guid)
         {
             return UniqueHealerGuid != 0 && UniqueHealerGuid == guid;
@@ -174,7 +190,7 @@ namespace Dd2Autobattler.Combat
             return score;
         }
 
-        public float SetupBonus(SkillRole role, TargetInfo target, bool enemyTarget)
+        public float SetupBonus(SkillRole role, TargetInfo target, bool enemyTarget, PreviewScore preview = null)
         {
             if (role == null)
                 return 0f;
@@ -182,13 +198,13 @@ namespace Dd2Autobattler.Combat
             if (enemyTarget && target != null && !target.Corpse)
             {
                 if (role.Bleed && PartyBleed)
-                    score += 4f;
+                    score += 4f * (preview != null ? preview.Land("bleed") : 1f);
                 if (role.Blight && PartyBlight)
-                    score += 4f;
+                    score += 4f * (preview != null ? preview.Land("blight") : 1f);
                 if (role.Burn && PartyBurn)
-                    score += 4f;
+                    score += 4f * (preview != null ? preview.Land("burn") : 1f);
                 if (role.AppliesVulnerable && PartyAttacks)
-                    score += AttackerCount >= 2 ? 4f : 2f;
+                    score += (AttackerCount >= 2 ? 4f : 2f) * (preview != null ? preview.Land("debuff") : 1f);
             }
             return score;
         }
@@ -245,6 +261,7 @@ namespace Dd2Autobattler.Combat
                 Rank = actor.TeamPosition,
                 Living = actor.IsLiving && !GameSnapshot.IsCorpse(actor)
             };
+            try { hero.ClassId = actor.ActorDataClass != null ? actor.ActorDataClass.GetKey() : null; } catch { }
             if (!hero.Living)
                 return hero;
 
@@ -266,13 +283,31 @@ namespace Dd2Autobattler.Combat
 
                 var intel = DescribeSkill(def);
                 if (intel.Attacks)
+                {
                     hero.Attacks = true;
+                    var hit = ComboHitMask(def, actor);
+                    if (hit != PartySynergy.ComboRanksUnknown)
+                    {
+                        if (hero.AttackHitRanks == PartySynergy.ComboRanksUnknown)
+                            hero.AttackHitRanks = 0;
+                        hero.AttackHitRanks |= hit;
+                    }
+                }
                 if (intel.Heals)
                     hero.Heals = true;
                 if (intel.Stuns)
                     hero.Stuns = true;
                 if (intel.SpendsCombo)
+                {
                     hero.SpendsCombo = true;
+                    var mask = ComboHitMask(def, actor);
+                    if (mask != PartySynergy.ComboRanksUnknown)
+                    {
+                        if (hero.ComboHitRanks == PartySynergy.ComboRanksUnknown)
+                            hero.ComboHitRanks = 0;
+                        hero.ComboHitRanks |= mask;
+                    }
+                }
                 if (intel.AppliesCombo)
                     hero.AppliesCombo = true;
                 if (intel.ComboSpendValue > hero.ComboSpendValue)
@@ -286,6 +321,30 @@ namespace Dd2Autobattler.Combat
             }
 
             return hero;
+        }
+
+        private static int ComboHitMask(ActorDataSkill def, ActorInstance actor)
+        {
+            if (def == null || actor == null)
+                return PartySynergy.ComboRanksUnknown;
+            var size = 1;
+            var rank = 0;
+            try { size = actor.Size; } catch { }
+            try { rank = actor.TeamPosition; } catch { }
+            var mask = 0;
+            var queried = false;
+            for (var enemyRank = 0; enemyRank < 4; enemyRank++)
+            {
+                try
+                {
+                    if (def.GetHasTargetRank(rank, size, enemyRank, 1)
+                        || def.GetHasTargetRank(rank, size, enemyRank, 2))
+                        mask |= 1 << enemyRank;
+                    queried = true;
+                }
+                catch { }
+            }
+            return queried ? mask : PartySynergy.ComboRanksUnknown;
         }
 
         public static SkillRole DescribeSkill(ActorDataSkill def)
@@ -308,6 +367,21 @@ namespace Dd2Autobattler.Combat
                 {
                     for (var g = 0; g < groups.Count; g++)
                         ReadGroup(groups[g], intel);
+                }
+            }
+            catch { }
+
+            // CSV hwm_open_vein: skill_dot_*_bleed, end_combo, combo_increase_bleed_dealt_100pct.
+            // Preview often omits Consume combo, so mark it as a spend here.
+            try
+            {
+                var key = def.GetKey();
+                if (KitSafety.IdHas(key, "open_vein"))
+                {
+                    intel.Bleed = true;
+                    intel.SpendsCombo = true;
+                    if (intel.ComboSpendValue < 12f)
+                        intel.ComboSpendValue = 12f;
                 }
             }
             catch { }

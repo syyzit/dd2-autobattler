@@ -16,7 +16,7 @@ namespace Dd2Autobattler.Combat
     {
         private const float SupportCap = 14f;
 
-        public static TokenEval Evaluate(SkillKind kind, bool enemyTarget, PreviewScore preview, TargetInfo target, int livingEnemies, PartyKit party, uint performerGuid, SkillRole role)
+        public static TokenEval Evaluate(SkillKind kind, bool enemyTarget, PreviewScore preview, TargetInfo target, int livingEnemies, PartyKit party, uint performerGuid, SkillRole role, TargetInfo performer = null, uint nextEnemyGuid = 0)
         {
             var eval = new TokenEval();
             if (preview == null || !preview.Ok || target == null)
@@ -48,7 +48,8 @@ namespace Dd2Autobattler.Combat
 
             if (enemyTarget && !target.Corpse)
             {
-                var consumesCombo = HasId(eval.Consume, "combo");
+                var consumesCombo = HasId(eval.Consume, "combo")
+                                    || (role != null && role.SpendsCombo && target.Combo);
                 if (consumesCombo && target.Combo)
                 {
                     var spend = 14f;
@@ -56,21 +57,50 @@ namespace Dd2Autobattler.Combat
                         spend -= 8f;
                     Add(spend, "spend_combo");
                 }
-                if (HasId(eval.Apply, "combo") && !target.Combo && !lastEnemy && followUpCombo)
+                // Combo on a 1 HP chip is wasted: the next swing kills without it.
+                if (HasId(eval.Apply, "combo") && !target.Combo && !lastEnemy && followUpCombo
+                    && !IsChipHp(target.Hp) && !target.Healthless
+                    && !target.DeathsDoor && target.Hp > 0.05f
+                    && (party == null || PartySynergy.FollowUpHitsRank(party, performerGuid, target.Rank)))
                     Add(14f * setup, "apply_combo");
                 if (!consumesCombo && target.Combo && !preview.Kills && followUpCombo)
                     Add(-32f, "save_combo");
                 if (HasId(eval.Apply, "stun") && !target.Stun)
-                    Add(StunPrice(target, lastEnemy, party) * setup, "stun_threat");
+                {
+                    var stun = StunPrice(target, lastEnemy, party) * setup * preview.Land("stun");
+                    if (IsNextEnemy(target, nextEnemyGuid))
+                    {
+                        stun += 12f * preview.Land("stun");
+                        Add(stun, "stun_next");
+                    }
+                    else
+                        Add(stun, "stun_threat");
+                }
                 if (HasId(eval.Apply, "daze") && !target.Stun)
-                    Add((lastEnemy && (target.Riposte || target.Dodge) ? 10f : 4f) * setup, "stun_threat");
+                {
+                    var daze = (lastEnemy && (target.Riposte || target.Dodge) ? 10f : 4f) * setup * preview.Land("stun");
+                    if (IsNextEnemy(target, nextEnemyGuid))
+                    {
+                        daze += 8f * preview.Land("stun");
+                        Add(daze, "stun_next");
+                    }
+                    else
+                        Add(daze, "stun_threat");
+                }
                 if (HasId(eval.Apply, "vulnerable") && !target.Vulnerable && partyAttacks)
-                    Add((party != null && party.AttackerCount >= 2 ? 10f : 7f) * setup, "apply_token");
+                    Add((party != null && party.AttackerCount >= 2 ? 10f : 7f) * setup * preview.Land("debuff"), "apply_token");
                 if (HasId(eval.Apply, "weak") && !target.Weak)
-                    Add(5f * setup, "apply_token");
+                    Add(5f * setup * preview.Land("debuff"), "apply_token");
                 if (HasId(eval.Apply, "blind") && !target.Blind)
-                    Add(5f * setup, "apply_token");
+                    Add(5f * setup * preview.Land("debuff"), "apply_token");
                 Add(StripEnemy(eval.Remove, target, partySpends), "strip_token");
+                if (preview.Blocked)
+                {
+                    if (HasId(eval.Remove, "block") || HasId(eval.Consume, "block"))
+                        Add(10f, "peel_block");
+                    else if (!preview.Kills && preview.Damage < 3f)
+                        Add(-28f, "blocked_hit");
+                }
             }
             else if (!enemyTarget)
             {
@@ -92,12 +122,57 @@ namespace Dd2Autobattler.Combat
                 Add(StripAlly(eval.Remove, target), "strip_token");
             }
 
+            // Attacks that plant Riposte/Block/Strength on the performer
+            // (Duelist's Advance). Self-target support already used ApplyTarget.
+            if (enemyTarget && performer != null)
+                AddSelfTokens(preview.ApplyPerformer, performer, setup, Add);
+
             if (kind == SkillKind.Support && eval.Score > SupportCap)
                 eval.Score = SupportCap;
 
             if (Math.Abs(bestPart) >= 6f)
                 eval.Reason = bestReason;
             return eval;
+        }
+
+        // Matches leave-chip: any follow-up kills, so Combo cannot be spent.
+        internal static bool IsNextEnemy(TargetInfo target, uint nextEnemyGuid)
+        {
+            if (nextEnemyGuid == 0 || target == null)
+                return false;
+            if (target.Guid != 0)
+                return target.Guid == nextEnemyGuid;
+            try
+            {
+                return target.Actor != null && target.Actor.ActorGuid == nextEnemyGuid;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static void AddSelfTokens(List<string> apply, TargetInfo performer, float setup, Action<float, string> add)
+        {
+            if (apply == null || performer == null || add == null)
+                return;
+            if (HasId(apply, "riposte") && !performer.Riposte)
+                add(performer.Rank <= 1 ? 8f : 4f, "self_riposte");
+            if (HasId(apply, "block") && performer.BlockCount < 3)
+                add(BlockPrice(performer), "self_block");
+            if (HasId(apply, "dodge") && performer.DodgeCount < 2)
+                add(5f, "self_dodge");
+            if (HasId(apply, "strength") && performer.StrengthCount < 2)
+                add((performer.StrengthCount == 0 ? 9f : 3f) * setup, "self_strength");
+            if (HasId(apply, "taunt"))
+                add(6f, "self_taunt");
+            if (HasId(apply, "crit"))
+                add(6f * setup, "self_crit");
+        }
+
+        internal static bool IsChipHp(float hp)
+        {
+            return hp > 0f && hp <= 3f;
         }
 
         internal static bool IsEarlySetup(int round, int livingEnemies)

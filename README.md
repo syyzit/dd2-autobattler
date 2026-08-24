@@ -6,13 +6,13 @@ Not an official Red Hook mod. **Not a Steam Workshop item** (Workshop is data/CS
 
 ## Status
 
-Playtested on a Confession party (Plague Doctor / Grave Robber / Highwayman / Man-at-Arms). It will throw fights.
+Playtested on a Confession party (Plague Doctor / Grave Robber / Highwayman / Man-at-Arms). Other heroes use the same scorer plus kit-safety (Winded, Blind, Pain, Finale, Ruin, stances, Transform) so a replacement tank is not a dead click. It will throw fights.
 
-Named fights use **cited notes** only (`notes/cited-bosses.md`: wiki Strategy plus game CSVs). A rule ships if that file says so. Roaming bosses without a note use default scoring.
+Named fights use **cited notes** only (`notes/cited-bosses.md`: wiki Strategy plus game CSVs). Hero resource loops (Winded, Blind/Ruin, Pain, Combo reach, rank occupancy) are in `notes/cited-classes.md`. Architecture: `notes/class-play.md`. A rule ships if that file says so. Roaming bosses without a note use default scoring.
 
-Each turn it scores legal skills from the live preview: damage, kills, heals, tokens, items. One ply of leftover HP so a real hit beats a 0-damage Combo mark. If a later ally acts before that enemy, it will not dump a big hit into a 1 HP chip. Early rounds with a full pack pay more for setup (Combo, stun, DoT, Strength) than a chip.
+Each turn it scores legal skills from the live preview: damage, kills, heals, tokens, items. One ply of leftover HP so a real hit beats a 0-damage Combo mark. Combo on a 1 HP chip is skipped (Tracking Shot on a dying add is a wasted turn). If a later ally acts before that enemy, it will not dump a big hit into a 1 HP chip. Early rounds with a full pack pay more for setup (Combo, stun, DoT, Strength) than a chip. Unique kit tokens are CSV-backed: Hellion dumps Winded at 3 via Howling End; Leper does not Chop into Blind (Combo still ignores it); Flagellant is not crisis-healed until Death's Door; Jester Finale is not a chip cleaner; Abom transforms into beast unless someone is on Death's Door.
 
-Death's Door still gets a skill heal, then food / bandage / antivenom. A last-enemy kill does not skip that. Crisis heals once per ally per round. Cursed relationship skills lose to a clean alternative. Stress support (Inspiring Tune, Bolster) scores like laudanum.
+Death's Door still gets a skill heal, then food / bandage / antivenom. A kill on the last HP bar (not a healthless fixture like Taproot) can skip that rest to end combat. Crisis heals once per ally per round. Cursed relationship skills lose to a clean alternative. Stress support (Inspiring Tune, Bolster) scores like laudanum.
 
 If a healer cannot launch their heal, they walk onto a launch rank (`pass_heal` is Rest, not a heal). If a damage dealer cannot reach the last living enemy or the current must-kill, they walk onto a launch rank. Rank walks also fire when a cited note says this hero's tokens are illegal in this rank. Pouch of Lye clears a corpse, especially then. Token strip (Dodge, Riposte, Combo, Stealth) can beat a non-kill swing. AoE that splashes a must-kill is not vetoed just because the click target is an add.
 

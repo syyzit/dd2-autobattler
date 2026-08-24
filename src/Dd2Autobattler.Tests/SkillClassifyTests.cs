@@ -6,6 +6,16 @@ namespace Dd2Autobattler.Tests
     public sealed class SkillClassifyTests
     {
         [Fact]
+        public void Dies_to_dot_nets_regen_and_ignores_death_armor()
+        {
+            Assert.True(GameSnapshot.DiesToDotNow(2f, 4f, 0f, false, false));
+            Assert.False(GameSnapshot.DiesToDotNow(2f, 4f, 3f, false, false));
+            Assert.False(GameSnapshot.DiesToDotNow(2f, 4f, 0f, false, true));
+            Assert.False(GameSnapshot.DiesToDotNow(2f, 4f, 0f, true, false));
+            Assert.False(GameSnapshot.DiesToDotNow(5f, 4f, 0f, false, false));
+        }
+
+        [Fact]
         public void Enemy_attack_with_self_heal_is_still_an_attack()
         {
             var preview = new PreviewScore { Ok = true, Damage = 6.5f, Heal = 5f, HealValid = true };
@@ -26,6 +36,38 @@ namespace Dd2Autobattler.Tests
         {
             var kind = TurnDecider.Classify("pass_heal", null, null, false);
             Assert.Equal(SkillKind.Pass, kind);
+        }
+
+        [Fact]
+        public void Heal_in_the_skill_id_is_a_heal_when_the_def_is_missing()
+        {
+            var kind = TurnDecider.Classify("cru_battle_heal", null, null, false);
+            Assert.Equal(SkillKind.Heal, kind);
+        }
+
+        [Fact]
+        public void More_more_is_not_a_heal_from_the_name()
+        {
+            var kind = TurnDecider.Classify("flg_more_more", null, null, false);
+            Assert.Equal(SkillKind.Attack, kind);
+        }
+
+        [Fact]
+        public void Zero_heal_absinthe_is_not_a_crisis_heal()
+        {
+            var preview = new PreviewScore { Ok = true, Heal = 0f, HealValid = true };
+            var target = new TargetInfo { Hp = 13f, HpPct = 0.342f };
+            Assert.False(TurnDecider.RestoresHp(preview));
+            Assert.False(TurnDecider.IsCrisisHealClick(SkillKind.Heal, "gr_artemisia_u", false, target, preview));
+        }
+
+        [Fact]
+        public void Real_hp_restore_at_35_percent_is_a_crisis_heal()
+        {
+            var preview = new PreviewScore { Ok = true, Heal = 12f, HealValid = true };
+            var target = new TargetInfo { Hp = 12f, HpPct = 0.31f };
+            Assert.True(TurnDecider.RestoresHp(preview));
+            Assert.True(TurnDecider.IsCrisisHealClick(SkillKind.Heal, "gr_artemisia_u", false, target, preview));
         }
 
         [Fact]
@@ -54,6 +96,67 @@ namespace Dd2Autobattler.Tests
             Assert.False(row.Value<bool>("match"));
             Assert.Equal(2, row["human"].Value<int>("rank"));
             Assert.Equal(18f, row.Value<float>("gap"));
+        }
+
+        [Fact]
+        public void Crush_self_heal_is_not_an_ally_heal_to_walk_for()
+        {
+            Assert.False(TurnDecider.IsAllyHealSkill("maa_crush_u", null));
+            Assert.False(TurnDecider.IsAllyHealSkill("maa_hold_the_line", null));
+            Assert.False(TurnDecider.IsAllyHealSkill("pass_heal", null));
+            Assert.True(TurnDecider.IsAllyHealSkill("pd_battlefield_medicine_u", null));
+            Assert.True(TurnDecider.IsAllyHealSkill("cru_battle_heal", null));
+        }
+
+        [Fact]
+        public void Tracking_shot_on_healthless_taproot_is_a_wasted_mark()
+        {
+            var preview = new PreviewScore { Ok = true, Damage = 0f };
+            preview.ApplyTarget.Add("combo");
+            Assert.True(TurnDecider.IsComboOnlyTap("hwm_tracking_shot", preview));
+            Assert.True(TurnDecider.IsComboOnlyTap("pd_blinding_gas", preview));
+            Assert.False(TurnDecider.IsComboOnlyTap("hwm_pistol_shot", new PreviewScore { Ok = true, Damage = 4f, HitChance = 1f }));
+            var tap = new TargetInfo { Healthless = true, ClassId = "lost_battalion_boss_taproot" };
+            Assert.Equal(-80f, KitSafety.HealthlessMarkDelta("hwm_tracking_shot", tap, true, preview));
+            Assert.Equal(0f, KitSafety.HealthlessMarkDelta("gr_thrown_dagger_u", tap, true, new PreviewScore { Ok = true, HitChance = 1f }));
+            Assert.True(TurnDecider.ComboMarkWaste("hwm_tracking_shot", preview, tap));
+            Assert.True(TurnDecider.ComboMarkWaste("pd_blinding_gas", preview,
+                new TargetInfo { Combo = true, ClassId = "lost_battalion_boss_dreaming_general" }));
+            Assert.False(TurnDecider.ComboMarkWaste("pd_noxious_blast",
+                new PreviewScore { Ok = true, Damage = 2.5f, HitChance = 1f },
+                new TargetInfo { Combo = true, ClassId = "lost_battalion_boss_dreaming_general" }));
+            Assert.False(TurnDecider.ComboMarkWaste("pd_blinding_gas", preview,
+                new TargetInfo { Combo = false, Hp = 80f, ClassId = "lost_battalion_boss_dreaming_general" }));
+            Assert.True(TurnDecider.IsZeroDamageMark("hwm_tracking_shot", preview));
+            Assert.False(TurnDecider.IsZeroDamageMark("hwm_wicked_slice",
+                new PreviewScore { Ok = true, Damage = 2.8f, HitChance = 1f }));
+            Assert.True(TurnDecider.ComboMarkWaste("hwm_tracking_shot", preview,
+                new TargetInfo { Hp = 0f, DeathsDoor = true, ClassId = "plague_eater_dinner_cart" }));
+        }
+
+        [Fact]
+        public void Last_killable_finish_ignores_taproot_and_slaps_death_armor()
+        {
+            var crush = new PreviewScore { Ok = true, Damage = 6f, Kills = true };
+            var general = new TargetInfo { Hp = 5f, Healthless = false };
+            Assert.True(TurnDecider.LastKillableFinish(crush, general, 1));
+            Assert.False(TurnDecider.LastKillableFinish(crush, general, 2));
+
+            var chip = new PreviewScore { Ok = true, Damage = 6f, Kills = false };
+            Assert.False(TurnDecider.LastKillableFinish(chip, new TargetInfo { Hp = 12f }, 1));
+            Assert.True(TurnDecider.LastKillableFinish(chip, new TargetInfo { Hp = 0f, DeathsDoor = true }, 1));
+
+            var tap = new TargetInfo { Healthless = true, ClassId = "lost_battalion_boss_taproot", Hp = 99f };
+            Assert.False(TurnDecider.LastKillableFinish(new PreviewScore { Ok = true, Damage = 0f, HitChance = 1f }, tap, 1));
+        }
+
+        [Fact]
+        public void Flashing_daggers_that_splash_a_corpse_lose_to_two_living_hits()
+        {
+            Assert.Equal(0f, TurnDecider.CorpseSplashDelta(2, 0, 2, true));
+            Assert.Equal(-80f, TurnDecider.CorpseSplashDelta(1, 1, 2, true));
+            Assert.Equal(-50f, TurnDecider.CorpseSplashDelta(1, 1, 1, true));
+            Assert.Equal(0f, TurnDecider.CorpseSplashDelta(1, 1, 1, false));
         }
 
         [Fact]

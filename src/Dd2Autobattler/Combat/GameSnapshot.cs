@@ -12,16 +12,19 @@ namespace Dd2Autobattler.Combat
     public sealed class TargetInfo
     {
         public ActorInstance Actor;
+        public uint Guid;
         public float Hp;
         public float HpPct;
         public bool DeathsDoor;
         public bool Corpse;
         public float Stress;
         public float NextDot;
+        public float NextHot;
         public float BleedDot;
         public float BlightDot;
         public float BurnDot;
         public bool DiesToDot;
+        public bool DeathArmor;
         public bool Stealth;
         public bool Riposte;
         public bool Dodge;
@@ -42,6 +45,16 @@ namespace Dd2Autobattler.Combat
         public int Rank;
         public bool Taunt;
         public bool CallOfTheDeep;
+        public string ClassId;
+        public int Winded;
+        public bool RuinReady;
+        public bool Pain;
+        public bool MoreMore;
+        public int Conviction;
+        public bool AggressiveStance;
+        public bool DefensiveStance;
+        public bool BeastMode;
+        public bool Healthless;
     }
 
     public static class GameSnapshot
@@ -102,8 +115,11 @@ namespace Dd2Autobattler.Combat
                 ["living"] = actor.IsLiving,
                 ["deaths_door"] = info.DeathsDoor,
                 ["corpse"] = info.Corpse,
+                ["healthless"] = info.Healthless,
                 ["next_dot"] = info.NextDot,
+                ["next_hot"] = info.NextHot,
                 ["dies_to_dot"] = info.DiesToDot,
+                ["death_armor"] = info.DeathArmor,
                 ["stealth"] = info.Stealth,
                 ["riposte"] = info.Riposte,
                 ["dodge"] = info.Dodge,
@@ -127,16 +143,19 @@ namespace Dd2Autobattler.Combat
             if (actor == null)
                 return info;
 
+            try { info.Guid = actor.ActorGuid; } catch { }
             info.Hp = actor.HpRounded;
             info.HpPct = actor.CurrentHpPercent;
             try { info.Stress = actor.Stress; } catch { }
             try { info.DeathsDoor = actor.GetIsStatusActive(ActorStatusType.DEATHS_DOOR); } catch { }
             info.Corpse = IsCorpse(actor);
             info.NextDot = NextDotTick(actor);
+            info.NextHot = HotAmount(actor);
             info.BleedDot = DotAmount(actor, "bleed");
             info.BlightDot = DotAmount(actor, "blight");
             info.BurnDot = DotAmount(actor, "burn");
-            info.DiesToDot = !info.DeathsDoor && info.NextDot > 0f && info.Hp > 0f && info.NextDot + 0.05f >= info.Hp;
+            info.DeathArmor = CountToken(actor, "deaths_door_armor") > 0;
+            info.DiesToDot = DiesToDotNow(info.Hp, info.NextDot, info.NextHot, info.DeathsDoor, info.DeathArmor);
             info.Stealth = HasToken(actor, TokenType.STEALTH, "stealth");
             info.Riposte = HasToken(actor, TokenType.RIPOSTE, "riposte");
             info.Dodge = HasToken(actor, TokenType.EVADE, "dodge");
@@ -160,7 +179,41 @@ namespace Dd2Autobattler.Combat
             try { info.Rank = actor.TeamPosition; } catch { }
             info.Taunt = CountToken(actor, "taunt") > 0;
             info.CallOfTheDeep = CountToken(actor, "call_of_the_deep") > 0;
+            try { info.ClassId = actor.ActorDataClass != null ? actor.ActorDataClass.GetKey() : null; } catch { }
+            info.Healthless = IsHealthless(actor, info.ClassId);
+            info.Winded = CountToken(actor, "winded");
+            info.RuinReady = CountToken(actor, "ruin_ready") > 0;
+            info.Pain = CountToken(actor, "pain_heal") > 0;
+            info.MoreMore = CountToken(actor, "more_more") > 0;
+            info.Conviction = CountToken(actor, "conviction");
+            info.AggressiveStance = CountToken(actor, "aggressive_stance") > 0;
+            info.DefensiveStance = CountToken(actor, "defensive_stance") > 0;
+            info.BeastMode = CountToken(actor, "beast_mode") > 0;
             return info;
+        }
+
+        public static bool IsHealthless(ActorInstance actor, string classId)
+        {
+            if (!string.IsNullOrEmpty(classId)
+                && classId.IndexOf("taproot", StringComparison.OrdinalIgnoreCase) >= 0)
+                return true;
+            if (actor == null)
+                return false;
+            try
+            {
+                var cls = actor.ActorDataClass;
+                if (cls == null)
+                    return false;
+                var t = cls.GetType();
+                var p = t.GetProperty("m_IsHealthless") ?? t.GetProperty("IsHealthless");
+                if (p != null && true.Equals(p.GetValue(cls, null)))
+                    return true;
+                var f = t.GetField("m_IsHealthless");
+                if (f != null && true.Equals(f.GetValue(cls)))
+                    return true;
+            }
+            catch { }
+            return false;
         }
 
         public static bool HasToken(ActorInstance actor, TokenType type, string idContains)
@@ -239,12 +292,33 @@ namespace Dd2Autobattler.Combat
             }
         }
 
+        // Regen is a HoT (CSV/tooltip icon_regen). DoT ticks after Regen at
+        // turn start, so a 4 blight on 2 HP does not kill if Regen is 3.
+        // Death Armor turns a lethal tick into Death's Door, not a corpse.
+        public static bool DiesToDotNow(float hp, float nextDot, float nextHot, bool deathsDoor, bool deathArmor)
+        {
+            if (deathsDoor || deathArmor || hp <= 0f)
+                return false;
+            var net = nextDot - nextHot;
+            return net > 0f && net + 0.05f >= hp;
+        }
+
         public static float NextDotTick(ActorInstance actor)
         {
-            return DotAmount(actor, null);
+            return SumDots(actor, null, false);
+        }
+
+        public static float HotAmount(ActorInstance actor)
+        {
+            return SumDots(actor, null, true);
         }
 
         public static float DotAmount(ActorInstance actor, string idContains)
+        {
+            return SumDots(actor, idContains, false);
+        }
+
+        private static float SumDots(ActorInstance actor, string idContains, bool hot)
         {
             if (actor == null || actor.DotContainer == null)
                 return 0f;
@@ -260,7 +334,9 @@ namespace Dd2Autobattler.Combat
                     if (dot == null)
                         continue;
                     var def = dot.Definition;
-                    if (def != null && def.IsHoT)
+                    var isHot = false;
+                    try { isHot = def != null && def.IsHoT; } catch { }
+                    if (isHot != hot)
                         continue;
                     if (dot.GetDurationAmount() <= 0)
                         continue;
