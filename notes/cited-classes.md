@@ -51,6 +51,7 @@ Unique **resources**, not hero names. Phase 1 is Winded, Blind/Ruin, Pain. Phase
 - **Rules encoded:**
   - Do not pay `apply_combo` on an enemy rank no remaining Combo spender can hit from their current launch rank.
   - If we cannot read a spender's target ranks, fail open (keep paying) so the playtested four still mark.
+  - A 0-damage Combo mark does not inherit must-kill / boss focus. Combo pay still applies. A damaging hit on the same actor still beats the mark.
 - **Not encoded:** “mark the highest HP target”; Tracking Shot vs Blind Gas preference.
 
 ## Extra action (Jester)
@@ -103,8 +104,8 @@ Unique **resources**, not hero names. Phase 1 is Winded, Blind/Ruin, Pain. Phase
 
 ## Corpse clog
 
-- **Sources:** CSV pouch_of_lye `target_is_corpse_hidden` / `clear_corpse`. A corpse in a lower rank than every living enemy occupies the front.
-- **Rules encoded:** Lye that corpse (`corpse_reach`), especially when this hero has no damaging hit on the last enemy or the must-kill. Death's Door heal still goes first. Multi-hit (Flashing Daggers `m_IsMultiHit`) that `HitGuids` a corpse loses to a click that hits more living enemies, or to a clean living single-target if one is legal.
+- **Sources:** CSV pouch_of_lye `target_is_corpse_hidden` / `clear_corpse`; hero skills with `target_team_effects,clear_corpse` (`lep_purge`, also Occultist / GR / Flagellant clears). A corpse in a lower rank than every living enemy occupies the front.
+- **Rules encoded:** Clear that corpse (`corpse_reach`) with Lye or a clear skill (Purge), especially when this hero has no damaging hit on the last enemy or the must-kill. Death's Door heal still goes first. A 0-damage Combo mark is not a skill to walk for. Rank walk still fires when this hero cannot damage the must-kill even if an ally already reaches that rank (Librarian is the exception: do not swap the hero who already punches him). Multi-hit (Flashing Daggers `m_IsMultiHit`) scores the sum of living HP it hits, not the click target alone and not corpse HP. A cone that `HitGuids` a corpse loses to a click of the same skill that hits more living enemies, or (if it only tags one living) to a clean living single-target. Two living hits still beat Pick even if a corpse is also in the cone.
 - **Not encoded:** auto-slide after clear (game-dependent).
 
 ## Hearthlight / Firestarter (Runaway)

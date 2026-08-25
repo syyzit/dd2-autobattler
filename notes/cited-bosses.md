@@ -61,8 +61,8 @@ Do not encode a fallback that only we invented.
 - **Rules encoded:** if an ally is in crisis (Death's Door or <=35%) and no skill heal is legal, allow a move that lands the healer on a launch rank of an equipped heal that still has uses. Do not un-veto every swap. An enemy attack with a self-heal rider (Crush on Combo) is not a skill heal — do not walk for it.
 - Cleanse items that also heal (antivenom, bandage) are spent on Death's Door / <=30% instead of being scored as a wasted cleanse.
 - If the skill heal is spent (`m_Limit`) and someone is on Death's Door or <=30%, food/bandage/antivenom that still heal are forced. A last-enemy kill does not skip a Death's Door heal. Support (Ounce of Prevention) is penalized while the party is in crisis.
-- Last living enemy behind corpses, or a must-kill this hero cannot damage (Librarian after Categorize): if no damaging attack is legal on that target, walk onto a launch rank of an equipped attack that can hit that rank. 0-damage Combo marks do not count as a hit. `pass_heal` is Rest, not a skill heal — do not walk for it. Do not un-veto every swap.
-- Combat items are classified from CSV conditions/tags, not a name list: `target_is_corpse_hidden` (Pouch of Lye), `target_has_*_dot` (DoT cleanse), `target_is_diseased` (Single Leech), `target_has_blind` (Rag), `stress_heal`, `heal`. Enemy items stay attacks (witchbane). Grenades that click a corpse still skip. Buffs (powders, war horn, The Blood) stay on the token/buff scorer — do not dump them.
+- Last living enemy behind corpses, or a must-kill this hero cannot damage (Librarian after Categorize): if no damaging attack is legal on that target, walk onto a launch rank of an equipped attack that can hit that rank. 0-damage Combo marks do not count as a hit and are not a skill to walk for. `pass_heal` is Rest, not a skill heal — do not walk for it. Do not un-veto every swap. Do not skip that walk because an ally already reaches, except when swapping would displace the hero who already punches the Librarian.
+- Combat items are classified from CSV conditions/tags, not a name list: `target_is_corpse_hidden` (Pouch of Lye), `target_has_*_dot` (DoT cleanse), `target_is_diseased` (Single Leech), `target_has_blind` (Rag), `stress_heal`, `heal`. Enemy items stay attacks (witchbane). Grenades that click a corpse still skip. Hero clear skills (`lep_purge` `clear_corpse`) use the same `corpse_reach` boost when a front corpse blocks living targets. Buffs (powders, war horn, The Blood) stay on the token/buff scorer — do not dump them.
 
 ## Chirurgeon (Gaunt table)
 
@@ -98,6 +98,8 @@ Do not encode a fallback that only we invented.
 - **Sources:** [wiki Strategy](https://darkestdungeon.wiki.gg/wiki/Focused_Fault#Strategy). CSV: `boss_eyes_stalk_l` / `_m` / `_s`, `boss_eyes`; Seen token `eyes_focus`. Limerence +8 DMG per Seen; Suppress requires ≥3 positive tokens on a hero without Seen.
 - **Rules encoded:**
   - Phase 1 (`eyes_stalk_*`): every stalk is `must_kill`. Kill them; they split Cluster → Bifurcated → Cloistered.
+  - Do not LeaveChip a stalk. A 1 HP Cluster still Gazes / applies Seen.
+  - Non-killing AoE on stalks (no DoT) loses to a single-target into one lane. Wiki AoE is a kill or a DoT finish, not a double-split.
   - Phase 2 (`boss_eyes`): the mass is `must_kill`. Weak on the mass is extra (wiki: Weak/Block blunt Limerence).
   - Heal/guard the hero with `eyes_focus`.
   - Do not stack a third positive token onto a hero who is not Seen while the mass is up (wiki: Suppress on ≥3 positives).
@@ -117,7 +119,7 @@ Do not encode a fallback that only we invented.
 
 - **Sources:** [wiki Cultists Strategy](https://darkestdungeon.wiki.gg/wiki/Cultists_(Darkest_Dungeon_II)#Strategy); [wiki Exemplar Strategy](https://darkestdungeon.wiki.gg/wiki/Exemplar#Strategy_and_advice). CSV: `cultist_deacon`, `cultist_cardinal`, `cultist_exemplar`, `cultist_altar`, `cultist_herald`, `cultist_cherub`, `cultist_evangelist`. Worship token cap 2 enables Exultation / the minion **Worship** heal.
 - **Rules encoded:**
-  - Deacon or Cardinal on the board: kill regular cultists first (Altar included). The boss is deferred while any regular is alive. Wiki: "imperative to kill regular Cultist enemies, especially Altars, as quickly as possible before they can empower their bosses."
+  - Deacon or Cardinal on the board: kill regular cultists first (Altar included). The boss is deferred while any regular is alive. Wiki: "imperative to kill regular Cultist enemies, especially Altars, as quickly as possible before they can empower their bosses." Altar pays `AltarMustKillBias` over other regulars. A 0-damage Combo mark does not inherit that must-kill focus.
   - Exemplar (Act 3+ last-region Rampart): Exemplar is `must_kill`. Altar / Cherub / Evangelist are deferred (wiki: he will Pillar of Sacrifice them; damage on them is often wasted). Herald is not deferred — wiki: worth considering a kill — but not forced over the Exemplar if both are legal.
   - Holy Water / Combo-strip on a hero who has Combo: spend it. Wiki: The Fall on Combo is how Exemplar gains Worship for Exultation.
   - The Fall (CSV `exemplar_the_fall`): Combo-gated, `target_ranks` 1-3. Taunt on a rank-4 hero skips it (wiki: forces Prelude / Rapturous Beauty). If Combo is live in ranks 1-3 and this hero cannot strip it, walk onto rank 4 when an equipped Taunt skill launches from there (not Hold the Line / Toe to Toe — those walk you forward).

@@ -58,6 +58,15 @@ namespace Dd2Autobattler.Tests
         }
 
         [Fact]
+        public void Lep_purge_id_counts_as_corpse_clear()
+        {
+            Assert.True(ItemPolicy.ClearsCorpse("lep_purge", null));
+            Assert.Equal(42f, ItemPolicy.CorpseClearBaseScore(1));
+            Assert.Equal(28f, ItemPolicy.CorpseClearBaseScore(2));
+            Assert.Equal(20f, ItemPolicy.CorpseClearBaseScore(4));
+        }
+
+        [Fact]
         public void Grenade_on_corpse_is_still_skipped()
         {
             var preview = new PreviewScore { Ok = true, Damage = 12f };
