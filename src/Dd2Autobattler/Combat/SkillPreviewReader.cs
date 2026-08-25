@@ -85,8 +85,12 @@ namespace Dd2Autobattler.Combat
         }
 
         // Opening a DoT that mostly bounces is worse than a real swing.
+        // Land ~0 (resist ≥100% / immunity) is a hard waste — Noxious on
+        // barricade cover logged res_blight 2.0 and still won at -12.
         internal static float DotOpenPay(float land)
         {
+            if (land <= 0.05f)
+                return -90f;
             if (land <= 0.35f)
                 return -12f;
             return 5f * land;
@@ -98,6 +102,8 @@ namespace Dd2Autobattler.Combat
         {
             if (amount < 1f)
                 return 0f;
+            if (land <= 0.05f)
+                return -90f;
             if (land <= 0.35f)
                 return -12f;
             if (alreadyOn > 1f)

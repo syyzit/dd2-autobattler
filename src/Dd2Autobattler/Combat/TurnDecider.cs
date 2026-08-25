@@ -150,6 +150,7 @@ namespace Dd2Autobattler.Combat
             ApplyCorpseSplash(candidates, teams);
             ApplySighLungVeto(candidates, focus);
             ApplyFocusedFaultNotes(candidates, focus);
+            ApplyImplicationBlindNotes(candidates, focus);
             ApplyLaterActNotes(candidates, focus, performer);
             ApplyRankWalks(candidates, performer, teams, focus, livingEnemies, performerGuid, party);
             ApplyCorpseReach(candidates, focus, livingEnemies);
@@ -164,8 +165,11 @@ namespace Dd2Autobattler.Combat
             var awkward = lastEnemy != null && (lastEnemy.Riposte || lastEnemy.Dodge);
             var allowSetup = livingEnemies <= 1 && awkward && CombatMemory.CanSpendSetup(lastGuid);
 
-            var performerCrisis = performerBody.DeathsDoor || performerBody.HpPct <= 0.20f;
-            var picked = PickAction(candidates, livingEnemies, allowSetup, performerGuid, focus, killableEnemies, performerCrisis);
+            var performerCrisis = performerBody.DeathsDoor || performerBody.HpPct <= 0.20f
+                                  || performerBody.DiesToDot
+                                  || (performerBody.Hp > 0f && performerBody.NextDot + 0.05f >= performerBody.Hp);
+            var partyCrisis = partyDoor || AllyInCrisis(teams);
+            var picked = PickAction(candidates, livingEnemies, allowSetup, performerGuid, focus, killableEnemies, performerCrisis, partyCrisis, performerBody.Riposte);
             var best = picked == null
                 ? null
                 : new ChosenAction
@@ -201,7 +205,8 @@ namespace Dd2Autobattler.Combat
                 CombatMemory.NoteItemUsed(performerGuid);
             if (!picked.IsItem && party != null && party.HeroSpendsCombo(performerGuid))
                 CombatMemory.NoteComboSpenderActed(performerGuid);
-            if (!picked.EnemyTarget && picked.Target != null
+            // Items (bandage) must not burn the once-per-round skill-heal gate.
+            if (!picked.IsItem && !picked.EnemyTarget && picked.Target != null
                 && CountsAsCrisisHealSpend(picked.SkillId, picked.Kind)
                 && (picked.Target.DeathsDoor || picked.Target.HpPct <= 0.35f))
                 CombatMemory.NoteCrisisHeal(picked.TargetGuid);
@@ -423,6 +428,9 @@ namespace Dd2Autobattler.Combat
                     }
                     if (target != null && target.DeathsDoor)
                         score += 220f;
+                    else if (target != null && (target.DiesToDot
+                             || (target.Hp > 0f && target.NextDot + 0.05f >= target.Hp)))
+                        score += 90f + (1f - hpPct) * 80f;
                     else if (hpPct <= 0.35f)
                         score += 90f + (1f - hpPct) * 80f;
                     else if (hpPct <= 0.55f)
@@ -526,7 +534,9 @@ namespace Dd2Autobattler.Combat
             return found;
         }
 
-        private static ScoredAction PickAction(List<ScoredAction> candidates, int livingEnemies, bool allowSetup, uint performerGuid, EnemyFocus focus, int killableEnemies, bool performerCrisis)
+        private const float HealBeatsAttackGap = 40f;
+
+        private static ScoredAction PickAction(List<ScoredAction> candidates, int livingEnemies, bool allowSetup, uint performerGuid, EnemyFocus focus, int killableEnemies, bool performerCrisis, bool partyCrisis, bool performerRiposte)
         {
             if (candidates == null || candidates.Count == 0)
                 return null;
@@ -571,6 +581,8 @@ namespace Dd2Autobattler.Combat
             ScoredAction bestAttack = null;
             ScoredAction bestSetup = null;
             ScoredAction bestAny = null;
+            ScoredAction bestRiposteSetup = null;
+            ScoredAction bestArtilleryBlind = null;
             foreach (var c in candidates)
             {
                 if (c.IsItem && c.FreeAction)
@@ -580,6 +592,12 @@ namespace Dd2Autobattler.Combat
                 if (IsCrisisHealClick(c.Kind, c.SkillId, c.EnemyTarget, c.Target, c.Preview)
                     && (bestCrisisHeal == null || c.Score > bestCrisisHeal.Score))
                     bestCrisisHeal = c;
+                if (IsSelfRiposteSetup(c) && c.Score > 0f
+                    && (bestRiposteSetup == null || c.Score > bestRiposteSetup.Score))
+                    bestRiposteSetup = c;
+                if (IsArtilleryBlindClick(c) && c.Score > 0f
+                    && (bestArtilleryBlind == null || c.Score > bestArtilleryBlind.Score))
+                    bestArtilleryBlind = c;
                 var realHit = c.Kind == SkillKind.Attack && c.EnemyTarget && c.Target != null && !c.Target.Corpse
                               && c.Target.Actor != null && c.Target.Actor.IsLiving;
                 var hungerGuard = IsHarvestHungerGuard(c.SkillId);
@@ -621,19 +639,24 @@ namespace Dd2Autobattler.Combat
                     bestSetup = c;
             }
 
-            if (bestCrisisHeal != null)
-            {
-                var alreadyHealed = CombatMemory.CrisisHealThisRound(bestCrisisHeal.TargetGuid);
-                var stillDoor = bestCrisisHeal.Target != null && bestCrisisHeal.Target.DeathsDoor;
-                // A kill on the last HP bar ends combat (Taproot is healthless and
-                // does not count). Death Armor at 0 HP still needs a slap.
-                var lastKill = LastKillableFinish(
+            if (bestCrisisHeal != null
+                && ShouldTakeCrisisHeal(
+                    bestCrisisHeal.Target,
                     bestAttack != null ? bestAttack.Preview : null,
                     bestAttack != null ? bestAttack.Target : null,
-                    killableEnemies);
-                if (!lastKill && (!alreadyHealed || stillDoor))
-                    return bestCrisisHeal;
-            }
+                    killableEnemies,
+                    CombatMemory.CrisisHealThisRound(bestCrisisHeal.TargetGuid)))
+                return bestCrisisHeal;
+
+            // Blind loaded Implication before BOOOOOOOM! — not over a kill/crisis.
+            if (bestArtilleryBlind != null && !partyCrisis
+                && ShouldOpenUtility(bestAttack, killableEnemies))
+                return bestArtilleryBlind;
+
+            // Open Retribution while Riposte is down (on-hit MAA). Not over a kill/crisis.
+            if (!performerRiposte && livingEnemies >= 2 && bestRiposteSetup != null && !partyCrisis
+                && ShouldOpenUtility(bestAttack, killableEnemies))
+                return bestRiposteSetup;
 
             ScoredAction bestCorpseReach = null;
             foreach (var c in candidates)
@@ -668,20 +691,164 @@ namespace Dd2Autobattler.Combat
             // A legal damaging click (or a real Taproot tap) is playing.
             // A 0-damage Combo mark is not — walk onto a Pistol/Chop rank.
             // MustRankWalk is Undertow / Exemplar rank-4 — do not skip it to punch.
+            // Reach walks lose to stabilize when the party is in crisis.
             if (bestReposition != null)
             {
-                if (!bestReposition.ReachReposition || bestReposition.MustRankWalk)
-                    return bestReposition;
-                if (!PlaysFocusClick(bestAttack, focus))
-                    return bestReposition;
+                var crisisWalk = partyCrisis && bestReposition.ReachReposition && !bestReposition.MustRankWalk;
+                if (!crisisWalk)
+                {
+                    if (!bestReposition.ReachReposition || bestReposition.MustRankWalk)
+                        return bestReposition;
+                    if (!PlaysFocusClick(bestAttack, focus))
+                        return bestReposition;
+                }
             }
 
             // One setup while the last enemy is awkward, then we must swing.
             if (allowSetup && bestSetup != null && bestAttack != null)
                 return bestSetup;
+            // Blind swing at −36 or worse: Reflection / Withstand already outscore it.
+            if (bestAttack != null && bestAttack.Score < 0f && bestAny != null && bestAny.Score > bestAttack.Score)
+                return bestAny;
             if (bestAttack != null)
+            {
+                if (HealBeatsAttack(bestAny.Kind, bestAny.SkillId, bestAny.EnemyTarget, bestAny.Target, bestAny.Preview, bestAny.Score, bestAttack.Score))
+                    return bestAny;
                 return bestAttack;
+            }
             return bestAny;
+        }
+
+        // Do not open Retribution / artillery Blind over a real kill or last bar.
+        internal static bool ShouldOpenUtility(PreviewScore attackPreview, TargetInfo attackTarget, int killableEnemies)
+        {
+            if (attackPreview != null && attackPreview.Kills)
+                return false;
+            return !LastKillableFinish(attackPreview, attackTarget, killableEnemies);
+        }
+
+        private static bool ShouldOpenUtility(ScoredAction bestAttack, int killableEnemies)
+        {
+            return ShouldOpenUtility(
+                bestAttack != null ? bestAttack.Preview : null,
+                bestAttack != null ? bestAttack.Target : null,
+                killableEnemies);
+        }
+
+        internal static bool IsSelfRiposteSetup(string skillId, bool enemyTarget, PreviewScore preview, TokenEval tokens)
+        {
+            if (enemyTarget || string.IsNullOrEmpty(skillId))
+                return false;
+            if (KitSafety.IdHas(skillId, "retribution"))
+                return true;
+            if (preview != null && TokenPrices.HasId(preview.ApplyPerformer, "riposte"))
+                return true;
+            if (preview != null && TokenPrices.HasId(preview.ApplyTarget, "riposte"))
+                return true;
+            if (tokens != null && TokenPrices.HasId(tokens.Apply, "riposte"))
+                return true;
+            return false;
+        }
+
+        private static bool IsSelfRiposteSetup(ScoredAction c)
+        {
+            return c != null && !c.IsItem
+                   && IsSelfRiposteSetup(c.SkillId, c.EnemyTarget, c.Preview, c.Tokens);
+        }
+
+        // CSV shared_pillager_artillery: count token after Load Shot enables BOOM.
+        internal static bool IsLoadedArtillery(string classId, bool blind, int countTokens, int forcedMissTokens)
+        {
+            if (blind || countTokens <= 0 || forcedMissTokens > 0)
+                return false;
+            return KitSafety.IdHas(classId, "pillager_artillery");
+        }
+
+        internal static bool IsLoadedArtillery(TargetInfo target)
+        {
+            if (target == null || target.Corpse)
+                return false;
+            var count = 0;
+            var forcedMiss = 0;
+            if (target.Actor != null)
+            {
+                count = GameSnapshot.CountToken(target.Actor, "count");
+                forcedMiss = GameSnapshot.CountToken(target.Actor, "forced_miss");
+            }
+            return IsLoadedArtillery(target.ClassId, target.Blind, count, forcedMiss);
+        }
+
+        internal static bool AppliesBlind(PreviewScore preview, TokenEval tokens)
+        {
+            if (preview != null && TokenPrices.HasId(preview.ApplyTarget, "blind"))
+                return true;
+            if (tokens != null && TokenPrices.HasId(tokens.Apply, "blind"))
+                return true;
+            return false;
+        }
+
+        private static bool IsArtilleryBlindClick(ScoredAction c)
+        {
+            return c != null && c.EnemyTarget && !c.IsItem
+                   && AppliesBlind(c.Preview, c.Tokens)
+                   && IsLoadedArtillery(c.Target);
+        }
+
+        // wiki.gg/Implication: Blind the cannon while loaded so BOOOOOOOM! whiffs.
+        // CSV: pillager_artillery_loading → count_plus_1; boom needs performer_has_1_count.
+        private static void ApplyImplicationBlindNotes(List<ScoredAction> candidates, EnemyFocus focus)
+        {
+            if (candidates == null)
+                return;
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                var c = candidates[i];
+                if (!c.EnemyTarget || c.Target == null || c.IsItem)
+                    continue;
+                if (!AppliesBlind(c.Preview, c.Tokens) || !IsLoadedArtillery(c.Target))
+                    continue;
+                c.Score += 55f;
+                if (string.IsNullOrEmpty(c.NoteReason))
+                    c.NoteReason = "blind_artillery";
+            }
+        }
+
+        // DD / DoT lethal / ≤15%: never skip for lastKill or a prior bandage.
+        internal static bool TargetNeedsUrgentHeal(TargetInfo target)
+        {
+            if (target == null || target.Corpse)
+                return false;
+            if (target.DeathsDoor || target.DiesToDot)
+                return true;
+            if (target.Hp > 0f && target.NextDot + 0.05f >= target.Hp)
+                return true;
+            return target.HpPct > 0f && target.HpPct <= 0.15f;
+        }
+
+        internal static bool ShouldTakeCrisisHeal(TargetInfo healTarget, PreviewScore attackPreview, TargetInfo attackTarget, int killableEnemies, bool alreadyHealed)
+        {
+            if (healTarget == null || healTarget.Corpse)
+                return false;
+            var urgent = TargetNeedsUrgentHeal(healTarget);
+            var stillDoor = healTarget.DeathsDoor;
+            var lastKill = LastKillableFinish(attackPreview, attackTarget, killableEnemies);
+            // Finish the last bar only when nobody is about to die to DoT/DD.
+            if (lastKill && !urgent)
+                return false;
+            if (alreadyHealed && !stillDoor && !urgent)
+                return false;
+            return true;
+        }
+
+        internal static bool HealBeatsAttack(SkillKind kind, string skillId, bool enemyTarget, TargetInfo target, PreviewScore preview, float healScore, float attackScore)
+        {
+            if (enemyTarget || target == null || target.Corpse)
+                return false;
+            if (kind != SkillKind.Heal && !IsPassHeal(skillId))
+                return false;
+            if (!RestoresHp(preview))
+                return false;
+            return healScore >= attackScore + HealBeatsAttackGap;
         }
 
         private static List<JObject> ToLogRows(List<ScoredAction> candidates, EnemyFocus focus)
@@ -1934,7 +2101,10 @@ namespace Dd2Autobattler.Combat
 
             var reachTarget = ReachWalkTarget(candidates, performer, teams, focus, livingEnemies, performerGuid);
             if (reachTarget != null)
-                ApplyReachReposition(candidates, performer, reachTarget, party);
+            {
+                var crisis = PartyHasDeathsDoor(teams) || AllyInCrisis(teams);
+                ApplyReachReposition(candidates, performer, reachTarget, party, crisis);
+            }
         }
 
         private static void ApplyWalkBack(List<ScoredAction> candidates, ActorInstance performer, string reason)
@@ -2131,7 +2301,12 @@ namespace Dd2Autobattler.Combat
                 if (!IsHarvestHungerGuard(c.SkillId))
                     continue;
                 if (selfHungry)
+                {
                     c.Score -= 50f;
+                    // Blind hunger eats are forced legally but must not beat Solemnity.
+                    if (GameSnapshot.Describe(performer).Blind)
+                        c.Score -= 40f;
+                }
                 else if (allyHungry)
                     c.Score += 80f;
             }
@@ -2189,7 +2364,7 @@ namespace Dd2Autobattler.Combat
                 return false;
             if (!RestoresHp(preview))
                 return false;
-            if (target.DeathsDoor)
+            if (TargetNeedsUrgentHeal(target))
                 return true;
             return target.HpPct <= 0.35f && !KitSafety.WantsToStayLow(target);
         }
@@ -2205,11 +2380,22 @@ namespace Dd2Autobattler.Combat
             if (!door && !crisis)
                 return;
             var skillHeal = HasLegalCrisisHeal(candidates);
+            var passHeal = HasLegalPassHeal(candidates);
             for (var i = 0; i < candidates.Count; i++)
             {
                 var c = candidates[i];
                 if (c.Kind == SkillKind.Support && !c.IsItem && (door || crisis))
                     c.Score -= 80f;
+                // Laudanum while Rest / BM is legal — stabilize HP first.
+                if (c.IsItem && c.Item != null && (door || crisis)
+                    && c.Item.Reason != null
+                    && c.Item.Reason.IndexOf("stress", StringComparison.OrdinalIgnoreCase) >= 0
+                    && (skillHeal || passHeal))
+                {
+                    c.Item.UseNow = false;
+                    c.Score -= 100f;
+                    continue;
+                }
                 if (!c.IsItem || c.Target == null || c.EnemyTarget || c.Target.Corpse)
                     continue;
                 if (c.Preview == null || c.Preview.Heal <= 0f)
@@ -2234,6 +2420,23 @@ namespace Dd2Autobattler.Combat
                 }
                 c.Score = c.Item.Score;
             }
+        }
+
+        private static bool HasLegalPassHeal(List<ScoredAction> candidates)
+        {
+            if (candidates == null)
+                return false;
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                var c = candidates[i];
+                if (c.IsItem)
+                    continue;
+                if (!IsPassHeal(c.SkillId) || c.EnemyTarget || c.Target == null || c.Target.Corpse)
+                    continue;
+                if (RestoresHp(c.Preview))
+                    return true;
+            }
+            return false;
         }
 
         private static bool HasLegalCrisisHeal(List<ScoredAction> candidates)
@@ -2432,7 +2635,7 @@ namespace Dd2Autobattler.Combat
             return null;
         }
 
-        private static void ApplyReachReposition(List<ScoredAction> candidates, ActorInstance performer, ActorInstance enemy, PartyKit party)
+        private static void ApplyReachReposition(List<ScoredAction> candidates, ActorInstance performer, ActorInstance enemy, PartyKit party, bool partyCrisis)
         {
             if (candidates == null || performer == null || enemy == null)
                 return;
@@ -2478,7 +2681,8 @@ namespace Dd2Autobattler.Combat
                 if (!helps)
                     continue;
                 c.ReachReposition = true;
-                c.Score = 180f;
+                // Below typical crisis heals (~160–200) so Endure / BM / Rest win.
+                c.Score = partyCrisis ? 90f : 180f;
             }
         }
 

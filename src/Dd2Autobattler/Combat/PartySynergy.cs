@@ -77,6 +77,25 @@ namespace Dd2Autobattler.Combat
             return 0f;
         }
 
+        // Duelist's Advance swaps with the hero in front. Acid Rain launches from
+        // ranks 0–1 only — shoving that ally to rank 2+ wastes the blight.
+        internal static float AdvanceDisplaceDelta(string skillId, int performerRank, PartyKit party)
+        {
+            if (party == null || performerRank < 2)
+                return 0f;
+            if (!KitSafety.IdHas(skillId, "duelists_advance"))
+                return 0f;
+            for (var i = 0; i < party.Heroes.Count; i++)
+            {
+                var hero = party.Heroes[i];
+                if (hero == null || !hero.Living || !hero.AcidRain)
+                    continue;
+                if (hero.Rank == performerRank - 1)
+                    return -48f;
+            }
+            return 0f;
+        }
+
         internal static bool IsPull(string skillId)
         {
             return KitSafety.IdHas(skillId, "pull") || KitSafety.IdHas(skillId, "manacles");

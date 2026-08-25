@@ -64,10 +64,13 @@ namespace Dd2Autobattler.Tests
         }
 
         [Fact]
-        public void Flagellant_stays_low_until_deaths_door()
+        public void Flagellant_stays_low_above_floor_not_when_bleeding_out()
         {
-            Assert.True(KitSafety.WantsToStayLow(new TargetInfo { ClassId = "flagellant", HpPct = 0.25f }));
-            Assert.True(KitSafety.WantsToStayLow(new TargetInfo { MoreMore = true, HpPct = 0.20f }));
+            Assert.True(KitSafety.WantsToStayLow(new TargetInfo { ClassId = "flagellant", HpPct = 0.40f, Hp = 25f }));
+            Assert.True(KitSafety.WantsToStayLow(new TargetInfo { MoreMore = true, HpPct = 0.40f, Hp = 20f }));
+            Assert.False(KitSafety.WantsToStayLow(new TargetInfo { ClassId = "flagellant", HpPct = 0.25f, Hp = 16f }));
+            Assert.False(KitSafety.WantsToStayLow(new TargetInfo { ClassId = "flagellant", HpPct = 0.03f, Hp = 2f, NextDot = 7f }));
+            Assert.False(KitSafety.WantsToStayLow(new TargetInfo { ClassId = "flagellant", HpPct = 0.50f, Hp = 30f, DiesToDot = true }));
             Assert.False(KitSafety.WantsToStayLow(new TargetInfo { ClassId = "flagellant", DeathsDoor = true, HpPct = 0f }));
             Assert.False(KitSafety.WantsToStayLow(new TargetInfo { ClassId = "man_at_arms", HpPct = 0.25f }));
         }
@@ -147,6 +150,8 @@ namespace Dd2Autobattler.Tests
             Assert.Equal(6f, KitSafety.DotHostDelta("hwm_open_vein_u", clean, true, false, 3, preview));
             Assert.True(PreviewScore.DotApplyPay(4f, 0f, 1f, 3) > PreviewScore.DotOpenPay(1f));
             Assert.Equal(-12f, PreviewScore.DotApplyPay(4f, 0f, 0.25f, 3));
+            Assert.Equal(-90f, PreviewScore.DotApplyPay(5f, 0f, 0f, 3));
+            Assert.Equal(-90f, PreviewScore.DotApplyPay(5f, 0f, PreviewScore.LandFromResist(2f), 3));
         }
 
         [Fact]
@@ -154,10 +159,13 @@ namespace Dd2Autobattler.Tests
         {
             Assert.Equal(0.25f, PreviewScore.LandFromResist(0.75f));
             Assert.Equal(-12f, PreviewScore.DotOpenPay(0.25f));
+            Assert.Equal(-90f, PreviewScore.DotOpenPay(0f));
             Assert.Equal(5f, PreviewScore.DotOpenPay(1f));
             var preview = new PreviewScore { Ok = true, ResistOk = true, ResistBurn = 0.75f };
             var clean = new TargetInfo { BurnDot = 0f };
             Assert.Equal(-12f, KitSafety.DotHostDelta("run_firefly", clean, true, false, 3, preview));
+            var immune = new PreviewScore { Ok = true, ResistOk = true, ResistBlight = 2f, ApplyBlight = 5f };
+            Assert.Equal(-90f, KitSafety.DotHostDelta("pd_noxious_blast_p2", clean, true, false, 3, immune));
         }
 
         [Fact]
@@ -216,6 +224,29 @@ namespace Dd2Autobattler.Tests
             Assert.Equal(-24f, PartySynergy.FrontWalkDelta("hel_toe_to_toe", 1, true));
             Assert.Equal(18f, PartySynergy.FrontWalkDelta("hel_toe_to_toe", 1, false));
             Assert.Equal(0f, PartySynergy.FrontWalkDelta("hel_wicked_hack", 1, true));
+        }
+
+        [Fact]
+        public void Advance_is_docked_when_it_shoves_acid_rain_off_launch()
+        {
+            var party = new PartyKit();
+            party.Heroes.Add(new HeroKit { Guid = 1, Living = true, Rank = 1, ClassId = "flagellant", AcidRain = true });
+            party.Heroes.Add(new HeroKit { Guid = 2, Living = true, Rank = 2, ClassId = "highwayman" });
+            Assert.Equal(-48f, PartySynergy.AdvanceDisplaceDelta("hwm_duelists_advance", 2, party));
+            Assert.Equal(0f, PartySynergy.AdvanceDisplaceDelta("hwm_duelists_advance", 1, party));
+            Assert.Equal(0f, PartySynergy.AdvanceDisplaceDelta("hwm_wicked_slice", 2, party));
+        }
+
+        [Fact]
+        public void Self_crisis_pays_solemnity_on_the_dying_performer()
+        {
+            var lep = new TargetInfo { Guid = 9, ClassId = "leper", Rank = 0, Hp = 2f, HpPct = 0.04f, DiesToDot = true };
+            var ally = new TargetInfo { Guid = 8, ClassId = "plague_doctor", Rank = 3, Hp = 20f, HpPct = 0.50f };
+            var heal = new PreviewScore { Ok = true, Heal = 12f, HealValid = true };
+            Assert.Equal(40f, KitSafety.SelfCrisisDelta("lep_solemnity", SkillKind.Heal, false, lep, lep, heal));
+            Assert.Equal(-25f, KitSafety.SelfCrisisDelta("medic_salve", SkillKind.Heal, false, ally, lep, heal));
+            Assert.Equal(0f, KitSafety.SelfCrisisDelta("lep_solemnity", SkillKind.Heal, false, lep,
+                new TargetInfo { Guid = 9, HpPct = 0.80f, Hp = 40f }, heal));
         }
 
         [Fact]

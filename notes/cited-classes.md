@@ -25,14 +25,18 @@ Unique **resources**, not hero names. Phase 1 is Winded, Blind/Ruin, Pain. Phase
 - **Rules encoded:**
   - Do not Chop/Hew into Blind unless the target has Combo.
   - Reflection clears Blind. Do not Reflection when not Blind.
+  - A Blind attack that scores below 0 loses to any better legal click (Reflection / Withstand).
   - Ruin is friendly Support — pay the charge while `ruin_ready` is down; do not recast while ready.
+  - When the Leper is urgent (DoT lethal / ≤15%), Solemnity on self is paid; heals aimed at healthier allies are soft-docked.
 - **Not encoded:** Tempest vs Poet; Command as a partner (that is MAA synergy, not this loop).
 
 ## Pain (Flagellant)
 
 - **Sources:** CSV `flagellant` `m_Tags` include `no_dd_weak`; tokens `pain_heal` / `flagellant_pain_heal`, `more_more` / `flagellant_more_more`; `flg_more_more` `add_2_taunt_nr`. Wiki [Flagellant (DD2)](https://darkestdungeon.wiki.gg/wiki/Flagellant_(Darkest_Dungeon_II)): More MORE! is the tank click.
 - **Rules encoded:**
-  - A Flagellant (or anyone with Pain / More MORE!) is not a crisis-heal target until Death's Door.
+  - A Flagellant (or anyone with Pain / More MORE!) is not a crisis-heal target while above ~25% HP — below that floor, or when the next DoT tick would kill, medicine / Redeem fire as crisis heals (do not wait for Death's Door).
+  - Crisis heals are not skipped to finish the last enemy, peel, or clear a corpse when the target is urgent (Death's Door, dies-to-DoT, or ≤~15% HP). A real heal that outscores the best attack by ≥40 still wins.
+  - Items (bandage) do not burn the once-per-round skill-heal gate; Rest / Solemnity / BM can still fire the same round.
   - More MORE! is paid as self-taunt while two or more enemies live.
 - **Not encoded:** Exanimate / Maniac / Scourge path loops; Deathless as a named spend (heal scoring already fires at Death's Door).
 
@@ -43,6 +47,9 @@ Unique **resources**, not hero names. Phase 1 is Winded, Blind/Ruin, Pain. Phase
   - Those four prefer rank 0.
   - If a living ally who prefers the front already sits rank 0, do not pay Toe to Toe / Hold the Line / Rampart that steals the tile.
   - Harvest hunger (`hold_the_line` / `toe_to_toe` +80) still wins.
+  - Duelist's Advance is docked when it would shove an Acid Rain ally from the rank in front of the Highwayman onto rank 2+ (Acid Rain launch is ranks 0–1 only).
+  - Reach walks score lower while the party is in crisis so Endure / BM / Rest beat a 180 move.
+  - Man-at-Arms Retribution (self Riposte) opens while Riposte is down and ≥2 enemies live — not over a kill, last-bar finish, or party crisis. Recast is skipped while Riposte is already up.
 - **Not encoded:** dancing comps (Jester Echoing March) as a full rank script.
 
 ## Combo reach (party)
@@ -75,7 +82,7 @@ Unique **resources**, not hero names. Phase 1 is Winded, Blind/Ruin, Pain. Phase
 ## Enemy resists
 
 - **Sources:** CSV `sub_stat,resistance,{stun,blight,bleed,burn,debuff,...}`. Live preview `m_TargetResistanceStatValues` and pierce `m_PerformerResistanceIgnoreStatValues`. Not a faction type chart (ignited Fanatic burn 75% vs unignited 40%).
-- **Rules encoded:** HP damage already uses the preview. DoT open-host and stun/daze/debuff token pay scale by land chance `(1 - effective resist)`. Land ≤ 35% (mostly bounces) is a waste, not a small plus.
+- **Rules encoded:** HP damage already uses the preview. DoT open-host and stun/daze/debuff token pay scale by land chance `(1 - effective resist)`. Land ≤ 35% (mostly bounces) is a soft waste (−12). Land ≤ 5% (resist ≥ ~95%, including immunity like barricade `res_blight` 2.0) is a hard waste (−90) so Noxious / Firefly / Blind / stun do not beat a real swing.
 - **Not encoded:** handwritten “Sprawl = no burn” / “Gaunt = blight-weak” tables.
 
 ## Self tokens on attacks

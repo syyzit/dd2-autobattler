@@ -31,6 +31,7 @@ namespace Dd2Autobattler.Combat
         public bool Bleed;
         public bool Blight;
         public bool Burn;
+        public bool AcidRain;
     }
 
     internal sealed class SkillRole
@@ -318,6 +319,8 @@ namespace Dd2Autobattler.Combat
                     hero.Blight = true;
                 if (intel.Burn)
                     hero.Burn = true;
+                if (id != null && id.IndexOf("acid_rain", StringComparison.OrdinalIgnoreCase) >= 0)
+                    hero.AcidRain = true;
             }
 
             return hero;

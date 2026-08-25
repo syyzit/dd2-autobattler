@@ -27,6 +27,7 @@ namespace Dd2Autobattler.Combat
         public bool DiesToDot;
         public bool Dodge;
         public bool Riposte;
+        public float HpPct;
         public int Size;
         public float Score;
         public string Why;
@@ -495,9 +496,13 @@ namespace Dd2Autobattler.Combat
         }
 
         // wiki.gg/Cultists Strategy: kill regulars (especially Altars) before they
-        // Worship Deacon/Cardinal into Exultation. wiki.gg/Exemplar: the Exemplar
-        // itself is the kill; minions are usually not worth it (he will sacrifice
-        // them). Herald is the exception that is allowed, not forced.
+        // Worship Deacon/Cardinal into Exultation.
+        // wiki.gg/Exemplar + TheGamer: kill the Altar / soft add before Pillar of
+        // Sacrifice (denies Regen+Worship). Obsession Altar round-start Taunt is
+        // especially bad. Herald is worth a kill. Finish Exemplar when low.
+        // Cherub / Evangelist stay deferred while Exemplar is the race.
+        internal const float ExemplarFinishHpPct = 0.25f;
+
         internal static void ApplyCultistNote(EnemyFocus focus)
         {
             if (focus == null)
@@ -521,6 +526,57 @@ namespace Dd2Autobattler.Combat
                 focus.ExemplarUp = true;
                 focus.HasPriorityTarget = true;
                 focus.HasMustKillFirst = true;
+
+                EnemyThreat altar = null;
+                EnemyThreat herald = null;
+                for (var i = 0; i < regulars.Count; i++)
+                {
+                    var e = regulars[i];
+                    if (IdHas(e.ClassId, "cultist_altar"))
+                        altar = e;
+                    else if (IdHas(e.ClassId, "cultist_herald"))
+                        herald = e;
+                }
+
+                var finish = exemplar.HpPct > 0f && exemplar.HpPct <= ExemplarFinishHpPct;
+                EnemyThreat killFirst = null;
+                if (!finish && altar != null)
+                    killFirst = altar;
+                else if (!finish && herald != null)
+                    killFirst = herald;
+
+                if (killFirst != null)
+                {
+                    killFirst.MustKillFirst = true;
+                    killFirst.Defer = false;
+                    killFirst.Add = false;
+                    exemplar.MustKillFirst = false;
+                    exemplar.Defer = true;
+                    exemplar.Add = false;
+                    exemplar.Boss = true;
+                    for (var i = 0; i < regulars.Count; i++)
+                    {
+                        var e = regulars[i];
+                        if (e == killFirst)
+                            continue;
+                        // Herald stays legal while Altar is the must-kill so a
+                        // splash / leftover click can still chip him.
+                        if (IdHas(e.ClassId, "cultist_herald"))
+                        {
+                            e.MustKillFirst = false;
+                            e.Defer = false;
+                            e.Add = false;
+                        }
+                        else
+                        {
+                            e.MustKillFirst = false;
+                            e.Defer = true;
+                            e.Add = true;
+                        }
+                    }
+                    return;
+                }
+
                 exemplar.MustKillFirst = true;
                 exemplar.Defer = false;
                 exemplar.Add = false;
@@ -1067,6 +1123,7 @@ namespace Dd2Autobattler.Combat
                     threat.DiesToDot = info.DiesToDot;
                     threat.Dodge = info.Dodge;
                     threat.Riposte = info.Riposte;
+                    threat.HpPct = info.HpPct;
                 }
             }
             catch { }
