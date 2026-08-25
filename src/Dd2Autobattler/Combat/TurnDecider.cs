@@ -85,7 +85,10 @@ namespace Dd2Autobattler.Combat
 
                         var preview = SkillPreviewReader.Score(performer.ActorGuid, entry.m_SkillId, targetGuid);
                         if (preview.Ok)
+                        {
                             SkillPreviewReader.AddSkillTokenAdds(skillDef, preview);
+                            ClampPreviewToLivingHits(preview, teams, performer.ActorGuid);
+                        }
                         var target = GameSnapshot.Describe(GetActor(teams, targetGuid));
                         if (preview.Ok)
                         {
@@ -100,6 +103,7 @@ namespace Dd2Autobattler.Combat
                         var role = PartyKit.DescribeSkill(skillDef);
                         var tokens = TokenPrices.Evaluate(kind, enemyTarget, preview, target, livingEnemies, party, performerGuid, role, performerBody, nextEnemyGuid);
                         var isItem = ItemPolicy.IsCombatItem(skillDef, entry.m_SkillId, performer);
+                        var clearsCorpse = ItemPolicy.ClearsCorpse(entry.m_SkillId, skillDef);
                         var freeItem = isItem && ItemPolicy.IsFreeAction(skillDef);
                         var qty = isItem ? ItemPolicy.RemainingQty(performer, entry.m_SkillId) : 0;
                         var item = isItem
@@ -108,11 +112,12 @@ namespace Dd2Autobattler.Combat
                         var setup = party != null ? party.SetupBonus(role, target, enemyTarget, preview) : 0f;
                         if (TokenPrices.IsEarlySetup(CombatMemory.Round, livingEnemies))
                             setup *= 1.5f;
-                        var score = ScoreAction(entry.m_SkillId, kind, enemyTarget, stealthed || target.Stealth, preview, target, livingEnemies, party, focus)
-                                    + tokens.Score
-                                    + setup;
+                        // Corpse-clear skills skip token/setup on a corpse click — Lye scoring.
+                        var score = ScoreAction(entry.m_SkillId, kind, enemyTarget, stealthed || target.Stealth, preview, target, livingEnemies, party, focus, clearsCorpse);
                         if (item != null)
                             score = item.Score;
+                        else if (!(clearsCorpse && target.Corpse))
+                            score += tokens.Score + setup;
                         candidates.Add(new ScoredAction
                         {
                             SkillId = entry.m_SkillId,
@@ -124,6 +129,7 @@ namespace Dd2Autobattler.Combat
                             Tokens = tokens,
                             Item = item,
                             IsItem = isItem,
+                            ClearsCorpse = clearsCorpse,
                             FreeAction = freeItem,
                             ItemQty = qty,
                             Score = score,
@@ -196,7 +202,7 @@ namespace Dd2Autobattler.Combat
             if (!picked.IsItem && party != null && party.HeroSpendsCombo(performerGuid))
                 CombatMemory.NoteComboSpenderActed(performerGuid);
             if (!picked.EnemyTarget && picked.Target != null
-                && (picked.Kind == SkillKind.Heal || IsPassHeal(picked.SkillId))
+                && CountsAsCrisisHealSpend(picked.SkillId, picked.Kind)
                 && (picked.Target.DeathsDoor || picked.Target.HpPct <= 0.35f))
                 CombatMemory.NoteCrisisHeal(picked.TargetGuid);
             if (!picked.IsItem && picked.EnemyTarget && focus != null && focus.IsTaproot(picked.TargetGuid))
@@ -217,6 +223,7 @@ namespace Dd2Autobattler.Combat
             public TokenEval Tokens;
             public ItemEval Item;
             public bool IsItem;
+            public bool ClearsCorpse;
             public bool FreeAction;
             public int ItemQty;
             public float Score;
@@ -248,8 +255,28 @@ namespace Dd2Autobattler.Combat
                     return;
                 bar = guarded;
             }
-            if (!preview.Kills && preview.Damage > 0f && bar.Hp > 0f && preview.Damage >= bar.Hp)
+            float dmg;
+            var guid = bar.Guid != 0 ? bar.Guid : clickTarget.Guid;
+            if (!TryHitDamageOn(preview, guid, out dmg))
+                dmg = preview.Damage;
+            if (!preview.Kills && dmg > 0f && bar.Hp > 0f && dmg >= bar.Hp)
                 preview.Kills = true;
+        }
+
+        internal static bool TryHitDamageOn(PreviewScore preview, uint guid, out float damage)
+        {
+            damage = 0f;
+            if (preview == null || preview.Hits == null || guid == 0)
+                return false;
+            for (var i = 0; i < preview.Hits.Count; i++)
+            {
+                var hit = preview.Hits[i];
+                if (hit == null || hit.Guid != guid)
+                    continue;
+                damage = hit.Damage;
+                return true;
+            }
+            return false;
         }
 
         internal static SkillKind Classify(string skillId, ActorDataSkill def, PreviewScore preview, bool enemyTarget)
@@ -367,7 +394,7 @@ namespace Dd2Autobattler.Combat
             return n;
         }
 
-        private static float ScoreAction(string skillId, SkillKind kind, bool enemyTarget, bool stealthed, PreviewScore preview, TargetInfo target, int livingEnemies, PartyKit party, EnemyFocus focus)
+        private static float ScoreAction(string skillId, SkillKind kind, bool enemyTarget, bool stealthed, PreviewScore preview, TargetInfo target, int livingEnemies, PartyKit party, EnemyFocus focus, bool clearsCorpse = false)
         {
             var score = 0f;
             var hpPct = target != null ? target.HpPct : 1f;
@@ -421,7 +448,13 @@ namespace Dd2Autobattler.Combat
                     break;
                 default:
                     if (target != null && target.Corpse)
-                        score -= 250f;
+                    {
+                        // lep_purge / Lye: clear is the point. Other attacks waste the turn.
+                        if (clearsCorpse)
+                            score += ItemPolicy.CorpseClearBaseScore(livingEnemies);
+                        else
+                            score -= 250f;
+                    }
                     else if (target != null && target.DiesToDot && livingEnemies > 1)
                         score -= 120f;
                     else
@@ -436,7 +469,7 @@ namespace Dd2Autobattler.Combat
                     }
                     if (enemyTarget && focus != null && target != null && target.Actor != null)
                     {
-                        score += focus.ScoreOf(target.Actor.ActorGuid);
+                        score += FocusPay(skillId, preview, focus.ScoreOf(target.Actor.ActorGuid));
                         if (focus.HasPriorityTarget && focus.IsAdd(target.Actor.ActorGuid) && preview.Kills)
                             score -= 25f;
                     }
@@ -605,12 +638,19 @@ namespace Dd2Autobattler.Combat
             ScoredAction bestCorpseReach = null;
             foreach (var c in candidates)
             {
-                if (!c.IsItem || c.Target == null || !c.Target.Corpse || c.Item == null || !c.Item.UseNow)
+                if (c.Target == null || !c.Target.Corpse || c.NoteReason != "corpse_reach")
                     continue;
-                if (c.NoteReason != "corpse_reach")
+                if (c.IsItem)
+                {
+                    if (c.Item == null || !c.Item.UseNow)
+                        continue;
+                    if (!CombatMemory.CanSpendItem(performerGuid, true))
+                        continue;
+                }
+                else if (!c.ClearsCorpse)
+                {
                     continue;
-                if (!CombatMemory.CanSpendItem(performerGuid, true))
-                    continue;
+                }
                 if (bestCorpseReach == null || c.Score > bestCorpseReach.Score)
                     bestCorpseReach = c;
             }
@@ -693,6 +733,7 @@ namespace Dd2Autobattler.Combat
                     ["score"] = c.Score,
                     ["preview_ok"] = c.Preview != null && c.Preview.Ok,
                     ["dmg"] = c.Preview != null ? c.Preview.Damage : 0f,
+                    ["hit_n"] = c.Preview != null ? c.Preview.HitGuids.Count : 0,
                     ["apply_bleed"] = c.Preview != null ? c.Preview.ApplyBleed : 0f,
                     ["apply_blight"] = c.Preview != null ? c.Preview.ApplyBlight : 0f,
                     ["apply_burn"] = c.Preview != null ? c.Preview.ApplyBurn : 0f,
@@ -784,7 +825,8 @@ namespace Dd2Autobattler.Combat
                             : "priority");
             if (kind == SkillKind.Attack && livingEnemies <= 1 && enemyTarget && target != null && !target.Corpse)
                 return "finish_last";
-            if (kind == SkillKind.Attack && target != null && target.Corpse) return "skip_corpse";
+            if (kind == SkillKind.Attack && target != null && target.Corpse)
+                return picked.ClearsCorpse ? "clear_corpse" : "skip_corpse";
             if (kind == SkillKind.Attack && target != null && target.DiesToDot) return "let_dot_kill";
             if (kind == SkillKind.Attack && (target != null && target.Stealth)) return "skip_stealth";
             if (kind == SkillKind.Attack && target != null && target.Riposte && !preview.Kills) return "skip_riposte";
@@ -850,9 +892,30 @@ namespace Dd2Autobattler.Combat
             return 8f - leftover * 1.2f;
         }
 
+        // wiki.gg/Focused_Fault: kill the stalks. A 1 HP Cluster still Gazes.
+        internal static bool CanLeaveChip(string classId)
+        {
+            return !IdHasClass(classId, "eyes_stalk");
+        }
+
+        // wiki.gg/Focused_Fault killing plan: AoE is for a kill or a DoT that
+        // finishes. Chipping two full Clusters splits both (t2 Flashing 159 vs Thrown 152).
+        internal static float StalkChipAoEDelta(bool stalksUp, bool enemyTarget, bool kills, int livingHits, float applyDot)
+        {
+            if (!stalksUp || !enemyTarget || kills)
+                return 0f;
+            if (livingHits < 2)
+                return 0f;
+            if (applyDot > 0.05f)
+                return 0f;
+            return -16f;
+        }
+
         private static bool ShouldLeaveChip(ScoredAction c, int livingEnemies, uint performerGuid, List<uint> remaining, BattleTeams teams, PartyKit party)
         {
             if (c == null || c.Kind != SkillKind.Attack || !c.EnemyTarget || c.Target == null || c.Target.Corpse)
+                return false;
+            if (!CanLeaveChip(c.Target.ClassId))
                 return false;
             if (livingEnemies <= 1)
                 return false;
@@ -989,6 +1052,36 @@ namespace Dd2Autobattler.Combat
             return preview == null || preview.Damage < 1f;
         }
 
+        // Must-kill / boss focus is for a real hit. Tracking Shot inheriting
+        // +138 on a blank Combo mark beat Wicked Slice by 130.
+        internal static float FocusPay(string skillId, PreviewScore preview, float focusScore)
+        {
+            if (focusScore == 0f || IsZeroDamageMark(skillId, preview))
+                return 0f;
+            return focusScore;
+        }
+
+        // Rest is pass_heal. Once-per-round is the skill heal, not a bandage tick.
+        internal static bool CountsAsCrisisHealSpend(string skillId, SkillKind kind)
+        {
+            if (IsPassHeal(skillId))
+                return false;
+            return kind == SkillKind.Heal;
+        }
+
+        // wiki Librarian: do not displace the hero who already punches him.
+        // Other must-kills still walk this hero onto a damaging launch rank.
+        internal static bool PreserveAllyReach(string enemyClassId)
+        {
+            return IdHasClass(enemyClassId, "librarian") && !IdHasClass(enemyClassId, "stack");
+        }
+
+        // 0-damage Combo marks are not a skill to walk for.
+        internal static bool ReachWalkSkill(string skillId)
+        {
+            return !IsComboOnlyTap(skillId, null);
+        }
+
         // Tracking Shot from rank 0 on the Librarian is not "already playing."
         private static bool PlaysFocusClick(ScoredAction c, EnemyFocus focus)
         {
@@ -1097,6 +1190,115 @@ namespace Dd2Autobattler.Combat
             }
         }
 
+        // Multi-hit previews include every ActorResult, corpses included.
+        // Score the HP that actually comes off living enemies.
+        internal static float SumLivingHitDamage(PreviewScore preview, Predicate<uint> isLivingEnemy, out int livingHits, out bool kills)
+        {
+            livingHits = 0;
+            kills = false;
+            if (preview == null)
+                return 0f;
+            if (isLivingEnemy == null || preview.Hits == null || preview.Hits.Count == 0)
+                return preview.Damage;
+
+            var sum = 0f;
+            var paid = 0;
+            var max = 0f;
+            for (var i = 0; i < preview.Hits.Count; i++)
+            {
+                var hit = preview.Hits[i];
+                if (hit == null || hit.Guid == 0 || !isLivingEnemy(hit.Guid))
+                    continue;
+                livingHits++;
+                kills |= hit.Kills;
+                if (hit.Damage <= 0f)
+                    continue;
+                paid++;
+                sum += hit.Damage;
+                if (hit.Damage > max)
+                    max = hit.Damage;
+            }
+
+            if (preview.HitGuids != null)
+            {
+                for (var i = 0; i < preview.HitGuids.Count; i++)
+                {
+                    var guid = preview.HitGuids[i];
+                    if (guid == 0 || !isLivingEnemy(guid))
+                        continue;
+                    var known = false;
+                    for (var h = 0; h < preview.Hits.Count; h++)
+                    {
+                        if (preview.Hits[h] != null && preview.Hits[h].Guid == guid)
+                        {
+                            known = true;
+                            break;
+                        }
+                    }
+                    if (!known)
+                        livingHits++;
+                }
+            }
+
+            if (livingHits == 0)
+                return preview.Damage;
+            if (paid == 0)
+                return preview.Damage;
+            if (livingHits > paid && max > 0f)
+                sum += max * (livingHits - paid);
+            return sum;
+        }
+
+        private static void ClampPreviewToLivingHits(PreviewScore preview, BattleTeams teams, uint performerGuid)
+        {
+            if (preview == null || !preview.Ok)
+                return;
+            int livingHits;
+            bool kills;
+            var live = SumLivingHitDamage(preview, guid => IsLivingEnemyHit(teams, guid, performerGuid),
+                out livingHits, out kills);
+            if (livingHits <= 0)
+                return;
+            preview.Damage = live;
+            if (!kills && preview.Hits != null)
+            {
+                for (var i = 0; i < preview.Hits.Count; i++)
+                {
+                    var hit = preview.Hits[i];
+                    if (hit == null || hit.Damage <= 0f || !IsLivingEnemyHit(teams, hit.Guid, performerGuid))
+                        continue;
+                    var bar = GameSnapshot.Describe(GetActor(teams, hit.Guid));
+                    if (bar == null || bar.Corpse || bar.Healthless || bar.Hp <= 0f)
+                        continue;
+                    if (hit.Damage >= bar.Hp)
+                    {
+                        kills = true;
+                        break;
+                    }
+                }
+            }
+            preview.Kills = kills;
+        }
+
+        private static bool IsLivingEnemyHit(BattleTeams teams, uint guid, uint performerGuid)
+        {
+            if (guid == 0 || guid == performerGuid)
+                return false;
+            if (!IsEnemy(teams, guid))
+                return false;
+            var actor = GetActor(teams, guid);
+            if (actor == null)
+                return false;
+            try
+            {
+                if (GameSnapshot.IsCorpse(actor))
+                    return false;
+            }
+            catch { }
+            try { return actor.IsLiving; }
+            catch { return false; }
+        }
+
         // Flashing Daggers (m_IsMultiHit) can HitGuids a corpse + a live enemy
         // while another click of the same skill, or Pick/Thrown, hits only living.
         private static void ApplyCorpseSplash(List<ScoredAction> candidates, BattleTeams teams)
@@ -1151,9 +1353,21 @@ namespace Dd2Autobattler.Combat
                 return 0f;
             if (bestLiveSameSkill > livingHits)
                 return -80f;
+            // Two living hits are the reward. Do not veto that cone because a
+            // corpse is also in it — Pick would then beat a real AoE.
+            if (livingHits >= 2)
+                return 0f;
             if (cleanLivingHitExists)
                 return -50f;
             return 0f;
+        }
+
+        // Attack into a corpse is −250 unless the skill clears corpses (Purge / Lye).
+        internal static float CorpseTargetScore(bool clearsCorpse, int livingEnemies)
+        {
+            return clearsCorpse
+                ? ItemPolicy.CorpseClearBaseScore(livingEnemies)
+                : -250f;
         }
 
         private static void CountSplashHits(ScoredAction c, BattleTeams teams, out int living, out int corpses)
@@ -1205,7 +1419,7 @@ namespace Dd2Autobattler.Combat
         }
 
         // Front corpse in a lower rank than every living enemy clogs reach.
-        // Lye then, especially if this hero has no damaging hit on the must-kill / last.
+        // Lye / Purge then, especially if this hero has no damaging hit on the must-kill / last.
         private static void ApplyCorpseReach(List<ScoredAction> candidates, EnemyFocus focus, int livingEnemies)
         {
             if (candidates == null)
@@ -1242,17 +1456,28 @@ namespace Dd2Autobattler.Combat
             for (var i = 0; i < candidates.Count; i++)
             {
                 var c = candidates[i];
-                if (!c.IsItem || c.Target == null || !c.Target.Corpse || c.Item == null)
-                    continue;
-                if (c.Item.Reason == null || c.Item.Reason.IndexOf("clear_corpse", StringComparison.OrdinalIgnoreCase) < 0)
+                if (c.Target == null || !c.Target.Corpse)
                     continue;
                 if (!clog && !PartySynergy.CorpseClogsRanks(c.Target.Rank, livingRanks) && !noHit)
                     continue;
-                c.Item.UseNow = true;
-                c.Item.Crisis = true;
-                if (c.Item.Score < 40f)
-                    c.Item.Score = 40f;
-                c.Score = c.Item.Score;
+                var clearItem = c.IsItem && c.Item != null
+                    && c.Item.Reason != null
+                    && c.Item.Reason.IndexOf("clear_corpse", StringComparison.OrdinalIgnoreCase) >= 0;
+                var clearSkill = !c.IsItem && c.ClearsCorpse;
+                if (!clearItem && !clearSkill)
+                    continue;
+                if (clearItem)
+                {
+                    c.Item.UseNow = true;
+                    c.Item.Crisis = true;
+                    if (c.Item.Score < 40f)
+                        c.Item.Score = 40f;
+                    c.Score = c.Item.Score;
+                }
+                else if (c.Score < 40f)
+                {
+                    c.Score = 40f;
+                }
                 c.NoteReason = "corpse_reach";
             }
         }
@@ -1406,6 +1631,28 @@ namespace Dd2Autobattler.Combat
                         || TokenPrices.HasId(c.Tokens.Apply, "block")
                         || TokenPrices.HasId(c.Tokens.Apply, "dodge")))
                     c.Score -= 25f;
+                if (stalksUp && c.EnemyTarget)
+                {
+                    var hits = 0;
+                    var dot = 0f;
+                    var kills = false;
+                    if (c.Preview != null)
+                    {
+                        kills = c.Preview.Kills;
+                        if (c.Preview.HitGuids != null)
+                            hits = c.Preview.HitGuids.Count;
+                        if (hits == 0 && c.Preview.Damage > 0f)
+                            hits = 1;
+                        dot = c.Preview.ApplyBleed + c.Preview.ApplyBlight + c.Preview.ApplyBurn;
+                    }
+                    var aoe = StalkChipAoEDelta(true, true, kills, hits, dot);
+                    if (aoe != 0f)
+                    {
+                        c.Score += aoe;
+                        if (string.IsNullOrEmpty(c.NoteReason))
+                            c.NoteReason = "stalk_chip_aoe";
+                    }
+                }
             }
         }
 
@@ -2198,6 +2445,8 @@ namespace Dd2Autobattler.Combat
             var enemySize = 1;
             try { enemyRank = enemy.TeamPosition; } catch { return; }
             try { enemySize = enemy.Size; } catch { }
+            string enemyClass = null;
+            try { enemyClass = enemy.ActorDataClass != null ? enemy.ActorDataClass.GetKey() : null; } catch { }
 
             for (var i = 0; i < candidates.Count; i++)
             {
@@ -2208,8 +2457,9 @@ namespace Dd2Autobattler.Combat
                     continue;
                 var dest = 0;
                 try { dest = c.Target.Actor.TeamPosition; } catch { continue; }
-                // Do not swap the ally who already reaches the Librarian.
-                if (party != null && party.HitsEnemyRank(c.Target.Actor.ActorGuid, enemyRank))
+                // wiki Librarian: do not swap the ally who already punches him.
+                if (party != null && party.HitsEnemyRank(c.Target.Actor.ActorGuid, enemyRank)
+                    && PreserveAllyReach(enemyClass))
                     continue;
                 var helps = false;
                 for (var s = 0; s < skills.Count; s++)
@@ -2255,6 +2505,8 @@ namespace Dd2Autobattler.Combat
                 try { if (def.IsItemSkill || def.IsMoveSkill) continue; } catch { }
                 try { if (def.m_IsFriendly) continue; } catch { }
                 if (LooksLikeHeal(id, def, null) || IsPassHeal(id))
+                    continue;
+                if (!ReachWalkSkill(id))
                     continue;
                 try
                 {

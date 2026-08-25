@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using Assets.Code.Actor;
+using Assets.Code.Effect;
 using Assets.Code.Skill;
 
 namespace Dd2Autobattler.Combat
@@ -64,9 +65,9 @@ namespace Dd2Autobattler.Combat
             if (target == null)
                 return eval;
 
-            // CSV pouch_of_lye: target_is_corpse, clear_corpse, stress_heal on performer.
-            // Attack items that happen to click a corpse still take the skip below.
-            if (IsCorpseClear(skillId, def) && target.Corpse)
+            // CSV pouch_of_lye / lep_purge: clear_corpse. Attack items that only
+            // happen to click a corpse still take the skip below.
+            if (ClearsCorpse(skillId, def) && target.Corpse)
             {
                 ScoreCorpseClear(eval, livingEnemies);
                 if (qty <= 1)
@@ -154,7 +155,7 @@ namespace Dd2Autobattler.Combat
         // Enemy items stay Attack even if they also mention a DoT (witchbane).
         private static ItemRole ClassifyItem(string skillId, ActorDataSkill def, SkillKind kind, PreviewScore preview, bool enemyTarget)
         {
-            if (IsCorpseClear(skillId, def))
+            if (ClearsCorpse(skillId, def))
                 return ItemRole.CorpseClear;
             if (!enemyTarget)
             {
@@ -311,27 +312,87 @@ namespace Dd2Autobattler.Combat
             eval.Reason = "item_strip_waste";
         }
 
-        // CSV: pouch_of_lye target_effects clear_corpse; performer stress_heal_1.
-        // Use it when corpses are clogging ranks, especially the last living enemy.
+        // CSV: pouch_of_lye / lep_purge clear_corpse. Pay more when few living
+        // enemies remain (clog blocks the last hit).
         private static void ScoreCorpseClear(ItemEval eval, int livingEnemies)
         {
-            if (livingEnemies <= 1)
-            {
-                eval.Score = 42f;
-                eval.Reason = "item_clear_corpse";
-                eval.Crisis = true;
-                return;
-            }
-
-            if (livingEnemies <= 2)
-            {
-                eval.Score = 28f;
-                eval.Reason = "item_clear_corpse";
-                return;
-            }
-
-            eval.Score = 20f;
+            eval.Score = CorpseClearBaseScore(livingEnemies);
             eval.Reason = "item_clear_corpse";
+            eval.Crisis = livingEnemies <= 1;
+        }
+
+        internal static float CorpseClearBaseScore(int livingEnemies)
+        {
+            if (livingEnemies <= 1)
+                return 42f;
+            if (livingEnemies <= 2)
+                return 28f;
+            return 20f;
+        }
+
+        // Lye (condition), Purge / Daemon's Pull / etc. (effect id), plus id fallback
+        // for unit tests without a loaded ActorDataSkill.
+        internal static bool ClearsCorpse(string skillId, ActorDataSkill def)
+        {
+            if (LooksLike(skillId, def, "pouch_of_lye", "lye"))
+                return true;
+            if (HasCondition(def, "target_is_corpse_hidden"))
+                return true;
+            if (HasClearCorpseEffect(def))
+                return true;
+            if (!string.IsNullOrEmpty(skillId)
+                && skillId.IndexOf("lep_purge", StringComparison.OrdinalIgnoreCase) >= 0)
+                return true;
+            return false;
+        }
+
+        private static bool HasClearCorpseEffect(ActorDataSkill def)
+        {
+            if (def == null)
+                return false;
+            try
+            {
+                var effects = def.ActorDataEffects;
+                var groups = effects != null ? effects.EffectGroups : null;
+                if (groups == null)
+                    return false;
+                for (var g = 0; g < groups.Count; g++)
+                {
+                    var sources = GetMember(groups[g], "SourceEffects")
+                                  ?? GetMember(groups[g], "m_SourceEffects");
+                    var list = sources as IEnumerable;
+                    if (list == null)
+                        continue;
+                    foreach (var src in list)
+                    {
+                        if (src == null)
+                            continue;
+                        var effect = src as EffectDefinition;
+                        if (effect == null)
+                        {
+                            var inner = GetMember(src, "m_Definition")
+                                        ?? GetMember(src, "Definition")
+                                        ?? GetMember(src, "m_SourceId");
+                            effect = inner as EffectDefinition;
+                            if (effect == null && inner is string)
+                            {
+                                var sid = (string)inner;
+                                if (sid.IndexOf("clear_corpse", StringComparison.OrdinalIgnoreCase) >= 0)
+                                    return true;
+                            }
+                        }
+                        if (effect == null)
+                            continue;
+                        string id = null;
+                        try { id = effect.GetKey(); } catch { }
+                        if (!string.IsNullOrEmpty(id)
+                            && id.IndexOf("clear_corpse", StringComparison.OrdinalIgnoreCase) >= 0)
+                            return true;
+                    }
+                }
+            }
+            catch { }
+            return false;
         }
 
         private static void ScoreDisease(ItemEval eval, TargetInfo target)
@@ -346,13 +407,6 @@ namespace Dd2Autobattler.Combat
             eval.Score = 30f;
             eval.Reason = "item_disease";
             eval.Crisis = true;
-        }
-
-        private static bool IsCorpseClear(string skillId, ActorDataSkill def)
-        {
-            // Do not match target_is_not_corpse_hidden (substring trap).
-            return LooksLike(skillId, def, "pouch_of_lye", "lye")
-                   || HasCondition(def, "target_is_corpse_hidden");
         }
 
         private static bool HasDotCleanseCondition(ActorDataSkill def)

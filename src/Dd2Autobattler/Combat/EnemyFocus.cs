@@ -46,6 +46,9 @@ namespace Dd2Autobattler.Combat
         public bool ReachPhase2;
         public bool ReachPhase3;
 
+        // wiki.gg/Cultists: especially Altars while Deacon/Cardinal is up.
+        internal const float AltarMustKillBias = 20f;
+
         public static EnemyFocus Scan(BattleTeams teams)
         {
             var focus = new EnemyFocus();
@@ -97,10 +100,17 @@ namespace Dd2Autobattler.Combat
                 }
             }
 
-            for (var i = 0; i < focus.Enemies.Count; i++)
-                ScoreThreat(focus.Enemies[i], focus.HasPriorityTarget);
+            ScoreEnemies(focus);
 
             return focus;
+        }
+
+        internal static void ScoreEnemies(EnemyFocus focus)
+        {
+            if (focus == null)
+                return;
+            for (var i = 0; i < focus.Enemies.Count; i++)
+                ScoreThreat(focus.Enemies[i], focus.HasPriorityTarget);
         }
 
         public float ScoreOf(uint guid)
@@ -259,7 +269,10 @@ namespace Dd2Autobattler.Combat
                 else if (IdHas(e.ClassId, "cultist_exemplar"))
                     why += "exemplar+";
                 else if (IdHas(e.ClassId, "cultist_altar"))
+                {
                     why += "altar+";
+                    score += AltarMustKillBias;
+                }
                 else if (IdHas(e.ClassId, "cultist_"))
                     why += "cultist+";
                 else if (IdHas(e.ClassId, "boss_arms"))

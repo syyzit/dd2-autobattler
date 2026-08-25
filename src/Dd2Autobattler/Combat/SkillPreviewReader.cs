@@ -34,6 +34,7 @@ namespace Dd2Autobattler.Combat
         public readonly List<string> RemoveTarget = new List<string>();
         public readonly List<string> RemovePerformer = new List<string>();
         public readonly List<uint> HitGuids = new List<uint>();
+        public readonly List<PreviewHit> Hits = new List<PreviewHit>();
         public bool Blocked;
         public uint GuardGuid;
         public bool ResistOk;
@@ -104,6 +105,13 @@ namespace Dd2Autobattler.Combat
             var ticks = livingEnemies <= 1 ? 1f : 1.5f;
             return amount * land * ticks;
         }
+    }
+
+    public sealed class PreviewHit
+    {
+        public uint Guid;
+        public float Damage;
+        public bool Kills;
     }
 
     public static class SkillPreviewReader
@@ -205,9 +213,11 @@ namespace Dd2Autobattler.Combat
             var guard = AsUInt(GetMember(item, "m_GuardingActorGuid"));
             if (guard != 0)
                 result.GuardGuid = guard;
-            result.Kills |= AsBool(GetMember(item, "IsKill")) || AsBool(GetMember(item, "IsDamageKill"));
+            var hitGuid = AsUInt(GetMember(item, "m_TargetActorGuid"));
+            var kills = AsBool(GetMember(item, "IsKill")) || AsBool(GetMember(item, "IsDamageKill"));
+            result.Kills |= kills;
             result.HealsDeathsDoor |= result.Heal > 0f && AsBool(GetMember(item, "TargetIsAtDeathsDoor"));
-            AddHitGuid(result, AsUInt(GetMember(item, "m_TargetActorGuid")));
+            AddHit(result, hitGuid, (damageValid || mid > 0f) ? mid * hit : 0f, kills);
 
             AddStrings(GetMember(item, "m_TargetAttemptedTokenConsumeIds"), result.ConsumeTarget);
             AddStrings(GetMember(item, "m_PerformerAttemptedTokenConsumeIds"), result.ConsumePerformer);
@@ -721,6 +731,22 @@ namespace Dd2Autobattler.Combat
         {
             if (value == null) return 0;
             try { return Convert.ToUInt32(value); } catch { return 0; }
+        }
+
+        private static void AddHit(PreviewScore result, uint guid, float damage, bool kills)
+        {
+            if (result == null || guid == 0)
+                return;
+            AddHitGuid(result, guid);
+            for (var i = 0; i < result.Hits.Count; i++)
+            {
+                if (result.Hits[i].Guid != guid)
+                    continue;
+                result.Hits[i].Damage += damage;
+                result.Hits[i].Kills |= kills;
+                return;
+            }
+            result.Hits.Add(new PreviewHit { Guid = guid, Damage = damage, Kills = kills });
         }
 
         private static void AddHitGuid(PreviewScore result, uint guid)

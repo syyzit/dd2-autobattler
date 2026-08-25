@@ -132,6 +132,35 @@ namespace Dd2Autobattler.Tests
                 new PreviewScore { Ok = true, Damage = 2.8f, HitChance = 1f }));
             Assert.True(TurnDecider.ComboMarkWaste("hwm_tracking_shot", preview,
                 new TargetInfo { Hp = 0f, DeathsDoor = true, ClassId = "plague_eater_dinner_cart" }));
+            Assert.Equal(0f, TurnDecider.FocusPay("hwm_tracking_shot", preview, 138f));
+            Assert.Equal(138f, TurnDecider.FocusPay("hwm_wicked_slice_u",
+                new PreviewScore { Ok = true, Damage = 4.5f, HitChance = 1f }, 138f));
+            Assert.Equal(138f, TurnDecider.FocusPay("gr_flashing_daggers",
+                new PreviewScore { Ok = true, Damage = 6.2f, HitChance = 1f }, 138f));
+            Assert.False(TurnDecider.ReachWalkSkill("hwm_tracking_shot"));
+            Assert.False(TurnDecider.ReachWalkSkill("pd_blinding_gas"));
+            Assert.True(TurnDecider.ReachWalkSkill("hwm_wicked_slice_u"));
+            Assert.True(TurnDecider.ReachWalkSkill("hwm_pistol_shot"));
+        }
+
+        [Fact]
+        public void Rest_does_not_spend_the_crisis_heal_slot()
+        {
+            Assert.False(TurnDecider.CountsAsCrisisHealSpend("pass_heal", SkillKind.Heal));
+            Assert.False(TurnDecider.CountsAsCrisisHealSpend("pass_heal", SkillKind.Pass));
+            Assert.True(TurnDecider.CountsAsCrisisHealSpend("pd_battlefield_medicine_u", SkillKind.Heal));
+            Assert.True(TurnDecider.CountsAsCrisisHealSpend("gr_artemisia_u", SkillKind.Heal));
+            Assert.False(TurnDecider.CountsAsCrisisHealSpend("hwm_wicked_slice_u", SkillKind.Attack));
+        }
+
+        [Fact]
+        public void Rank_walk_preserves_ally_reach_only_on_the_librarian()
+        {
+            Assert.True(TurnDecider.PreserveAllyReach("academic_boss_librarian"));
+            Assert.False(TurnDecider.PreserveAllyReach("academic_boss_librarian_book_stack"));
+            Assert.False(TurnDecider.PreserveAllyReach("cultist_altar"));
+            Assert.False(TurnDecider.PreserveAllyReach("cultist_cherub"));
+            Assert.False(TurnDecider.PreserveAllyReach("cultist_deacon"));
         }
 
         [Fact]
@@ -157,6 +186,57 @@ namespace Dd2Autobattler.Tests
             Assert.Equal(-80f, TurnDecider.CorpseSplashDelta(1, 1, 2, true));
             Assert.Equal(-50f, TurnDecider.CorpseSplashDelta(1, 1, 1, true));
             Assert.Equal(0f, TurnDecider.CorpseSplashDelta(1, 1, 1, false));
+            Assert.Equal(0f, TurnDecider.CorpseSplashDelta(2, 1, 2, true));
+        }
+
+        [Fact]
+        public void Purge_on_a_corpse_scores_clear_not_skip()
+        {
+            Assert.Equal(-250f, TurnDecider.CorpseTargetScore(false, 2));
+            Assert.Equal(28f, TurnDecider.CorpseTargetScore(true, 2));
+            Assert.Equal(42f, TurnDecider.CorpseTargetScore(true, 1));
+            Assert.Equal(20f, TurnDecider.CorpseTargetScore(true, 3));
+            Assert.True(ItemPolicy.ClearsCorpse("lep_purge", null));
+            Assert.True(ItemPolicy.ClearsCorpse("lep_purge_u", null));
+            Assert.False(ItemPolicy.ClearsCorpse("lep_chop", null));
+        }
+
+        [Fact]
+        public void AoE_sums_living_hit_damage_and_ignores_corpses()
+        {
+            var mixed = new PreviewScore { Damage = 16f };
+            mixed.Hits.Add(new PreviewHit { Guid = 1, Damage = 8f });
+            mixed.Hits.Add(new PreviewHit { Guid = 2, Damage = 8f });
+            int n;
+            bool kills;
+            Assert.Equal(8f, TurnDecider.SumLivingHitDamage(mixed, g => g == 1, out n, out kills));
+            Assert.Equal(1, n);
+            Assert.Equal(16f, TurnDecider.SumLivingHitDamage(mixed, g => g == 1 || g == 2, out n, out kills));
+            Assert.Equal(2, n);
+
+            var twoLiving = new PreviewScore { Damage = 8f };
+            twoLiving.Hits.Add(new PreviewHit { Guid = 1, Damage = 8f });
+            twoLiving.HitGuids.Add(1);
+            twoLiving.HitGuids.Add(3);
+            Assert.Equal(16f, TurnDecider.SumLivingHitDamage(twoLiving, g => g == 1 || g == 3, out n, out kills));
+            Assert.Equal(2, n);
+
+            var empty = new PreviewScore { Damage = 11f };
+            Assert.Equal(11f, TurnDecider.SumLivingHitDamage(empty, g => true, out n, out kills));
+        }
+
+        [Fact]
+        public void Click_kill_uses_that_target_hit_not_the_AoE_sum()
+        {
+            var preview = new PreviewScore { Ok = true, Damage = 16f };
+            preview.Hits.Add(new PreviewHit { Guid = 10, Damage = 8f });
+            preview.Hits.Add(new PreviewHit { Guid = 11, Damage = 8f });
+            var click = new TargetInfo { Guid = 10, Hp = 12f };
+            TurnDecider.NoteKillFromHp(preview, click, null);
+            Assert.False(preview.Kills);
+            click.Hp = 7f;
+            TurnDecider.NoteKillFromHp(preview, click, null);
+            Assert.True(preview.Kills);
         }
 
         [Fact]
@@ -166,6 +246,27 @@ namespace Dd2Autobattler.Tests
             Assert.True(overkill < 0f);
             var small = TurnDecider.LeaveChipPly(2f);
             Assert.True(small > overkill);
+        }
+
+        [Fact]
+        public void Eye_stalks_are_not_left_as_chips()
+        {
+            Assert.False(TurnDecider.CanLeaveChip("boss_eyes_stalk_l"));
+            Assert.False(TurnDecider.CanLeaveChip("boss_eyes_stalk_m"));
+            Assert.False(TurnDecider.CanLeaveChip("boss_eyes_stalk_s"));
+            Assert.True(TurnDecider.CanLeaveChip("cultist_cherub"));
+            Assert.True(TurnDecider.CanLeaveChip("boss_eyes"));
+            Assert.True(TurnDecider.CanLeaveChip(null));
+        }
+
+        [Fact]
+        public void Non_kill_stalk_aoe_loses_to_a_single_target()
+        {
+            Assert.Equal(-16f, TurnDecider.StalkChipAoEDelta(true, true, false, 2, 0f));
+            Assert.Equal(0f, TurnDecider.StalkChipAoEDelta(true, true, true, 2, 0f));
+            Assert.Equal(0f, TurnDecider.StalkChipAoEDelta(true, true, false, 1, 0f));
+            Assert.Equal(0f, TurnDecider.StalkChipAoEDelta(true, true, false, 2, 3.5f));
+            Assert.Equal(0f, TurnDecider.StalkChipAoEDelta(false, true, false, 2, 0f));
         }
 
         [Fact]
@@ -296,14 +397,20 @@ namespace Dd2Autobattler.Tests
         {
             var focus = new EnemyFocus();
             var altar = new EnemyThreat { Guid = 1, ClassId = "cultist_altar", Supports = true };
+            var cherub = new EnemyThreat { Guid = 3, ClassId = "cultist_cherub", Supports = true };
             var deacon = new EnemyThreat { Guid = 2, ClassId = "cultist_deacon", Boss = true };
             focus.Enemies.Add(altar);
+            focus.Enemies.Add(cherub);
             focus.Enemies.Add(deacon);
             EnemyFocus.ApplyCultistNote(focus);
+            EnemyFocus.ScoreEnemies(focus);
             Assert.True(altar.MustKillFirst);
             Assert.False(altar.Defer);
+            Assert.True(cherub.MustKillFirst);
             Assert.True(deacon.Defer);
             Assert.False(deacon.MustKillFirst);
+            Assert.Equal(cherub.Score + EnemyFocus.AltarMustKillBias, altar.Score);
+            Assert.True(altar.Score > cherub.Score);
         }
 
         [Fact]
