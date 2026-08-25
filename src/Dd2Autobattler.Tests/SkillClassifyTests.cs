@@ -71,6 +71,22 @@ namespace Dd2Autobattler.Tests
         }
 
         [Fact]
+        public void Flagellant_at_2_hp_with_bleed_is_crisis_heal_not_stay_low()
+        {
+            var preview = new PreviewScore { Ok = true, Heal = 20f, HealValid = true };
+            var bleeding = new TargetInfo
+            {
+                ClassId = "flagellant",
+                Hp = 2f,
+                HpPct = 0.03f,
+                NextDot = 7f
+            };
+            var healthy = new TargetInfo { ClassId = "flagellant", Hp = 40f, HpPct = 0.63f };
+            Assert.True(TurnDecider.IsCrisisHealClick(SkillKind.Heal, "pd_battlefield_medicine_u", false, bleeding, preview));
+            Assert.False(TurnDecider.IsCrisisHealClick(SkillKind.Heal, "pd_battlefield_medicine_u", false, healthy, preview));
+        }
+
+        [Fact]
         public void Shadow_rank_is_1_when_human_matches_the_top_score()
         {
             var legal = new System.Collections.Generic.List<Newtonsoft.Json.Linq.JObject>
@@ -177,6 +193,67 @@ namespace Dd2Autobattler.Tests
 
             var tap = new TargetInfo { Healthless = true, ClassId = "lost_battalion_boss_taproot", Hp = 99f };
             Assert.False(TurnDecider.LastKillableFinish(new PreviewScore { Ok = true, Damage = 0f, HitChance = 1f }, tap, 1));
+        }
+
+        [Fact]
+        public void Crisis_heal_wins_over_last_kill_when_ally_is_urgent()
+        {
+            var kill = new PreviewScore { Ok = true, Damage = 20f, Kills = true };
+            var enemy = new TargetInfo { Hp = 5f };
+            var bleeding = new TargetInfo { Hp = 2f, HpPct = 0.03f, NextDot = 7f };
+            var mid = new TargetInfo { Hp = 20f, HpPct = 0.30f };
+
+            Assert.True(TurnDecider.TargetNeedsUrgentHeal(bleeding));
+            Assert.True(TurnDecider.ShouldTakeCrisisHeal(bleeding, kill, enemy, 1, false));
+            Assert.True(TurnDecider.ShouldTakeCrisisHeal(bleeding, kill, enemy, 1, true));
+            Assert.False(TurnDecider.ShouldTakeCrisisHeal(mid, kill, enemy, 1, false));
+            Assert.True(TurnDecider.ShouldTakeCrisisHeal(mid, kill, enemy, 2, false));
+            Assert.False(TurnDecider.ShouldTakeCrisisHeal(mid, kill, enemy, 2, true));
+        }
+
+        [Fact]
+        public void Heal_beats_attack_when_score_gap_is_large()
+        {
+            var preview = new PreviewScore { Ok = true, Heal = 20f, HealValid = true };
+            var ally = new TargetInfo { Hp = 10f, HpPct = 0.18f };
+            Assert.True(TurnDecider.HealBeatsAttack(SkillKind.Heal, "pd_battlefield_medicine_u", false, ally, preview, 202f, 85f));
+            Assert.False(TurnDecider.HealBeatsAttack(SkillKind.Heal, "pd_battlefield_medicine_u", false, ally, preview, 100f, 85f));
+            Assert.False(TurnDecider.HealBeatsAttack(SkillKind.Attack, "pd_incision", true, ally, preview, 202f, 85f));
+        }
+
+        [Fact]
+        public void Retribution_is_a_self_riposte_setup()
+        {
+            Assert.True(TurnDecider.IsSelfRiposteSetup("maa_retribution_u", false, null, null));
+            Assert.False(TurnDecider.IsSelfRiposteSetup("maa_crush", true, null, null));
+            var preview = new PreviewScore { Ok = true };
+            preview.ApplyPerformer.Add("riposte");
+            Assert.True(TurnDecider.IsSelfRiposteSetup("maa_bulwark", false, preview, null));
+        }
+
+        [Fact]
+        public void Utility_setup_yields_to_a_real_kill()
+        {
+            var kill = new PreviewScore { Ok = true, Damage = 20f, Kills = true };
+            var enemy = new TargetInfo { Hp = 5f };
+            Assert.False(TurnDecider.ShouldOpenUtility(kill, enemy, 2));
+            Assert.True(TurnDecider.ShouldOpenUtility(new PreviewScore { Ok = true, Damage = 8f, Kills = false }, enemy, 2));
+            Assert.False(TurnDecider.ShouldOpenUtility(kill, enemy, 1));
+        }
+
+        [Fact]
+        public void Loaded_implication_wants_blind_not_when_already_blind_or_forced_miss()
+        {
+            Assert.True(TurnDecider.IsLoadedArtillery("shared_pillager_artillery", false, 1, 0));
+            Assert.False(TurnDecider.IsLoadedArtillery("shared_pillager_artillery", true, 1, 0));
+            Assert.False(TurnDecider.IsLoadedArtillery("shared_pillager_artillery", false, 1, 1));
+            Assert.False(TurnDecider.IsLoadedArtillery("shared_pillager_artillery", false, 0, 0));
+            Assert.False(TurnDecider.IsLoadedArtillery("pillager_bone_rattler", false, 1, 0));
+
+            var preview = new PreviewScore { Ok = true };
+            preview.ApplyTarget.Add("blind");
+            Assert.True(TurnDecider.AppliesBlind(preview, null));
+            Assert.False(TurnDecider.AppliesBlind(new PreviewScore { Ok = true }, null));
         }
 
         [Fact]
@@ -414,20 +491,82 @@ namespace Dd2Autobattler.Tests
         }
 
         [Fact]
-        public void Exemplar_note_focuses_the_boss_and_defers_the_altar()
+        public void Exemplar_note_kills_altar_first_while_boss_is_healthy()
         {
             var focus = new EnemyFocus();
             var altar = new EnemyThreat { Guid = 1, ClassId = "cultist_altar", Supports = true };
             var herald = new EnemyThreat { Guid = 2, ClassId = "cultist_herald" };
-            var exemplar = new EnemyThreat { Guid = 3, ClassId = "cultist_exemplar", Boss = true, Add = true };
+            var cherub = new EnemyThreat { Guid = 4, ClassId = "cultist_cherub", Supports = true };
+            var exemplar = new EnemyThreat
+            {
+                Guid = 3,
+                ClassId = "cultist_exemplar",
+                Boss = true,
+                Add = true,
+                HpPct = 0.80f
+            };
+            focus.Enemies.Add(altar);
+            focus.Enemies.Add(herald);
+            focus.Enemies.Add(cherub);
+            focus.Enemies.Add(exemplar);
+            EnemyFocus.ApplyCultistNote(focus);
+            Assert.True(altar.MustKillFirst);
+            Assert.False(altar.Defer);
+            Assert.True(exemplar.Defer);
+            Assert.False(exemplar.MustKillFirst);
+            Assert.False(herald.Defer);
+            Assert.False(herald.MustKillFirst);
+            Assert.True(cherub.Defer);
+        }
+
+        [Fact]
+        public void Exemplar_note_kills_herald_when_no_altar_and_boss_healthy()
+        {
+            var focus = new EnemyFocus();
+            var herald = new EnemyThreat { Guid = 2, ClassId = "cultist_herald" };
+            var cherub = new EnemyThreat { Guid = 4, ClassId = "cultist_cherub", Supports = true };
+            var exemplar = new EnemyThreat
+            {
+                Guid = 3,
+                ClassId = "cultist_exemplar",
+                Boss = true,
+                HpPct = 0.60f
+            };
+            focus.Enemies.Add(herald);
+            focus.Enemies.Add(cherub);
+            focus.Enemies.Add(exemplar);
+            EnemyFocus.ApplyCultistNote(focus);
+            Assert.True(herald.MustKillFirst);
+            Assert.False(herald.Defer);
+            Assert.True(exemplar.Defer);
+            Assert.False(exemplar.MustKillFirst);
+            Assert.True(cherub.Defer);
+        }
+
+        [Fact]
+        public void Exemplar_note_finishes_boss_at_low_hp_even_with_adds()
+        {
+            var focus = new EnemyFocus();
+            var altar = new EnemyThreat { Guid = 1, ClassId = "cultist_altar", Supports = true };
+            var herald = new EnemyThreat { Guid = 2, ClassId = "cultist_herald" };
+            var exemplar = new EnemyThreat
+            {
+                Guid = 3,
+                ClassId = "cultist_exemplar",
+                Boss = true,
+                Add = true,
+                HpPct = EnemyFocus.ExemplarFinishHpPct
+            };
             focus.Enemies.Add(altar);
             focus.Enemies.Add(herald);
             focus.Enemies.Add(exemplar);
             EnemyFocus.ApplyCultistNote(focus);
             Assert.True(exemplar.MustKillFirst);
+            Assert.False(exemplar.Defer);
             Assert.False(exemplar.Add);
             Assert.True(altar.Defer);
             Assert.False(herald.Defer);
+            Assert.False(herald.MustKillFirst);
             Assert.False(herald.Add);
         }
 

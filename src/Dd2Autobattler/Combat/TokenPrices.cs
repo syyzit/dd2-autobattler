@@ -67,32 +67,62 @@ namespace Dd2Autobattler.Combat
                     Add(-32f, "save_combo");
                 if (HasId(eval.Apply, "stun") && !target.Stun)
                 {
-                    var stun = StunPrice(target, lastEnemy, party) * setup * preview.Land("stun");
-                    if (IsNextEnemy(target, nextEnemyGuid))
-                    {
-                        stun += 12f * preview.Land("stun");
-                        Add(stun, "stun_next");
-                    }
+                    var land = preview.Land("stun");
+                    if (land <= 0.05f)
+                        Add(-90f, "immune_token");
                     else
-                        Add(stun, "stun_threat");
+                    {
+                        var stun = StunPrice(target, lastEnemy, party) * setup * land;
+                        if (IsNextEnemy(target, nextEnemyGuid))
+                        {
+                            stun += 12f * land;
+                            Add(stun, "stun_next");
+                        }
+                        else
+                            Add(stun, "stun_threat");
+                    }
                 }
                 if (HasId(eval.Apply, "daze") && !target.Stun)
                 {
-                    var daze = (lastEnemy && (target.Riposte || target.Dodge) ? 10f : 4f) * setup * preview.Land("stun");
-                    if (IsNextEnemy(target, nextEnemyGuid))
-                    {
-                        daze += 8f * preview.Land("stun");
-                        Add(daze, "stun_next");
-                    }
+                    var land = preview.Land("stun");
+                    if (land <= 0.05f)
+                        Add(-90f, "immune_token");
                     else
-                        Add(daze, "stun_threat");
+                    {
+                        var daze = (lastEnemy && (target.Riposte || target.Dodge) ? 10f : 4f) * setup * land;
+                        if (IsNextEnemy(target, nextEnemyGuid))
+                        {
+                            daze += 8f * land;
+                            Add(daze, "stun_next");
+                        }
+                        else
+                            Add(daze, "stun_threat");
+                    }
                 }
                 if (HasId(eval.Apply, "vulnerable") && !target.Vulnerable && partyAttacks)
-                    Add((party != null && party.AttackerCount >= 2 ? 10f : 7f) * setup * preview.Land("debuff"), "apply_token");
+                {
+                    var land = preview.Land("debuff");
+                    if (land <= 0.05f)
+                        Add(-90f, "immune_token");
+                    else
+                        Add((party != null && party.AttackerCount >= 2 ? 10f : 7f) * setup * land, "apply_token");
+                }
                 if (HasId(eval.Apply, "weak") && !target.Weak)
-                    Add(5f * setup * preview.Land("debuff"), "apply_token");
+                {
+                    var land = preview.Land("debuff");
+                    if (land <= 0.05f)
+                        Add(-90f, "immune_token");
+                    else
+                        Add(5f * setup * land, "apply_token");
+                }
                 if (HasId(eval.Apply, "blind") && !target.Blind)
-                    Add(5f * setup * preview.Land("debuff"), "apply_token");
+                {
+                    var land = preview.Land("debuff");
+                    if (land <= 0.05f)
+                        Add(-90f, "immune_token");
+                    else
+                        Add(5f * setup * land, "apply_token");
+                }
                 Add(StripEnemy(eval.Remove, target, partySpends), "strip_token");
                 if (preview.Blocked)
                 {

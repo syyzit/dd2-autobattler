@@ -18,8 +18,8 @@ A rule ships only from `notes/cited-classes.md` (CSV + wiki Strategy when a sent
 | Loop | Generate | Hold | Spend |
 |---|---|---|---|
 | Winded | Hack / Swan / Bleed Out / Breakthrough | no Adrenaline while healthy and under 3 | Howling End at 3; Bloodlust as the other dump |
-| Blind / Ruin | Ruin while not ready | Reflection if Blind | Chop/Hew; Combo still ignores Blind |
-| Pain | More MORE! / Punish | no crisis-heal until Death's Door | Redeem when actually dying |
+| Blind / Ruin | Ruin while not ready | Reflection if Blind; no negative Blind swings | Chop/Hew; Combo still ignores Blind |
+| Pain | More MORE! / Punish | no crisis-heal above ~25% HP | crisis-heal below floor / DoT lethal / DD; heal beats attack by ≥40 |
 | Finale | Razor's Wit Combo | not a chip cleaner | Finale on a real HP bar or a kill |
 | Stance | first Meditation/Preparation | do not recast the same stance | matching attacks (Fleche stays an attack) |
 | Beast | Transform if not beast and no party Death's Door | do not Revert while healthy | Revert only to heal |

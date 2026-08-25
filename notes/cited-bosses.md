@@ -120,7 +120,7 @@ Do not encode a fallback that only we invented.
 - **Sources:** [wiki Cultists Strategy](https://darkestdungeon.wiki.gg/wiki/Cultists_(Darkest_Dungeon_II)#Strategy); [wiki Exemplar Strategy](https://darkestdungeon.wiki.gg/wiki/Exemplar#Strategy_and_advice). CSV: `cultist_deacon`, `cultist_cardinal`, `cultist_exemplar`, `cultist_altar`, `cultist_herald`, `cultist_cherub`, `cultist_evangelist`. Worship token cap 2 enables Exultation / the minion **Worship** heal.
 - **Rules encoded:**
   - Deacon or Cardinal on the board: kill regular cultists first (Altar included). The boss is deferred while any regular is alive. Wiki: "imperative to kill regular Cultist enemies, especially Altars, as quickly as possible before they can empower their bosses." Altar pays `AltarMustKillBias` over other regulars. A 0-damage Combo mark does not inherit that must-kill focus.
-  - Exemplar (Act 3+ last-region Rampart): Exemplar is `must_kill`. Altar / Cherub / Evangelist are deferred (wiki: he will Pillar of Sacrifice them; damage on them is often wasted). Herald is not deferred — wiki: worth considering a kill — but not forced over the Exemplar if both are legal.
+  - Exemplar (Act 3+ last-region Rampart): while Exemplar HP% > ~25%, kill Altar first if alive (`must_kill`; denies Pillar → Regen+Worship — Obsession Altar Taunt makes this especially bad), else Herald (`must_kill`). Exemplar is deferred in those cases; Cherub / Evangelist stay deferred. Herald stays legal (not deferred) while Altar is the must-kill so splash can still chip. When Exemplar HP% ≤ ~25% (or no Altar/Herald), Exemplar is `must_kill` and soft adds are deferred; Herald remains legal but not forced.
   - Holy Water / Combo-strip on a hero who has Combo: spend it. Wiki: The Fall on Combo is how Exemplar gains Worship for Exultation.
   - The Fall (CSV `exemplar_the_fall`): Combo-gated, `target_ranks` 1-3. Taunt on a rank-4 hero skips it (wiki: forces Prelude / Rapturous Beauty). If Combo is live in ranks 1-3 and this hero cannot strip it, walk onto rank 4 when an equipped Taunt skill launches from there (not Hold the Line / Toe to Toe — those walk you forward).
   - Defender / Guard on a Combo ally when this hero does not also have Combo: The Fall hits the guarder; Worship only if that guarder has Combo.
@@ -144,6 +144,14 @@ Do not encode a fallback that only we invented.
   - p3: Proclaimers `must_kill`, God deferred. Then Spectre `must_kill`, God deferred. Then the God. Wiki: defeating both Proclaimers unlocks Face Your Failure; the Spectre pay-off is 200 damage (x4 = 800 of the 999).
   - p3: do not pile extra Strength/Block/Dodge (wiki: Strange Axis inverts positives).
 - **Not encoded:** inn blight-RES for Catabolize; hero-specific 200-damage skill; Bastard's Beacon. Blight cleanse on Gastric Juice is the existing DoT-item policy.
+
+## Implication (Pillager cannon)
+
+- **Sources:** [wiki Implication](https://darkestdungeon.wiki.gg/wiki/Implication) (Load Shot then BOOOOOOOM! / MISFIRE; often misses). CSV `shared_pillager_artillery`: `pillager_artillery_loading` `performer_effects,count_plus_1,...`; boom `m_AllConditionIds,performer_has_1_count,performer_no_forced_miss`; misfire `performer_has_1_count,performer_has_forced_miss`. Token `count` / `forced_miss`.
+- **Rules encoded:**
+  - While the cannon has `count` (loaded) and is not Blind and not already `forced_miss`, pay Blind on it (Blinding Gas / any Blind apply) so the shot whiffs. Do not skip a crisis heal or a real kill / last-bar finish for that Blind.
+  - Wiki still prefers clearing allies first for damage; this is only the Blind prep while loaded.
+- **Not encoded:** pull/push rank games to shrink boom targets; Block+ peel as a must.
 
 ## Ordainment
 

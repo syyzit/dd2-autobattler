@@ -61,9 +61,11 @@ namespace Dd2Autobattler.Combat
             Add(TauntSetupDelta(skillId, ctx.Kind, ctx.EnemyTarget, ctx.LivingEnemies), "kit_taunt");
             Add(PartySynergy.FrontWalkDelta(skillId, performer.Rank, ctx.FrontOccupied),
                 ctx.FrontOccupied ? "rank_occupied" : "rank_walk");
+            Add(PartySynergy.AdvanceDisplaceDelta(skillId, performer.Rank, ctx.Party), "advance_displace");
             Add(PartySynergy.MoveDelta(skillId, target != null ? target.Rank : -1, ctx.EnemyTarget,
                     target != null && target.Corpse, ctx.Party, preview != null ? preview.Land("move") : 1f),
                 IdHas(skillId, "pull") || IdHas(skillId, "manacles") ? "pull_reach" : "knock_reach");
+            Add(SelfCrisisDelta(skillId, ctx.Kind, ctx.EnemyTarget, target, performer, preview), "self_crisis");
             Add(FinaleDelta(skillId, kills, ctx.LivingEnemies, target != null ? target.Hp : 0f), "wasted_finale");
             Add(WyrdDelta(skillId, target, ctx.EnemyTarget), "wyrd_healthy");
             Add(ChaoticOfferingDelta(skillId, hpPct, performer.DeathsDoor), "chaotic_offering");
@@ -95,13 +97,22 @@ namespace Dd2Autobattler.Combat
             return 0f;
         }
 
+        // Flagellant / Pain / More MORE! like low HP, but not when they are about to
+        // die to DoT or already under ~25% — PD must still medicine before DD.
+        private const float StayLowFloor = 0.25f;
+
         internal static bool WantsToStayLow(TargetInfo target)
         {
             if (target == null || target.DeathsDoor || target.Corpse)
                 return false;
-            if (target.Pain || target.MoreMore)
-                return true;
-            return IsFlagellant(target.ClassId);
+            if (target.DiesToDot)
+                return false;
+            if (target.Hp > 0f && target.NextDot + 0.05f >= target.Hp)
+                return false;
+            var likesLow = target.Pain || target.MoreMore || IsFlagellant(target.ClassId);
+            if (!likesLow)
+                return false;
+            return target.HpPct > StayLowFloor;
         }
 
         // Howling End requires 3x hellion_winded. Other winded-tag attacks stack it.
@@ -144,6 +155,33 @@ namespace Dd2Autobattler.Combat
             if (kills)
                 return -12f;
             return -36f;
+        }
+
+        // When the performer is about to die, pay self Solemnity / Redeem / Rest
+        // and soft-dock other targets (medic_salve on a healthier ally).
+        internal static float SelfCrisisDelta(string skillId, SkillKind kind, bool enemyTarget, TargetInfo target, TargetInfo performer, PreviewScore preview)
+        {
+            if (performer == null || !TurnDecider.TargetNeedsUrgentHeal(performer))
+                return 0f;
+            if (enemyTarget || target == null || target.Corpse)
+                return 0f;
+            var self = target.Guid != 0 && performer.Guid != 0
+                ? target.Guid == performer.Guid
+                : target.Rank == performer.Rank && string.Equals(target.ClassId, performer.ClassId, StringComparison.OrdinalIgnoreCase);
+            var restores = TurnDecider.RestoresHp(preview)
+                           || kind == SkillKind.Heal
+                           || IsPassHeal(skillId);
+            if (self && restores)
+                return 40f;
+            if (!self && restores && kind == SkillKind.Heal)
+                return -25f;
+            return 0f;
+        }
+
+        private static bool IsPassHeal(string skillId)
+        {
+            return !string.IsNullOrEmpty(skillId)
+                   && skillId.IndexOf("pass_heal", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         // lep_ruin is friendly Support. Without a bonus Leper never charges it.
