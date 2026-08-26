@@ -16,7 +16,7 @@ Death's Door still gets a skill heal, then food / bandage / antivenom. A kill on
 
 If a healer cannot launch their heal, they walk onto a launch rank (`pass_heal` is Rest, not a heal). If a damage dealer cannot reach the last living enemy or the current must-kill, they walk onto a launch rank of a damaging attack (a Combo mark does not count). That walk does not fire when an ally already hits that enemy from their current rank (otherwise two frontliners shove each other off the tile). Librarian still never swaps the hero who already punches him. Rank walks also fire when a cited note says this hero's tokens are illegal in this rank. Pouch of Lye or a clear skill (Leper Purge) clears a corpse, especially then. Token strip (Dodge, Riposte, Combo, Stealth) can beat a non-kill swing. AoE (Flashing Daggers) scores the sum of living HP it hits — a corpse in the cone is not extra damage. AoE that splashes a must-kill is not vetoed just because the click target is an add.
 
-Overlay **AUTO** / **SHADOW** (top-left): Auto clicks for you. Shadow lets you click and logs what the bot would have picked. **− / 1x / +** under that is combat animation speed (1–20×, fight only; click the multiplier to reset). Stagecoach speed is the separate Gotta Go Fast plugin. Retreat is opt-in and off.
+Overlay **AUTO** / **SHADOW** (top-left): Auto clicks for you. Shadow lets you click and logs what the bot would have picked. Stagecoach speed is the separate Gotta Go Fast plugin. Retreat is opt-in and off.
 
 ## Requirements
 
@@ -38,9 +38,7 @@ Config: `BepInEx\config\drednot.dd2.autobattler.cfg`
 
 - `Combat.Enabled` - bot scores hero turns (off = you play, no log of a bot pick)
 - `Combat.ShadowMode` - with Enabled, you click and the bot only logs what it would have clicked
-- `Combat.Speed` - combat animation multiplier while a fight is running (overlay − / +)
 - Overlay **AUTO** / **SHADOW** buttons (top-left) switch that live, no restart
-- Overlay **− / Nx / +** is combat animation speed while a fight is running (does not change the coach)
 - `Logging.LogPreviews` - include every scored action in the JSONL
 - `UI.ShowOverlay` - toggles plus the last decision on screen
 
