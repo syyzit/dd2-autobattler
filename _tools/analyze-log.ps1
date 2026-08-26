@@ -350,3 +350,4 @@ if ($losses.Count -gt 0) {
 
 Write-Host ""
 Write-Host "Use -Today to stitch every log from today into one report."
+Write-Host "Fight dump + cited-note checks: python _tools\analyze_log.py --fight eyes"

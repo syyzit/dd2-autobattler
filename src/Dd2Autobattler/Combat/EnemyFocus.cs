@@ -28,6 +28,7 @@ namespace Dd2Autobattler.Combat
         public bool Dodge;
         public bool Riposte;
         public float HpPct;
+        public int Worship;
         public int Size;
         public float Score;
         public string Why;
@@ -46,9 +47,15 @@ namespace Dd2Autobattler.Combat
         public bool ExemplarUp;
         public bool ReachPhase2;
         public bool ReachPhase3;
+        // Cabin Boy (and similar): burst before Spawning Ground; riposte does not proc.
+        public bool BurstBeforeEvolve;
+        // Max Worship on Deacon / Cardinal / Exemplar (cap 2 → Exultation).
+        public int CultistWorship;
 
         // wiki.gg/Cultists: especially Altars while Deacon/Cardinal is up.
         internal const float AltarMustKillBias = 20f;
+        // Per Worship stack on the boss — escalate Altar / Herald focus.
+        internal const float WorshipStackBias = 30f;
 
         public static EnemyFocus Scan(BattleTeams teams)
         {
@@ -85,6 +92,7 @@ namespace Dd2Autobattler.Combat
             ApplyLibrarianNote(focus);
             ApplyChirurgeonNote(focus);
             ApplyLeviathanNote(focus);
+            ApplyCabinBoyNote(focus);
             ApplyCultistNote(focus);
             ApplyRavenousReachNote(focus);
             ApplyBodyOfWorkNote(focus);
@@ -92,18 +100,26 @@ namespace Dd2Autobattler.Combat
             ApplyFocusedFaultNote(focus);
 
             if (focus.HasPriorityTarget)
-            {
-                for (var i = 0; i < focus.Enemies.Count; i++)
-                {
-                    var e = focus.Enemies[i];
-                    if (!e.Boss && !e.Summons && !e.Resurrects && !e.MustKillFirst)
-                        e.Add = true;
-                }
-            }
+                MarkNonPriorityAdds(focus);
 
             ScoreEnemies(focus);
 
             return focus;
+        }
+
+        // Boss / commander / rezzer / summoner stay controllers. Everyone else
+        // in a priority fight is an add (dungeon BossModifier does not make a
+        // Drummer an add, and a mash Drummer is not a boss).
+        internal static void MarkNonPriorityAdds(EnemyFocus focus)
+        {
+            if (focus == null)
+                return;
+            for (var i = 0; i < focus.Enemies.Count; i++)
+            {
+                var e = focus.Enemies[i];
+                if (!e.Boss && !e.Summons && !e.Resurrects && !e.MustKillFirst && !e.Commander)
+                    e.Add = true;
+            }
         }
 
         internal static void ScoreEnemies(EnemyFocus focus)
@@ -111,7 +127,7 @@ namespace Dd2Autobattler.Combat
             if (focus == null)
                 return;
             for (var i = 0; i < focus.Enemies.Count; i++)
-                ScoreThreat(focus.Enemies[i], focus.HasPriorityTarget);
+                ScoreThreat(focus.Enemies[i], focus.HasPriorityTarget, focus.CultistWorship);
         }
 
         public float ScoreOf(uint guid)
@@ -137,6 +153,30 @@ namespace Dd2Autobattler.Combat
         {
             var t = Find(guid);
             return t != null && t.MustKillFirst;
+        }
+
+        // Living Altar that is the exclusive must-kill (Pillar bait). Corpses
+        // never enter Scan, so MustKillFirst here means it is still up.
+        public bool HasLivingAltarMustKill()
+        {
+            for (var i = 0; i < Enemies.Count; i++)
+            {
+                var e = Enemies[i];
+                if (e != null && e.MustKillFirst && IdHas(e.ClassId, "cultist_altar"))
+                    return true;
+            }
+            return false;
+        }
+
+        public bool AltarMustKillDiesToDot()
+        {
+            for (var i = 0; i < Enemies.Count; i++)
+            {
+                var e = Enemies[i];
+                if (e != null && e.MustKillFirst && e.DiesToDot && IdHas(e.ClassId, "cultist_altar"))
+                    return true;
+            }
+            return false;
         }
 
         public bool IsTaproot(uint guid)
@@ -196,6 +236,7 @@ namespace Dd2Autobattler.Combat
                 ["controller"] = HasController,
                 ["priority"] = HasPriorityTarget,
                 ["must_kill"] = HasMustKillFirst,
+                ["burst_before_evolve"] = BurstBeforeEvolve,
                 ["enemies"] = arr
             };
             if (DgRound > 0)
@@ -217,7 +258,7 @@ namespace Dd2Autobattler.Combat
             return null;
         }
 
-        private static void ScoreThreat(EnemyThreat e, bool hasController)
+        private static void ScoreThreat(EnemyThreat e, bool hasController, int cultistWorship)
         {
             var score = 0f;
             var why = "";
@@ -273,6 +314,20 @@ namespace Dd2Autobattler.Combat
                 {
                     why += "altar+";
                     score += AltarMustKillBias;
+                    if (cultistWorship > 0)
+                    {
+                        score += WorshipStackBias * cultistWorship;
+                        why += "worship+";
+                    }
+                }
+                else if (IdHas(e.ClassId, "cultist_herald"))
+                {
+                    why += "herald+";
+                    if (cultistWorship > 0)
+                    {
+                        score += WorshipStackBias * cultistWorship;
+                        why += "worship+";
+                    }
                 }
                 else if (IdHas(e.ClassId, "cultist_"))
                     why += "cultist+";
@@ -501,6 +556,7 @@ namespace Dd2Autobattler.Combat
         // Sacrifice (denies Regen+Worship). Obsession Altar round-start Taunt is
         // especially bad. Herald is worth a kill. Finish Exemplar when low.
         // Cherub / Evangelist stay deferred while Exemplar is the race.
+        // Worship stacks on the boss escalate Altar/Herald urgency (cap 2).
         internal const float ExemplarFinishHpPct = 0.25f;
 
         internal static void ApplyCultistNote(EnemyFocus focus)
@@ -521,6 +577,16 @@ namespace Dd2Autobattler.Combat
                     regulars.Add(e);
             }
 
+            var worship = 0;
+            if (exemplar != null && exemplar.Worship > worship)
+                worship = exemplar.Worship;
+            for (var i = 0; i < bosses.Count; i++)
+            {
+                if (bosses[i].Worship > worship)
+                    worship = bosses[i].Worship;
+            }
+            focus.CultistWorship = worship;
+
             if (exemplar != null)
             {
                 focus.ExemplarUp = true;
@@ -538,7 +604,10 @@ namespace Dd2Autobattler.Combat
                         herald = e;
                 }
 
-                var finish = exemplar.HpPct > 0f && exemplar.HpPct <= ExemplarFinishHpPct;
+                // Do not race Exemplar while Worship is live and Altar can Pillar
+                // the second stack into Exultation.
+                var finish = exemplar.HpPct > 0f && exemplar.HpPct <= ExemplarFinishHpPct
+                             && !(worship >= 1 && altar != null);
                 EnemyThreat killFirst = null;
                 if (!finish && altar != null)
                     killFirst = altar;
@@ -618,11 +687,50 @@ namespace Dd2Autobattler.Combat
             }
 
             focus.HasMustKillFirst = true;
+            EnemyThreat deaconAltar = null;
             for (var i = 0; i < regulars.Count; i++)
             {
-                regulars[i].MustKillFirst = true;
-                regulars[i].Defer = false;
-                regulars[i].Add = false;
+                if (IdHas(regulars[i].ClassId, "cultist_altar"))
+                {
+                    deaconAltar = regulars[i];
+                    break;
+                }
+            }
+
+            if (deaconAltar != null)
+            {
+                // Exclusive Altar must-kill — Cherub/Evangelist used to share
+                // MustKillFirst and a low-HP Cherub could outscore a full Altar.
+                deaconAltar.MustKillFirst = true;
+                deaconAltar.Defer = false;
+                deaconAltar.Add = false;
+                for (var i = 0; i < regulars.Count; i++)
+                {
+                    var e = regulars[i];
+                    if (e == deaconAltar)
+                        continue;
+                    if (IdHas(e.ClassId, "cultist_herald"))
+                    {
+                        e.MustKillFirst = false;
+                        e.Defer = false;
+                        e.Add = false;
+                    }
+                    else
+                    {
+                        e.MustKillFirst = false;
+                        e.Defer = true;
+                        e.Add = true;
+                    }
+                }
+            }
+            else
+            {
+                for (var i = 0; i < regulars.Count; i++)
+                {
+                    regulars[i].MustKillFirst = true;
+                    regulars[i].Defer = false;
+                    regulars[i].Add = false;
+                }
             }
             for (var i = 0; i < bosses.Count; i++)
             {
@@ -799,6 +907,28 @@ namespace Dd2Autobattler.Combat
                 body.Defer = true;
                 body.Add = true;
             }
+        }
+
+        // wiki.gg/Cabin_Boy: fragile incubators that Spawning Ground into a
+        // fully healed Fisherfolk with Newborn Mutation. They do not attack
+        // while incubating — riposte/taunt setup is a wasted turn. Burst them.
+        internal static void ApplyCabinBoyNote(EnemyFocus focus)
+        {
+            if (focus == null)
+                return;
+            for (var i = 0; i < focus.Enemies.Count; i++)
+            {
+                if (IsCabinBoy(focus.Enemies[i].ClassId))
+                {
+                    focus.BurstBeforeEvolve = true;
+                    return;
+                }
+            }
+        }
+
+        internal static bool IsCabinBoy(string classId)
+        {
+            return IdHas(classId, "cabin_boy");
         }
 
         // wiki.gg/Chirurgeon Strategy: he is a support boss. Leucotomy heals
@@ -1030,7 +1160,7 @@ namespace Dd2Autobattler.Combat
             return false;
         }
 
-        private static void ApplyTangleNotes(EnemyFocus focus)
+        internal static void ApplyTangleNotes(EnemyFocus focus)
         {
             var bishop = false;
             var drummer = false;
@@ -1060,6 +1190,7 @@ namespace Dd2Autobattler.Combat
                 else if (IdHas(e.ClassId, "lost_battalion_drummer"))
                 {
                     e.Commander = true;
+                    e.Add = false;
                 }
                 else if (bishop || drummer)
                 {
@@ -1125,6 +1256,7 @@ namespace Dd2Autobattler.Combat
                     threat.Riposte = info.Riposte;
                     threat.HpPct = info.HpPct;
                 }
+                threat.Worship = GameSnapshot.CountToken(actor, "worship");
             }
             catch { }
 

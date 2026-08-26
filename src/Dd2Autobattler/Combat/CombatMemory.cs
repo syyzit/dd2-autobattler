@@ -23,6 +23,7 @@ namespace Dd2Autobattler.Combat
 
         public static bool HandsOff { get; private set; }
         public static string HandsOffReason { get; private set; }
+        public static bool InCombat { get; private set; }
         public static int Round { get { return _round; } }
         public static int TaprootHitsThisRound { get { return _taprootHitsThisRound; } }
         public static uint ShadowActor { get; private set; }
@@ -42,6 +43,7 @@ namespace Dd2Autobattler.Combat
             _reachWalkedThisRound.Clear();
             HandsOff = false;
             HandsOffReason = null;
+            InCombat = false;
             ClearShadow();
         }
 
@@ -118,6 +120,7 @@ namespace Dd2Autobattler.Combat
         public static void BeginBattle(string fightId, CombatSource source)
         {
             ResetFight();
+            InCombat = true;
             HandsOff = IsScriptedStoryFight(fightId, source);
             if (HandsOff)
             {

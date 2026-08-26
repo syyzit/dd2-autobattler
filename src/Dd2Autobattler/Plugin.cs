@@ -4,7 +4,6 @@ using Dd2Autobattler.Combat;
 using Dd2Autobattler.Logging;
 using Dd2Autobattler.Ui;
 using HarmonyLib;
-using UnityEngine;
 
 namespace Dd2Autobattler
 {

@@ -118,6 +118,7 @@ namespace Dd2Autobattler.Combat
                             score = item.Score;
                         else if (!(clearsCorpse && target.Corpse))
                             score += tokens.Score + setup;
+                        var focusGuid = enemyTarget ? FocusPayGuid(preview, target) : 0u;
                         candidates.Add(new ScoredAction
                         {
                             SkillId = entry.m_SkillId,
@@ -134,8 +135,8 @@ namespace Dd2Autobattler.Combat
                             ItemQty = qty,
                             Score = score,
                             Stealthed = stealthed || target.Stealth,
-                            Focus = enemyTarget && target != null && target.Actor != null ? focus.ScoreOf(target.Actor.ActorGuid) : 0f,
-                            FocusWhy = enemyTarget && target != null && target.Actor != null ? focus.Why(target.Actor.ActorGuid) : null,
+                            Focus = focusGuid != 0 ? focus.ScoreOf(focusGuid) : 0f,
+                            FocusWhy = focusGuid != 0 ? focus.Why(focusGuid) : (GuardRedirects(preview, target) ? "guard" : null),
                             Cursed = IsCursedSkill(performer, entry.m_SkillId)
                         });
                     }
@@ -169,7 +170,9 @@ namespace Dd2Autobattler.Combat
                                   || performerBody.DiesToDot
                                   || (performerBody.Hp > 0f && performerBody.NextDot + 0.05f >= performerBody.Hp);
             var partyCrisis = partyDoor || AllyInCrisis(teams);
-            var picked = PickAction(candidates, livingEnemies, allowSetup, performerGuid, focus, killableEnemies, performerCrisis, partyCrisis, performerBody.Riposte);
+            var allyRiposte = AllyHasRiposte(teams, performerGuid);
+            var allyLow = AllyNeedsCover(teams);
+            var picked = PickAction(candidates, livingEnemies, allowSetup, performerGuid, focus, killableEnemies, performerCrisis, partyCrisis, performerBody.Riposte, allyRiposte, allyLow);
             var best = picked == null
                 ? null
                 : new ChosenAction
@@ -247,25 +250,108 @@ namespace Dd2Autobattler.Combat
         // Crush on Combo heals the performer. That is still an attack: do not
         // classify an enemy click as Heal just because the preview has a self-heal.
         // Guard redirects the hit. Kill/HP overlay must use the guardian's bar,
-        // not the click target's. CSV/preview: m_GuardingActorGuid.
+        // not the click target's. CSV/preview: m_GuardingActorGuid is the
+        // protected actor when you click them (same guid); the guardian is the
+        // other HitGuids entry. Living 0 HP (Death Armor) is a kill.
         internal static void NoteKillFromHp(PreviewScore preview, TargetInfo clickTarget, BattleTeams teams)
         {
             if (preview == null || clickTarget == null)
                 return;
+            if (clickTarget.Corpse || clickTarget.Healthless)
+                return;
+
             var bar = clickTarget;
-            if (preview.GuardGuid != 0 && preview.GuardGuid != clickTarget.Guid)
+            var barGuid = clickTarget.Guid;
+            if (GuardRedirects(preview, clickTarget))
             {
-                var guarded = GameSnapshot.Describe(GetActor(teams, preview.GuardGuid));
-                if (guarded == null || guarded.Hp <= 0f || guarded.Corpse)
+                // IsKill is the guardian dying, not the protected click target.
+                preview.Kills = false;
+                barGuid = GuardBarGuid(preview, clickTarget);
+                if (barGuid == 0 || barGuid == clickTarget.Guid)
                     return;
-                bar = guarded;
+                var actor = GetActor(teams, barGuid);
+                if (actor == null)
+                {
+                    if (HitKills(preview, barGuid))
+                        preview.Kills = true;
+                    return;
+                }
+                var described = GameSnapshot.Describe(actor);
+                if (described == null || described.Corpse || described.Healthless)
+                    return;
+                bar = described;
             }
+
             float dmg;
-            var guid = bar.Guid != 0 ? bar.Guid : clickTarget.Guid;
+            var guid = bar.Guid != 0 ? bar.Guid : barGuid;
             if (!TryHitDamageOn(preview, guid, out dmg))
                 dmg = preview.Damage;
-            if (!preview.Kills && dmg > 0f && bar.Hp > 0f && dmg >= bar.Hp)
+            if (preview.Kills || dmg <= 0f || bar.Corpse || bar.Healthless)
+                return;
+            if (bar.Hp <= 0.05f || dmg >= bar.Hp)
                 preview.Kills = true;
+        }
+
+        internal static bool GuardRedirects(PreviewScore preview, TargetInfo clickTarget)
+        {
+            return preview != null && preview.GuardGuid != 0 && clickTarget != null;
+        }
+
+        // Other actor if the preview names them; otherwise the first Hit that
+        // is not the protected click target. 0 = redirect with no bar yet.
+        internal static uint GuardBarGuid(PreviewScore preview, TargetInfo clickTarget)
+        {
+            if (preview == null || clickTarget == null || preview.GuardGuid == 0)
+                return 0;
+            if (preview.GuardGuid != clickTarget.Guid)
+                return preview.GuardGuid;
+            if (preview.Hits != null)
+            {
+                for (var i = 0; i < preview.Hits.Count; i++)
+                {
+                    var g = preview.Hits[i] != null ? preview.Hits[i].Guid : 0u;
+                    if (g != 0 && g != clickTarget.Guid)
+                        return g;
+                }
+            }
+            if (preview.HitGuids != null)
+            {
+                for (var i = 0; i < preview.HitGuids.Count; i++)
+                {
+                    var g = preview.HitGuids[i];
+                    if (g != 0 && g != clickTarget.Guid)
+                        return g;
+                }
+            }
+            return 0;
+        }
+
+        internal static uint FocusPayGuid(PreviewScore preview, TargetInfo target)
+        {
+            if (target == null)
+                return 0;
+            var click = target.Actor != null && target.Actor.ActorGuid != 0
+                ? target.Actor.ActorGuid
+                : target.Guid;
+            if (!GuardRedirects(preview, target))
+                return click;
+            var bar = GuardBarGuid(preview, target);
+            if (bar != 0 && bar != click)
+                return bar;
+            return 0;
+        }
+
+        private static bool HitKills(PreviewScore preview, uint guid)
+        {
+            if (preview == null || preview.Hits == null || guid == 0)
+                return false;
+            for (var i = 0; i < preview.Hits.Count; i++)
+            {
+                var hit = preview.Hits[i];
+                if (hit != null && hit.Guid == guid && hit.Kills)
+                    return true;
+            }
+            return false;
         }
 
         internal static bool TryHitDamageOn(PreviewScore preview, uint guid, out float damage)
@@ -470,15 +556,18 @@ namespace Dd2Autobattler.Combat
                         score += enemyTarget ? 10f : -30f;
                         score += preview.Damage;
                         // Finish bonus is for a real hit, not a 0-damage Combo mark.
-                        if (enemyTarget && hpPct > 0f && preview.Damage > 0f)
+                        // 0 HP Death Armor still gets the last-bar bump.
+                        if (enemyTarget && hpPct >= 0f && preview.Damage > 0f && (target == null || !target.Healthless))
                             score += (1f - hpPct) * 6f;
                         if (lastEnemy && preview.Damage > 0f)
                             score += 30f;
                     }
                     if (enemyTarget && focus != null && target != null && target.Actor != null)
                     {
-                        score += FocusPay(skillId, preview, focus.ScoreOf(target.Actor.ActorGuid));
-                        if (focus.HasPriorityTarget && focus.IsAdd(target.Actor.ActorGuid) && preview.Kills)
+                        var payGuid = FocusPayGuid(preview, target);
+                        var pay = payGuid != 0 ? focus.ScoreOf(payGuid) : 0f;
+                        score += FocusPay(skillId, preview, pay);
+                        if (focus.HasPriorityTarget && payGuid != 0 && focus.IsAdd(payGuid) && preview.Kills)
                             score -= 25f;
                     }
                     break;
@@ -536,7 +625,7 @@ namespace Dd2Autobattler.Combat
 
         private const float HealBeatsAttackGap = 40f;
 
-        private static ScoredAction PickAction(List<ScoredAction> candidates, int livingEnemies, bool allowSetup, uint performerGuid, EnemyFocus focus, int killableEnemies, bool performerCrisis, bool partyCrisis, bool performerRiposte)
+        private static ScoredAction PickAction(List<ScoredAction> candidates, int livingEnemies, bool allowSetup, uint performerGuid, EnemyFocus focus, int killableEnemies, bool performerCrisis, bool partyCrisis, bool performerRiposte, bool allyRiposte, bool allyLow)
         {
             if (candidates == null || candidates.Count == 0)
                 return null;
@@ -569,10 +658,15 @@ namespace Dd2Autobattler.Combat
                         continue;
                     if (ComboMarkWaste(c))
                         continue;
+                    // Blind Gas / Tracking Shot is not a hit. It must not arm
+                    // the deferred-boss veto or steal Incision / Firefly.
+                    var focusHit = CountsAsDamagingFocusClick(c.SkillId, c.Preview, c.LeaveChip)
+                                   || IsTaprootTap(c);
+                    if (!focusHit)
+                        continue;
                     if (focus.HasPriorityTarget && focus.IsPriority(c.Target.Actor.ActorGuid))
                         priorityLegal = true;
-                    if (focus.HasMustKillFirst && focus.IsMustKillFirst(c.Target.Actor.ActorGuid) && !c.LeaveChip
-                        && ((c.Preview != null && c.Preview.Damage > 0f) || IsTaprootTap(c)))
+                    if (focus.HasMustKillFirst && focus.IsMustKillFirst(c.Target.Actor.ActorGuid))
                         mustKillLegal = true;
                 }
             }
@@ -583,38 +677,52 @@ namespace Dd2Autobattler.Combat
             ScoredAction bestAny = null;
             ScoredAction bestRiposteSetup = null;
             ScoredAction bestArtilleryBlind = null;
+            ScoredAction bestStripCombo = null;
+            ScoredAction bestFallDefense = null;
             foreach (var c in candidates)
             {
                 if (c.IsItem && c.FreeAction)
                     continue;
-                if (bestAny == null || c.Score > bestAny.Score)
-                    bestAny = c;
                 if (IsCrisisHealClick(c.Kind, c.SkillId, c.EnemyTarget, c.Target, c.Preview)
                     && (bestCrisisHeal == null || c.Score > bestCrisisHeal.Score))
                     bestCrisisHeal = c;
-                if (IsSelfRiposteSetup(c) && c.Score > 0f
+                if (IsTankRiposteSetup(c) && c.Score > 0f
                     && (bestRiposteSetup == null || c.Score > bestRiposteSetup.Score))
                     bestRiposteSetup = c;
                 if (IsArtilleryBlindClick(c) && c.Score > 0f
                     && (bestArtilleryBlind == null || c.Score > bestArtilleryBlind.Score))
                     bestArtilleryBlind = c;
+                if (IsStripComboClick(c) && c.Score > 0f
+                    && (bestStripCombo == null || c.Score > bestStripCombo.Score))
+                    bestStripCombo = c;
+                if (IsFallDefenseClick(c) && c.Score > 0f
+                    && (bestFallDefense == null || c.Score > bestFallDefense.Score))
+                    bestFallDefense = c;
                 var realHit = c.Kind == SkillKind.Attack && c.EnemyTarget && c.Target != null && !c.Target.Corpse
                               && c.Target.Actor != null && c.Target.Actor.IsLiving;
                 var hungerGuard = IsHarvestHungerGuard(c.SkillId);
                 var splashFocus = HitsFocusTarget(c, focus);
                 // wiki.gg/Librarian: do not punch stacks even when he is out of reach.
-                // Crush-as-Heal used to make mustKillLegal false, which skipped this gate.
                 if (realHit && focus != null && focus.IsLibrarianStack(c.Target.Actor.ActorGuid))
                     continue;
-                if (realHit && !hungerGuard && !splashFocus && mustKillLegal && focus.IsDeferred(c.Target.Actor.ActorGuid)
-                    && !LastKillableFinish(c.Preview, c.Target, killableEnemies))
+                if (realHit && !hungerGuard && !splashFocus
+                    && ShouldSkipDeferredPunch(
+                        mustKillLegal,
+                        focus != null && focus.IsDeferred(c.Target.Actor.ActorGuid),
+                        LastKillableFinish(c.Preview, c.Target, killableEnemies)))
                     continue;
-                if (realHit && !hungerGuard && !splashFocus && priorityLegal && focus.IsDeferred(c.Target.Actor.ActorGuid))
+                // Taunt on the deferred target is forced; a leftover 0-dmg
+                // click on the must-kill must not veto it.
+                if (realHit && !hungerGuard && !splashFocus && priorityLegal
+                    && focus.IsDeferred(c.Target.Actor.ActorGuid) && !c.Target.Taunt)
                     continue;
-                if (realHit && !hungerGuard && !splashFocus && priorityLegal && focus.IsAdd(c.Target.Actor.ActorGuid))
+                if (realHit && !hungerGuard && !splashFocus && priorityLegal
+                    && focus.IsAdd(c.Target.Actor.ActorGuid)
+                    && !focus.IsPriority(c.Target.Actor.ActorGuid))
                     continue;
                 if (realHit && !splashFocus && performerCrisis && livingEnemies > 1 && focus != null
-                    && focus.IsAdd(c.Target.Actor.ActorGuid))
+                    && focus.IsAdd(c.Target.Actor.ActorGuid)
+                    && !focus.IsPriority(c.Target.Actor.ActorGuid))
                     continue;
                 if (realHit && peelLegal && NeedsReachPeel(c, focus) && !StripsReachDefense(c)
                     && (c.Preview == null || !c.Preview.Kills))
@@ -622,6 +730,16 @@ namespace Dd2Autobattler.Combat
                 if (realHit && ComboChipWaste(c))
                     continue;
                 if (realHit && ComboMarkWaste(c))
+                    continue;
+                // Tracking Shot on a deferred foot while a Drummer is up is not
+                // setup. Wiki: kill the controller; Combo on an add is a wasted turn.
+                if (realHit && ComboMarkOnDeferredAdd(
+                        focus != null && focus.HasPriorityTarget,
+                        focus != null && c.Target.Actor != null
+                            && (focus.IsDeferred(c.Target.Actor.ActorGuid)
+                                || focus.IsAdd(c.Target.Actor.ActorGuid)),
+                        c.SkillId,
+                        c.Preview))
                     continue;
                 // 0-damage Tracking Shot on the Librarian while Wicked Slice is
                 // legal on him (t18: 170 vs 169.5). A mark is not a hit.
@@ -632,11 +750,15 @@ namespace Dd2Autobattler.Combat
                     && (focus.IsMustKillFirst(c.Target.Actor.ActorGuid)
                         || focus.IsPriority(c.Target.Actor.ActorGuid)))
                     continue;
-                if (realHit && (bestAttack == null || c.Score > bestAttack.Score))
+                if (realHit && (bestAttack == null || BetterAttack(c, bestAttack, focus)))
                     bestAttack = c;
                 if (allowSetup && (c.Kind == SkillKind.Support || c.Kind == SkillKind.Pass)
                     && (bestSetup == null || c.Score > bestSetup.Score))
                     bestSetup = c;
+                // After the vetoes so a skipped deferred punch cannot leak
+                // through as bestAny when bestAttack is null or negative.
+                if (bestAny == null || c.Score > bestAny.Score)
+                    bestAny = c;
             }
 
             if (bestCrisisHeal != null
@@ -648,14 +770,29 @@ namespace Dd2Autobattler.Combat
                     CombatMemory.CrisisHealThisRound(bestCrisisHeal.TargetGuid)))
                 return bestCrisisHeal;
 
-            // Blind loaded Implication before BOOOOOOOM! — not over a kill/crisis.
+            // Strip Combo / Fall Taunt-Guard before punching Altar or Reach.
+            // Same utility gate as Implication Blind — not over a kill/crisis.
+            var cultistDefense = PreferCultistDefense(bestStripCombo, bestFallDefense, bestAttack, killableEnemies, partyCrisis);
+            if (cultistDefense != null)
+                return cultistDefense;
+
+            // Blind loaded Implication before BOOOOOOOM! — not over a kill/crisis/evolve pack.
             if (bestArtilleryBlind != null && !partyCrisis
-                && ShouldOpenUtility(bestAttack, killableEnemies))
+                && ShouldOpenUtility(bestAttack, killableEnemies, focus))
                 return bestArtilleryBlind;
 
-            // Open Retribution while Riposte is down (on-hit MAA). Not over a kill/crisis.
-            if (!performerRiposte && livingEnemies >= 2 && bestRiposteSetup != null && !partyCrisis
-                && ShouldOpenUtility(bestAttack, killableEnemies))
+            // MAA Retribution (taunt+riposte) is the team's one Riposte. Take Aim
+            // is not this gate — Duelist's Advance plants Riposte on the attack.
+            if (ShouldOpenTankRiposte(
+                    performerRiposte,
+                    allyRiposte,
+                    allyLow,
+                    livingEnemies,
+                    bestRiposteSetup != null,
+                    bestAttack != null ? bestAttack.Preview : null,
+                    bestAttack != null ? bestAttack.Target : null,
+                    killableEnemies,
+                    focus))
                 return bestRiposteSetup;
 
             ScoredAction bestCorpseReach = null;
@@ -690,7 +827,7 @@ namespace Dd2Autobattler.Combat
             }
             // A legal damaging click (or a real Taproot tap) is playing.
             // A 0-damage Combo mark is not — walk onto a Pistol/Chop rank.
-            // MustRankWalk is Undertow / Exemplar rank-4 — do not skip it to punch.
+            // MustRankWalk is Undertow / Exemplar rank-4 (not while Altar lives).
             // Reach walks lose to stabilize when the party is in crisis.
             if (bestReposition != null)
             {
@@ -703,6 +840,11 @@ namespace Dd2Autobattler.Combat
                         return bestReposition;
                 }
             }
+
+            // Vetoes ate the Drummer shot (tagged add, etc.). Restore it:
+            // a connecting controller hit always beats Take Aim / Absinthe / Pass.
+            if (bestAttack == null)
+                bestAttack = BestFocusAttack(candidates, focus);
 
             // One setup while the last enemy is awkward, then we must swing.
             if (allowSetup && bestSetup != null && bestAttack != null)
@@ -719,20 +861,89 @@ namespace Dd2Autobattler.Combat
             return bestAny;
         }
 
-        // Do not open Retribution / artillery Blind over a real kill or last bar.
+        // Do not open Retribution / artillery Blind over a real kill, last bar,
+        // a Cabin Boy burst window, or a damaging hit on a living Altar must-kill.
         internal static bool ShouldOpenUtility(PreviewScore attackPreview, TargetInfo attackTarget, int killableEnemies)
         {
+            return ShouldOpenUtility(attackPreview, attackTarget, killableEnemies, null);
+        }
+
+        internal static bool ShouldOpenUtility(
+            PreviewScore attackPreview,
+            TargetInfo attackTarget,
+            int killableEnemies,
+            EnemyFocus focus)
+        {
+            if (focus != null && focus.BurstBeforeEvolve)
+                return false;
+            if (focus != null && focus.HasLivingAltarMustKill()
+                && attackPreview != null && attackPreview.Damage > 0f
+                && attackTarget != null && IdHasClass(attackTarget.ClassId, "cultist_altar"))
+                return false;
             if (attackPreview != null && attackPreview.Kills)
                 return false;
             return !LastKillableFinish(attackPreview, attackTarget, killableEnemies);
         }
 
-        private static bool ShouldOpenUtility(ScoredAction bestAttack, int killableEnemies)
+        private static bool ShouldOpenUtility(ScoredAction bestAttack, int killableEnemies, EnemyFocus focus)
         {
             return ShouldOpenUtility(
                 bestAttack != null ? bestAttack.Preview : null,
                 bestAttack != null ? bestAttack.Target : null,
-                killableEnemies);
+                killableEnemies,
+                focus);
+        }
+
+        // Exemplar / Reach p1: Combo-strip and Fall Taunt/Guard beat non-kill swings.
+        internal static bool ShouldPreferCultistDefense(
+            bool hasStripOrFall,
+            bool partyCrisis,
+            PreviewScore attackPreview,
+            TargetInfo attackTarget,
+            int killableEnemies)
+        {
+            if (partyCrisis || !hasStripOrFall)
+                return false;
+            return ShouldOpenUtility(attackPreview, attackTarget, killableEnemies);
+        }
+
+        internal static bool IsStripComboClick(string noteReason)
+        {
+            return noteReason == "strip_combo";
+        }
+
+        internal static bool IsFallDefenseClick(string noteReason)
+        {
+            return noteReason == "fall_taunt" || noteReason == "fall_guard";
+        }
+
+        private static bool IsStripComboClick(ScoredAction c)
+        {
+            return c != null && IsStripComboClick(c.NoteReason);
+        }
+
+        private static bool IsFallDefenseClick(ScoredAction c)
+        {
+            return c != null && IsFallDefenseClick(c.NoteReason);
+        }
+
+        private static ScoredAction PreferCultistDefense(
+            ScoredAction bestStripCombo,
+            ScoredAction bestFallDefense,
+            ScoredAction bestAttack,
+            int killableEnemies,
+            bool partyCrisis)
+        {
+            if (!ShouldPreferCultistDefense(
+                bestStripCombo != null || bestFallDefense != null,
+                partyCrisis,
+                bestAttack != null ? bestAttack.Preview : null,
+                bestAttack != null ? bestAttack.Target : null,
+                killableEnemies))
+                return null;
+            if (bestStripCombo != null)
+                return bestStripCombo;
+            return bestFallDefense;
         }
 
         internal static bool IsSelfRiposteSetup(string skillId, bool enemyTarget, PreviewScore preview, TokenEval tokens)
@@ -750,10 +961,39 @@ namespace Dd2Autobattler.Combat
             return false;
         }
 
-        private static bool IsSelfRiposteSetup(ScoredAction c)
+        // Retribution / self-taunt that also plants Riposte. Take Aim is self
+        // Riposte without Taunt — it must not steal the utility-open slot.
+        internal static bool IsTankRiposteSetup(string skillId, bool enemyTarget, PreviewScore preview, TokenEval tokens)
+        {
+            if (!IsSelfRiposteSetup(skillId, enemyTarget, preview, tokens))
+                return false;
+            return KitSafety.IsSelfTaunt(skillId);
+        }
+
+        private static bool IsTankRiposteSetup(ScoredAction c)
         {
             return c != null && !c.IsItem
-                   && IsSelfRiposteSetup(c.SkillId, c.EnemyTarget, c.Preview, c.Tokens);
+                   && IsTankRiposteSetup(c.SkillId, c.EnemyTarget, c.Preview, c.Tokens);
+        }
+
+        // One team Riposte. MAA opens it while nobody has the token. A second
+        // copy is only for Taunt cover when someone is already low.
+        internal static bool ShouldOpenTankRiposte(
+            bool performerRiposte,
+            bool allyRiposte,
+            bool allyLow,
+            int livingEnemies,
+            bool hasTankSetup,
+            PreviewScore attackPreview,
+            TargetInfo attackTarget,
+            int killableEnemies,
+            EnemyFocus focus = null)
+        {
+            if (performerRiposte || !hasTankSetup || livingEnemies < 2)
+                return false;
+            if (allyRiposte && !allyLow)
+                return false;
+            return ShouldOpenUtility(attackPreview, attackTarget, killableEnemies, focus);
         }
 
         // CSV shared_pillager_artillery: count token after Load Shot enables BOOM.
@@ -1065,6 +1305,15 @@ namespace Dd2Autobattler.Combat
             return !IdHasClass(classId, "eyes_stalk");
         }
 
+        // Death Armor / 0 HP is the execute, not overkill to leave for an ally
+        // who will click the guarded Drummer instead.
+        internal static bool CanLeaveChip(TargetInfo target)
+        {
+            if (target != null && (target.DeathArmor || target.DeathsDoor || target.Hp <= 0.05f))
+                return false;
+            return CanLeaveChip(target != null ? target.ClassId : null);
+        }
+
         // wiki.gg/Focused_Fault killing plan: AoE is for a kill or a DoT that
         // finishes. Chipping two full Clusters splits both (t2 Flashing 159 vs Thrown 152).
         internal static float StalkChipAoEDelta(bool stalksUp, bool enemyTarget, bool kills, int livingHits, float applyDot)
@@ -1082,7 +1331,7 @@ namespace Dd2Autobattler.Combat
         {
             if (c == null || c.Kind != SkillKind.Attack || !c.EnemyTarget || c.Target == null || c.Target.Corpse)
                 return false;
-            if (!CanLeaveChip(c.Target.ClassId))
+            if (!CanLeaveChip(c.Target))
                 return false;
             if (livingEnemies <= 1)
                 return false;
@@ -1296,7 +1545,7 @@ namespace Dd2Autobattler.Combat
         }
 
         // Last HP bar only. Healthless Taproot is ignored. Death Armor at 0 HP
-        // never sets Preview.Kills (hp is already 0).
+        // is a kill once NoteKillFromHp has run (hp already 0 still connects).
         internal static bool LastKillableFinish(PreviewScore preview, TargetInfo target, int killableEnemies)
         {
             if (preview == null || target == null || target.Corpse || target.Healthless)
@@ -1965,6 +2214,102 @@ namespace Dd2Autobattler.Combat
             return handUp && callOfTheDeep && RankIsFrontTwo(rank) && !killsHand;
         }
 
+        // wiki.gg/Exemplar: kill Altar first (denies Pillar). Walking to rank 4
+        // for The Fall spends the party's reach-walk and leaves a 20% Altar up.
+        internal static bool ShouldFallWalk(
+            bool exemplarUp,
+            bool fallLive,
+            bool alreadyBack,
+            bool hasTauntFromBack,
+            bool comboStripLegal,
+            bool altarMustKill)
+        {
+            if (!exemplarUp || !fallLive || alreadyBack || !hasTauntFromBack || comboStripLegal)
+                return false;
+            return !altarMustKill;
+        }
+
+        // Skip a deferred punch only when this hero already has a damaging
+        // must-kill click. Blind Gas / a mark is not that click — walk or
+        // take the real swing.
+        internal static bool ShouldSkipDeferredPunch(
+            bool damagingMustKillLegal,
+            bool targetDeferred,
+            bool lastKillableFinish)
+        {
+            return damagingMustKillLegal && targetDeferred && !lastKillableFinish;
+        }
+
+        // HP (or a Taproot tap). Combo-only taps do not count.
+        internal static bool CountsAsDamagingFocusClick(string skillId, PreviewScore preview, bool leaveChip)
+        {
+            if (leaveChip)
+                return false;
+            if (IsComboOnlyTap(skillId, preview) || IsZeroDamageMark(skillId, preview))
+                return false;
+            if (preview != null && preview.GuardGuid != 0)
+                return false;
+            return preview != null && preview.Damage > 0f;
+        }
+
+        // Blind Gas / Tracking Shot on a deferred add while a controller is up.
+        internal static bool ComboMarkOnDeferredAdd(
+            bool hasPriorityTarget,
+            bool targetDeferredOrAdd,
+            string skillId,
+            PreviewScore preview)
+        {
+            if (!hasPriorityTarget || !targetDeferredOrAdd)
+                return false;
+            return IsZeroDamageMark(skillId, preview);
+        }
+
+        // t1 Ingress: Poison Dart 183 / 1.5 dmg vs Thrown Dagger 147 / 4 dmg.
+        // A DoT open is not finishing Pillar bait.
+        internal static bool AltarBurstBeats(
+            float damage,
+            float score,
+            float otherDamage,
+            float otherScore,
+            bool diesToDot)
+        {
+            if (diesToDot)
+                return score > otherScore;
+            if (Math.Abs(damage - otherDamage) > 0.5f)
+                return damage > otherDamage;
+            return score > otherScore;
+        }
+
+        private static bool BetterAttack(ScoredAction c, ScoredAction best, EnemyFocus focus)
+        {
+            if (best == null)
+                return true;
+            if (focus != null && focus.HasLivingAltarMustKill()
+                && IsAltarMustKillClick(c, focus) && IsAltarMustKillClick(best, focus))
+            {
+                var dies = focus.AltarMustKillDiesToDot();
+                var cKills = c.Preview != null && c.Preview.Kills;
+                var bKills = best.Preview != null && best.Preview.Kills;
+                if (cKills != bKills)
+                    return cKills;
+                var cDmg = c.Preview != null ? c.Preview.Damage : 0f;
+                var bDmg = best.Preview != null ? best.Preview.Damage : 0f;
+                if (Math.Abs(cDmg - bDmg) > 0.5f)
+                    return AltarBurstBeats(cDmg, c.Score, bDmg, best.Score, dies);
+            }
+            return c.Score > best.Score;
+        }
+
+        private static bool IsAltarMustKillClick(ScoredAction c, EnemyFocus focus)
+        {
+            if (c == null || c.Target == null || focus == null)
+                return false;
+            if (c.Target.Actor != null && focus.IsMustKillFirst(c.Target.Actor.ActorGuid)
+                && IdHasClass(c.Target.ClassId, "cultist_altar"))
+                return true;
+            return IdHasClass(c.Target.ClassId, "cultist_altar") && focus.HasLivingAltarMustKill();
+        }
+
         internal static float ExemplarTauntSkip(bool exemplar, bool appliesTaunt, int performerRank)
         {
             if (!exemplar || !appliesTaunt || !RankIsBack(performerRank))
@@ -2087,9 +2432,13 @@ namespace Dd2Autobattler.Combat
                     return;
             }
 
-            if (focus != null && focus.ExemplarUp && FallIsLive(teams)
-                && !RankIsBack(rank) && HasTauntLaunchFromBack(performer)
-                && !HasComboStripLegal(candidates))
+            if (ShouldFallWalk(
+                    focus != null && focus.ExemplarUp,
+                    FallIsLive(teams),
+                    RankIsBack(rank),
+                    HasTauntLaunchFromBack(performer),
+                    HasComboStripLegal(candidates),
+                    focus != null && focus.HasLivingAltarMustKill()))
             {
                 ApplyWalkBack(candidates, performer, "fall_rank");
                 if (HasRankWalk(candidates))
@@ -2099,7 +2448,7 @@ namespace Dd2Autobattler.Combat
             if (CombatMemory.PartyReachWalkedThisRound())
                 return;
 
-            var reachTarget = ReachWalkTarget(candidates, performer, teams, focus, livingEnemies, performerGuid);
+            var reachTarget = ReachWalkTarget(candidates, performer, teams, focus, livingEnemies, performerGuid, party);
             if (reachTarget != null)
             {
                 var crisis = PartyHasDeathsDoor(teams) || AllyInCrisis(teams);
@@ -2310,6 +2659,41 @@ namespace Dd2Autobattler.Combat
                 else if (allyHungry)
                     c.Score += 80f;
             }
+        }
+
+        private const float CoverHpPct = 0.45f;
+
+        private static bool AllyHasRiposte(BattleTeams teams, uint performerGuid)
+        {
+            if (teams == null)
+                return false;
+            foreach (var hero in GameSnapshot.TeamActors(teams, BattleTeams.HERO_TEAM_INDEX))
+            {
+                if (hero == null || !hero.IsLiving || GameSnapshot.IsCorpse(hero))
+                    continue;
+                if (hero.ActorGuid == performerGuid)
+                    continue;
+                if (GameSnapshot.Describe(hero).Riposte)
+                    return true;
+            }
+            return false;
+        }
+
+        private static bool AllyNeedsCover(BattleTeams teams)
+        {
+            if (teams == null)
+                return false;
+            foreach (var hero in GameSnapshot.TeamActors(teams, BattleTeams.HERO_TEAM_INDEX))
+            {
+                if (hero == null || !hero.IsLiving || GameSnapshot.IsCorpse(hero))
+                    continue;
+                var body = GameSnapshot.Describe(hero);
+                if (body.DeathsDoor)
+                    return true;
+                if (body.HpPct <= CoverHpPct && !KitSafety.WantsToStayLow(body))
+                    return true;
+            }
+            return false;
         }
 
         private static bool AllyInCrisis(BattleTeams teams)
@@ -2602,7 +2986,7 @@ namespace Dd2Autobattler.Combat
             return dmg < 1f && preview != null && TokenPrices.HasId(preview.ApplyTarget, "combo");
         }
 
-        private static ActorInstance ReachWalkTarget(List<ScoredAction> candidates, ActorInstance performer, BattleTeams teams, EnemyFocus focus, int livingEnemies, uint performerGuid)
+        private static ActorInstance ReachWalkTarget(List<ScoredAction> candidates, ActorInstance performer, BattleTeams teams, EnemyFocus focus, int livingEnemies, uint performerGuid, PartyKit party)
         {
             if (CombatMemory.ReachWalkedThisRound(performerGuid))
                 return null;
@@ -2610,7 +2994,11 @@ namespace Dd2Autobattler.Combat
             if (livingEnemies <= 1 && !HasDamagingHitOn(candidates, 0))
             {
                 var last = FindLastLivingEnemy(candidates);
-                return last != null ? last.Actor : null;
+                if (last == null || last.Actor == null)
+                    return null;
+                if (AllyAlreadyReaches(party, performerGuid, last.Actor))
+                    return null;
+                return last.Actor;
             }
 
             if (focus == null || !focus.HasMustKillFirst || HasDamagingMustKillHit(candidates, focus))
@@ -2629,10 +3017,24 @@ namespace Dd2Autobattler.Combat
                 if (actor == null || !actor.IsLiving)
                     continue;
                 try { if (GameSnapshot.IsCorpse(actor)) continue; } catch { }
+                // Same ping-pong on Altar: MAA walks onto Dismas's Pistol rank,
+                // then Dismas walks back next round.
+                if (AllyAlreadyReaches(party, performerGuid, actor))
+                    continue;
                 if (BlockedReachSkills(performer, actor).Count > 0)
                     return actor;
             }
             return null;
+        }
+
+        private static bool AllyAlreadyReaches(PartyKit party, uint performerGuid, ActorInstance enemy)
+        {
+            if (party == null || enemy == null)
+                return false;
+            var rank = 0;
+            try { rank = enemy.TeamPosition; }
+            catch { return false; }
+            return party.AllyHitsEnemyRank(performerGuid, rank);
         }
 
         private static void ApplyReachReposition(List<ScoredAction> candidates, ActorInstance performer, ActorInstance enemy, PartyKit party, bool partyCrisis)
@@ -2917,11 +3319,49 @@ namespace Dd2Autobattler.Combat
                 ? $"{GameSnapshot.OneLine(performer)}: NO LEGAL ACTION"
                 : $"{GameSnapshot.OneLine(performer)}: {chosen.SkillId} -> {chosen.TargetGuid} ({reason})";
             var summary = commit ? line : "SHADOW would " + line;
+            string runnerSkill = null;
+            var runnerScore = 0f;
+            var runnerLine = RunnerUpLine(candidates, chosen, out runnerSkill, out runnerScore);
+            if (!string.IsNullOrEmpty(runnerSkill))
+            {
+                record["runner"] = new JObject
+                {
+                    ["skill"] = runnerSkill,
+                    ["score"] = runnerScore
+                };
+            }
 
             if (!Plugin.LogPreviews.Value)
                 record.Remove("legal");
 
-            DecisionLog.Turn(record, summary);
+            DecisionLog.Turn(record, summary, runnerLine);
+        }
+
+        private static string RunnerUpLine(List<JObject> candidates, ChosenAction chosen, out string skill, out float score)
+        {
+            skill = null;
+            score = 0f;
+            if (candidates == null || candidates.Count == 0)
+                return "";
+            JObject bestOther = null;
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                var row = candidates[i];
+                if (row == null)
+                    continue;
+                if (chosen != null
+                    && row.Value<string>("skill") == chosen.SkillId
+                    && row.Value<uint>("target") == chosen.TargetGuid)
+                    continue;
+                if (bestOther == null || row.Value<float>("score") > bestOther.Value<float>("score"))
+                    bestOther = row;
+            }
+            if (bestOther == null)
+                return "";
+            skill = bestOther.Value<string>("skill");
+            score = bestOther.Value<float>("score");
+            var kills = bestOther.Value<bool>("kills") ? " kill" : "";
+            return "next " + skill + " " + score.ToString("0") + kills;
         }
 
         private static ActorInstance GetPerformer(ActorControllerBase controller)

@@ -7,6 +7,7 @@ namespace Dd2Autobattler.Ui
     {
         private static DecisionOverlay _instance;
         private GUIStyle _style;
+        private GUIStyle _subStyle;
         private GUIStyle _onStyle;
         private GUIStyle _offStyle;
 
@@ -32,6 +33,12 @@ namespace Dd2Autobattler.Ui
                     normal = { textColor = Color.white },
                     wordWrap = true
                 };
+                _subStyle = new GUIStyle(GUI.skin.label)
+                {
+                    fontSize = 13,
+                    normal = { textColor = new Color(0.82f, 0.82f, 0.82f) },
+                    wordWrap = false
+                };
                 _onStyle = new GUIStyle(GUI.skin.button)
                 {
                     fontSize = 13,
@@ -44,8 +51,10 @@ namespace Dd2Autobattler.Ui
             }
 
             var text = DecisionLog.LastSummary ?? "";
+            var runner = DecisionLog.LastRunnerUp ?? "";
+            var barH = string.IsNullOrEmpty(runner) ? 36f : 56f;
             GUI.color = new Color(0f, 0f, 0f, 0.55f);
-            GUI.DrawTexture(new Rect(8, 8, 980, 32), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(8, 8, 980, barH), Texture2D.whiteTexture);
             GUI.color = Color.white;
 
             var auto = Plugin.IsAuto;
@@ -55,6 +64,8 @@ namespace Dd2Autobattler.Ui
             if (GUI.Button(new Rect(80, 10, 84, 24), "SHADOW", shadow ? _onStyle : _offStyle) && !shadow)
                 Plugin.SetShadow();
             GUI.Label(new Rect(172, 10, 808, 24), text, _style);
+            if (!string.IsNullOrEmpty(runner))
+                GUI.Label(new Rect(172, 32, 808, 20), runner, _subStyle);
         }
     }
 }

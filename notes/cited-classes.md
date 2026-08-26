@@ -48,8 +48,9 @@ Unique **resources**, not hero names. Phase 1 is Winded, Blind/Ruin, Pain. Phase
   - If a living ally who prefers the front already sits rank 0, do not pay Toe to Toe / Hold the Line / Rampart that steals the tile.
   - Harvest hunger (`hold_the_line` / `toe_to_toe` +80) still wins.
   - Duelist's Advance is docked when it would shove an Acid Rain ally from the rank in front of the Highwayman onto rank 2+ (Acid Rain launch is ranks 0–1 only).
+  - Do not rank-walk for a must-kill an ally already hits from their current rank (MAA shoving Dismas off the Pistol rank, then Dismas walking back). Librarian still never swaps the hero who punches him.
   - Reach walks score lower while the party is in crisis so Endure / BM / Rest beat a 180 move.
-  - Man-at-Arms Retribution (self Riposte) opens while Riposte is down and ≥2 enemies live — not over a kill, last-bar finish, or party crisis. Recast is skipped while Riposte is already up.
+  - Man-at-Arms Retribution (Taunt + Riposte) is the team's one Riposte open: this hero's token is down, ≥2 enemies live, not over a kill / last-bar finish / Cabin Boy burst (`BurstBeforeEvolve`). Do not open a second Riposte if an ally already has one, unless a living hero is at ≤45% (Taunt should pull those hits). Highwayman Take Aim is not this gate — Duelist's Advance plants Riposte on the attack.
 - **Not encoded:** dancing comps (Jester Echoing March) as a full rank script.
 
 ## Combo reach (party)
@@ -89,7 +90,7 @@ Unique **resources**, not hero names. Phase 1 is Winded, Blind/Ruin, Pain. Phase
 
 - **Sources:** CSV `performer_effects` on attacks (e.g. `hwm_duelists_advance` Riposte). Preview `ApplyPerformer` from `PERFORMER*` groups.
 - **Rules encoded:** when the click is an enemy attack, pay Riposte / Block / Dodge / Strength / Taunt / Crit on the performer if they do not already have it. Self-target support still uses `ApplyTarget`.
-- **Not encoded:** Take Aim as a named skill.
+- **Not encoded:** Take Aim as a named skill (it is not the Retribution open).
 
 ## Stun next in order
 
@@ -100,7 +101,7 @@ Unique **resources**, not hero names. Phase 1 is Winded, Blind/Ruin, Pain. Phase
 ## Blocked hits and Guard
 
 - **Sources:** preview `m_IsBlocked` / `IsBlocked`; `m_GuardingActorGuid`. Guard redirects the attack onto the guardian.
-- **Rules encoded:** a blocked hit with no real damage is a waste unless it strips Block (`peel_block`). Kill overlay uses the guardian's HP, not the click target's.
+- **Rules encoded:** a blocked hit with no real damage is a waste unless it strips Block (`peel_block`). Kill overlay uses the guardian's HP, not the click target's. `m_GuardingActorGuid` is the protected actor when you click them (same guid as the click); the guardian is the other `HitGuids` entry. A redirected hit does not count as damaging the commander / must-kill (no commander focus pay, does not arm the deferred-add veto). Living 0 HP (Death Armor) with connecting damage is a kill; do not leave that chip for an ally.
 - **Not encoded:** waiting out 3 Block+ without a strip.
 
 ## Pull / knockback reach
@@ -112,7 +113,7 @@ Unique **resources**, not hero names. Phase 1 is Winded, Blind/Ruin, Pain. Phase
 ## Corpse clog
 
 - **Sources:** CSV pouch_of_lye `target_is_corpse_hidden` / `clear_corpse`; hero skills with `target_team_effects,clear_corpse` (`lep_purge`, also Occultist / GR / Flagellant clears). A corpse in a lower rank than every living enemy occupies the front.
-- **Rules encoded:** Clear that corpse (`corpse_reach`) with Lye or a clear skill (Purge), especially when this hero has no damaging hit on the last enemy or the must-kill. Death's Door heal still goes first. A 0-damage Combo mark is not a skill to walk for. Rank walk still fires when this hero cannot damage the must-kill even if an ally already reaches that rank (Librarian is the exception: do not swap the hero who already punches him). Multi-hit (Flashing Daggers `m_IsMultiHit`) scores the sum of living HP it hits, not the click target alone and not corpse HP. A cone that `HitGuids` a corpse loses to a click of the same skill that hits more living enemies, or (if it only tags one living) to a clean living single-target. Two living hits still beat Pick even if a corpse is also in the cone.
+- **Rules encoded:** Clear that corpse (`corpse_reach`) with Lye or a clear skill (Purge), especially when this hero has no damaging hit on the last enemy or the must-kill. Death's Door heal still goes first. A 0-damage Combo mark is not a skill to walk for. Rank walk still fires when this hero cannot damage the must-kill, except when an ally already hits that rank from their current tile (do not shove them off it). Librarian still never swaps the hero who already punches him. Multi-hit (Flashing Daggers `m_IsMultiHit`) scores the sum of living HP it hits, not the click target alone and not corpse HP. A cone that `HitGuids` a corpse loses to a click of the same skill that hits more living enemies, or (if it only tags one living) to a clean living single-target. Two living hits still beat Pick even if a corpse is also in the cone.
 - **Not encoded:** auto-slide after clear (game-dependent).
 
 ## Hearthlight / Firestarter (Runaway)

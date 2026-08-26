@@ -14,9 +14,9 @@ Each turn it scores legal skills from the live preview: damage, kills, heals, to
 
 Death's Door still gets a skill heal, then food / bandage / antivenom. A kill on the last HP bar (not a healthless fixture like Taproot) can skip that rest to end combat. Crisis heals once per ally per round; Rest (`pass_heal`) does not spend that slot. A 0-damage Combo mark does not inherit must-kill focus (Tracking Shot on a Cherub is not a 138-point "boss" hit). Cursed relationship skills lose to a clean alternative. Stress support (Inspiring Tune, Bolster) scores like laudanum.
 
-If a healer cannot launch their heal, they walk onto a launch rank (`pass_heal` is Rest, not a heal). If a damage dealer cannot reach the last living enemy or the current must-kill, they walk onto a launch rank of a damaging attack (a Combo mark does not count). That walk still fires when an ally already reaches, except onto the hero who already punches the Librarian. Rank walks also fire when a cited note says this hero's tokens are illegal in this rank. Pouch of Lye or a clear skill (Leper Purge) clears a corpse, especially then. Token strip (Dodge, Riposte, Combo, Stealth) can beat a non-kill swing. AoE (Flashing Daggers) scores the sum of living HP it hits — a corpse in the cone is not extra damage. AoE that splashes a must-kill is not vetoed just because the click target is an add.
+If a healer cannot launch their heal, they walk onto a launch rank (`pass_heal` is Rest, not a heal). If a damage dealer cannot reach the last living enemy or the current must-kill, they walk onto a launch rank of a damaging attack (a Combo mark does not count). That walk does not fire when an ally already hits that enemy from their current rank (otherwise two frontliners shove each other off the tile). Librarian still never swaps the hero who already punches him. Rank walks also fire when a cited note says this hero's tokens are illegal in this rank. Pouch of Lye or a clear skill (Leper Purge) clears a corpse, especially then. Token strip (Dodge, Riposte, Combo, Stealth) can beat a non-kill swing. AoE (Flashing Daggers) scores the sum of living HP it hits — a corpse in the cone is not extra damage. AoE that splashes a must-kill is not vetoed just because the click target is an add.
 
-Overlay **AUTO** / **SHADOW** (top-left): Auto clicks for you. Shadow lets you click and logs what the bot would have picked. Retreat is opt-in and off.
+Overlay **AUTO** / **SHADOW** (top-left): Auto clicks for you. Shadow lets you click and logs what the bot would have picked. **− / 1x / +** under that is combat animation speed (1–20×, fight only; click the multiplier to reset). Stagecoach speed is the separate Gotta Go Fast plugin. Retreat is opt-in and off.
 
 ## Requirements
 
@@ -38,7 +38,9 @@ Config: `BepInEx\config\drednot.dd2.autobattler.cfg`
 
 - `Combat.Enabled` - bot scores hero turns (off = you play, no log of a bot pick)
 - `Combat.ShadowMode` - with Enabled, you click and the bot only logs what it would have clicked
+- `Combat.Speed` - combat animation multiplier while a fight is running (overlay − / +)
 - Overlay **AUTO** / **SHADOW** buttons (top-left) switch that live, no restart
+- Overlay **− / Nx / +** is combat animation speed while a fight is running (does not change the coach)
 - `Logging.LogPreviews` - include every scored action in the JSONL
 - `UI.ShowOverlay` - toggles plus the last decision on screen
 
@@ -46,12 +48,21 @@ Config: `BepInEx\config\drednot.dd2.autobattler.cfg`
 
 `BepInEx\Dd2Autobattler\logs\<timestamp>\decisions.jsonl`
 
-Each turn has actor state, both sides, legal actions with scores, and the chosen skill/target/reason. Shadow mode adds `mode: shadow` on the bot proposal and a `shadow_result` line when you confirm a click (`match`, bot vs human, score `gap`, human `rank` in the bot's list). Session report:
+Each turn has actor state, both sides, legal actions with scores, and the chosen skill/target/reason. Shadow mode adds `mode: shadow` on the bot proposal and a `shadow_result` line when you confirm a click (`match`, bot vs human, score `gap`, human `rank` in the bot's list). The overlay shows the pick plus the runner-up (`next Thrown 152`). Session tools:
 
 ```
 powershell -File _tools\analyze-log.ps1
 powershell -File _tools\analyze-log.ps1 -Today
+python _tools\analyze_log.py
+python _tools\analyze_log.py --today
+python _tools\analyze_log.py --since 20260823
+python _tools\analyze_log.py --fight eyes
+python _tools\analyze_log.py --fight eyes --quiet
+python _tools\analyze_log.py --fight exemplar --hero grave_robber
+python _tools\skill.py flashing_daggers
 ```
+
+`--fight` dumps every turn (party, enemies, top legal scores) and prints cited-note mismatches (non-killing Flashing on stalks, laudanum over a stalk kill, Death's Door heal skip, punching an add while a controller is legal). `--cite` runs those checks on a whole session. `skill.py` looks up launch ranks / tags / path replacements in the game CSVs.
 
 ## Issues and suggestions
 

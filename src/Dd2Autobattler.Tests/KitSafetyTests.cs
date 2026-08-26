@@ -238,6 +238,17 @@ namespace Dd2Autobattler.Tests
         }
 
         [Fact]
+        public void Rank_walk_sits_when_an_ally_already_hits_the_must_kill()
+        {
+            var party = new PartyKit();
+            party.Heroes.Add(new HeroKit { Guid = 1, Living = true, Rank = 0, Attacks = true, AttackHitRanks = 1 << 0 });
+            party.Heroes.Add(new HeroKit { Guid = 2, Living = true, Rank = 1, Attacks = true, AttackHitRanks = 1 << 2 });
+            Assert.True(party.AllyHitsEnemyRank(1, 2));
+            Assert.False(party.AllyHitsEnemyRank(2, 2));
+            Assert.False(party.AllyHitsEnemyRank(1, 0));
+        }
+
+        [Fact]
         public void Self_crisis_pays_solemnity_on_the_dying_performer()
         {
             var lep = new TargetInfo { Guid = 9, ClassId = "leper", Rank = 0, Hp = 2f, HpPct = 0.04f, DiesToDot = true };

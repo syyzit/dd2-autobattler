@@ -191,6 +191,9 @@ namespace Dd2Autobattler.Tests
             Assert.False(TurnDecider.LastKillableFinish(chip, new TargetInfo { Hp = 12f }, 1));
             Assert.True(TurnDecider.LastKillableFinish(chip, new TargetInfo { Hp = 0f, DeathsDoor = true }, 1));
 
+            var armor = new PreviewScore { Ok = true, Damage = 5f, Kills = false };
+            Assert.True(TurnDecider.LastKillableFinish(armor, new TargetInfo { Hp = 0f, DeathArmor = true }, 1));
+
             var tap = new TargetInfo { Healthless = true, ClassId = "lost_battalion_boss_taproot", Hp = 99f };
             Assert.False(TurnDecider.LastKillableFinish(new PreviewScore { Ok = true, Damage = 0f, HitChance = 1f }, tap, 1));
         }
@@ -232,6 +235,47 @@ namespace Dd2Autobattler.Tests
         }
 
         [Fact]
+        public void Take_aim_is_self_riposte_not_tank_riposte()
+        {
+            var preview = new PreviewScore { Ok = true };
+            preview.ApplyTarget.Add("riposte");
+            Assert.True(TurnDecider.IsSelfRiposteSetup("hwm_take_aim_p1", false, preview, null));
+            Assert.False(TurnDecider.IsTankRiposteSetup("hwm_take_aim_p1", false, preview, null));
+            Assert.True(TurnDecider.IsTankRiposteSetup("maa_retribution_u", false, null, null));
+            var advance = new PreviewScore { Ok = true };
+            advance.ApplyPerformer.Add("riposte");
+            Assert.False(TurnDecider.IsSelfRiposteSetup("hwm_duelists_advance_p1", true, advance, null));
+            Assert.False(TurnDecider.IsTankRiposteSetup("hwm_duelists_advance_p1", true, advance, null));
+        }
+
+        [Fact]
+        public void Tank_riposte_does_not_stack_unless_someone_is_low()
+        {
+            var chip = new PreviewScore { Ok = true, Damage = 8f, Kills = false };
+            var enemy = new TargetInfo { Hp = 20f };
+            Assert.True(TurnDecider.ShouldOpenTankRiposte(false, false, false, 3, true, chip, enemy, 3));
+            Assert.False(TurnDecider.ShouldOpenTankRiposte(false, true, false, 3, true, chip, enemy, 3));
+            Assert.True(TurnDecider.ShouldOpenTankRiposte(false, true, true, 3, true, chip, enemy, 3));
+            Assert.False(TurnDecider.ShouldOpenTankRiposte(true, false, false, 3, true, chip, enemy, 3));
+            Assert.False(TurnDecider.ShouldOpenTankRiposte(false, false, false, 3, false, chip, enemy, 3));
+            Assert.False(TurnDecider.ShouldOpenTankRiposte(false, false, true, 1, true, chip, enemy, 1));
+            var kill = new PreviewScore { Ok = true, Damage = 20f, Kills = true };
+            Assert.False(TurnDecider.ShouldOpenTankRiposte(false, false, false, 3, true, kill, enemy, 2));
+            var evolve = new EnemyFocus { BurstBeforeEvolve = true };
+            Assert.False(TurnDecider.ShouldOpenTankRiposte(false, false, false, 4, true, chip, enemy, 4, evolve));
+            var altarFocus = new EnemyFocus();
+            altarFocus.Enemies.Add(new EnemyThreat
+            {
+                Guid = 1,
+                ClassId = "cultist_altar",
+                MustKillFirst = true
+            });
+            var altar = new TargetInfo { Hp = 12f, ClassId = "cultist_altar" };
+            Assert.False(TurnDecider.ShouldOpenTankRiposte(false, false, false, 2, true, chip, altar, 2, altarFocus));
+            Assert.True(TurnDecider.ShouldOpenTankRiposte(false, false, false, 2, true, chip, enemy, 2, altarFocus));
+        }
+
+        [Fact]
         public void Utility_setup_yields_to_a_real_kill()
         {
             var kill = new PreviewScore { Ok = true, Damage = 20f, Kills = true };
@@ -239,6 +283,40 @@ namespace Dd2Autobattler.Tests
             Assert.False(TurnDecider.ShouldOpenUtility(kill, enemy, 2));
             Assert.True(TurnDecider.ShouldOpenUtility(new PreviewScore { Ok = true, Damage = 8f, Kills = false }, enemy, 2));
             Assert.False(TurnDecider.ShouldOpenUtility(kill, enemy, 1));
+        }
+
+        [Fact]
+        public void Utility_setup_yields_to_cabin_boy_burst()
+        {
+            var chip = new PreviewScore { Ok = true, Damage = 8f, Kills = false };
+            var enemy = new TargetInfo { Hp = 20f };
+            var focus = new EnemyFocus { BurstBeforeEvolve = true };
+            Assert.False(TurnDecider.ShouldOpenUtility(chip, enemy, 4, focus));
+            Assert.True(TurnDecider.ShouldOpenUtility(chip, enemy, 4, new EnemyFocus()));
+        }
+
+        [Fact]
+        public void Cabin_boy_note_sets_burst_before_evolve()
+        {
+            var focus = new EnemyFocus();
+            focus.Enemies.Add(new EnemyThreat
+            {
+                Guid = 1,
+                ClassId = "coastal_cabin_boy",
+                Summons = true,
+                Supports = true
+            });
+            focus.Enemies.Add(new EnemyThreat
+            {
+                Guid = 2,
+                ClassId = "coastal_cabin_boy",
+                Summons = true,
+                Supports = true
+            });
+            EnemyFocus.ApplyCabinBoyNote(focus);
+            Assert.True(focus.BurstBeforeEvolve);
+            Assert.True(EnemyFocus.IsCabinBoy("coastal_cabin_boy"));
+            Assert.False(EnemyFocus.IsCabinBoy("coastal_bosun"));
         }
 
         [Fact]
@@ -333,7 +411,10 @@ namespace Dd2Autobattler.Tests
             Assert.False(TurnDecider.CanLeaveChip("boss_eyes_stalk_s"));
             Assert.True(TurnDecider.CanLeaveChip("cultist_cherub"));
             Assert.True(TurnDecider.CanLeaveChip("boss_eyes"));
-            Assert.True(TurnDecider.CanLeaveChip(null));
+            Assert.True(TurnDecider.CanLeaveChip((string)null));
+            Assert.False(TurnDecider.CanLeaveChip(new TargetInfo { Hp = 3f, DeathArmor = true, ClassId = "lost_battalion_foot_soldier" }));
+            Assert.False(TurnDecider.CanLeaveChip(new TargetInfo { Hp = 0f, ClassId = "lost_battalion_foot_soldier" }));
+            Assert.True(TurnDecider.CanLeaveChip(new TargetInfo { Hp = 12f, ClassId = "lost_battalion_foot_soldier" }));
         }
 
         [Fact]
@@ -483,11 +564,49 @@ namespace Dd2Autobattler.Tests
             EnemyFocus.ScoreEnemies(focus);
             Assert.True(altar.MustKillFirst);
             Assert.False(altar.Defer);
-            Assert.True(cherub.MustKillFirst);
+            Assert.False(cherub.MustKillFirst);
+            Assert.True(cherub.Defer);
             Assert.True(deacon.Defer);
             Assert.False(deacon.MustKillFirst);
-            Assert.Equal(cherub.Score + EnemyFocus.AltarMustKillBias, altar.Score);
             Assert.True(altar.Score > cherub.Score);
+        }
+
+        [Fact]
+        public void Deacon_note_escalates_altar_when_boss_has_worship()
+        {
+            var focus = new EnemyFocus();
+            var altar = new EnemyThreat { Guid = 1, ClassId = "cultist_altar", Supports = true };
+            var deacon = new EnemyThreat { Guid = 2, ClassId = "cultist_deacon", Boss = true, Worship = 2 };
+            focus.Enemies.Add(altar);
+            focus.Enemies.Add(deacon);
+            EnemyFocus.ApplyCultistNote(focus);
+            EnemyFocus.ScoreEnemies(focus);
+            Assert.Equal(2, focus.CultistWorship);
+            Assert.True(altar.MustKillFirst);
+            Assert.Contains("worship", altar.Why);
+            Assert.True(altar.Score >= 80f + EnemyFocus.AltarMustKillBias + EnemyFocus.WorshipStackBias * 2);
+        }
+
+        [Fact]
+        public void Exemplar_note_keeps_altar_when_worship_blocks_finish_race()
+        {
+            var focus = new EnemyFocus();
+            var altar = new EnemyThreat { Guid = 1, ClassId = "cultist_altar", Supports = true };
+            var exemplar = new EnemyThreat
+            {
+                Guid = 3,
+                ClassId = "cultist_exemplar",
+                Boss = true,
+                HpPct = EnemyFocus.ExemplarFinishHpPct,
+                Worship = 1
+            };
+            focus.Enemies.Add(altar);
+            focus.Enemies.Add(exemplar);
+            EnemyFocus.ApplyCultistNote(focus);
+            Assert.Equal(1, focus.CultistWorship);
+            Assert.True(altar.MustKillFirst);
+            Assert.True(exemplar.Defer);
+            Assert.False(exemplar.MustKillFirst);
         }
 
         [Fact]
@@ -650,6 +769,23 @@ namespace Dd2Autobattler.Tests
         }
 
         [Fact]
+        public void Cultist_defense_gates_strip_and_fall_over_non_kill_swings()
+        {
+            Assert.True(TurnDecider.IsStripComboClick("strip_combo"));
+            Assert.True(TurnDecider.IsFallDefenseClick("fall_taunt"));
+            Assert.True(TurnDecider.IsFallDefenseClick("fall_guard"));
+            Assert.False(TurnDecider.IsFallDefenseClick("reach_peel"));
+
+            var chip = new PreviewScore { Ok = true, Damage = 8f, Kills = false };
+            var enemy = new TargetInfo { Hp = 40f, HpPct = 0.5f };
+            Assert.True(TurnDecider.ShouldPreferCultistDefense(true, false, chip, enemy, 2));
+            Assert.False(TurnDecider.ShouldPreferCultistDefense(true, true, chip, enemy, 2));
+            Assert.False(TurnDecider.ShouldPreferCultistDefense(false, false, chip, enemy, 2));
+            Assert.False(TurnDecider.ShouldPreferCultistDefense(
+                true, false, new PreviewScore { Ok = true, Damage = 40f, Kills = true }, enemy, 2));
+        }
+
+        [Fact]
         public void Haymaker_guard_beats_heal_on_the_contempt_mark()
         {
             var guard = TurnDecider.HaymakerGuardBonus(true, true, true);
@@ -700,6 +836,95 @@ namespace Dd2Autobattler.Tests
             focus.Enemies.Add(new EnemyThreat { Guid = 3, ClassId = "cultist_exemplar", Boss = true });
             EnemyFocus.ApplyCultistNote(focus);
             Assert.True(focus.ExemplarUp);
+        }
+
+        [Fact]
+        public void Altar_must_kill_is_live_until_it_leaves_the_scan()
+        {
+            var focus = new EnemyFocus();
+            var altar = new EnemyThreat { Guid = 1, ClassId = "cultist_altar", MustKillFirst = true };
+            var exemplar = new EnemyThreat { Guid = 2, ClassId = "cultist_exemplar", Boss = true, Defer = true };
+            focus.Enemies.Add(altar);
+            focus.Enemies.Add(exemplar);
+            Assert.True(focus.HasLivingAltarMustKill());
+            Assert.False(focus.AltarMustKillDiesToDot());
+            altar.DiesToDot = true;
+            Assert.True(focus.AltarMustKillDiesToDot());
+            altar.MustKillFirst = false;
+            Assert.False(focus.HasLivingAltarMustKill());
+        }
+
+        [Fact]
+        public void Deferred_boss_is_skipped_only_when_this_hero_can_damage_the_must_kill()
+        {
+            Assert.True(TurnDecider.ShouldSkipDeferredPunch(true, true, false));
+            Assert.False(TurnDecider.ShouldSkipDeferredPunch(false, true, false));
+            Assert.False(TurnDecider.ShouldSkipDeferredPunch(true, false, false));
+            Assert.False(TurnDecider.ShouldSkipDeferredPunch(true, true, true));
+            var gas = new PreviewScore { Ok = true, Damage = 0f };
+            gas.ApplyTarget.Add("combo");
+            Assert.False(TurnDecider.CountsAsDamagingFocusClick("pd_blinding_gas", gas, false));
+            Assert.False(TurnDecider.CountsAsDamagingFocusClick("hwm_tracking_shot", gas, false));
+            Assert.True(TurnDecider.CountsAsDamagingFocusClick(
+                "pd_incision", new PreviewScore { Ok = true, Damage = 4.5f }, false));
+            Assert.False(TurnDecider.CountsAsDamagingFocusClick(
+                "run_firefly", new PreviewScore { Ok = true, Damage = 10f }, true));
+            Assert.False(TurnDecider.CountsAsDamagingFocusClick(
+                "hwm_pistol_shot",
+                new PreviewScore { Ok = true, Damage = 4.5f, GuardGuid = 1924 },
+                false));
+        }
+
+        [Fact]
+        public void Combo_mark_on_a_deferred_add_is_skipped_while_a_controller_is_up()
+        {
+            var gas = new PreviewScore { Ok = true, Damage = 0f };
+            gas.ApplyTarget.Add("combo");
+            Assert.True(TurnDecider.ComboMarkOnDeferredAdd(true, true, "hwm_tracking_shot", gas));
+            Assert.True(TurnDecider.ComboMarkOnDeferredAdd(true, true, "pd_blinding_gas", gas));
+            Assert.False(TurnDecider.ComboMarkOnDeferredAdd(true, false, "hwm_tracking_shot", gas));
+            Assert.False(TurnDecider.ComboMarkOnDeferredAdd(false, true, "hwm_tracking_shot", gas));
+            Assert.False(TurnDecider.ComboMarkOnDeferredAdd(
+                true, true, "hwm_pistol_shot", new PreviewScore { Ok = true, Damage = 4.5f }));
+        }
+
+        [Fact]
+        public void Tangle_drummer_is_commander_feet_are_deferred()
+        {
+            var focus = new EnemyFocus();
+            focus.Enemies.Add(new EnemyThreat { Guid = 1, ClassId = "lost_battalion_foot_soldier", Boss = true });
+            focus.Enemies.Add(new EnemyThreat { Guid = 2, ClassId = "lost_battalion_foot_soldier", Boss = true });
+            focus.Enemies.Add(new EnemyThreat { Guid = 3, ClassId = "lost_battalion_foot_soldier", Boss = true });
+            focus.Enemies.Add(new EnemyThreat { Guid = 4, ClassId = "lost_battalion_drummer", Boss = true, Supports = true });
+            EnemyFocus.ApplyTangleNotes(focus);
+            EnemyFocus.MarkNonPriorityAdds(focus);
+            EnemyFocus.ScoreEnemies(focus);
+            Assert.True(focus.HasPriorityTarget);
+            Assert.True(focus.IsPriority(4));
+            Assert.False(focus.IsPriority(1));
+            Assert.True(focus.IsDeferred(1));
+            Assert.True(focus.IsAdd(1));
+            Assert.False(focus.IsDeferred(4));
+            Assert.False(focus.IsAdd(4));
+            Assert.True(focus.ScoreOf(4) > 40f);
+            Assert.True(focus.ScoreOf(1) < 0f);
+        }
+
+        [Fact]
+        public void Fall_walk_yields_to_a_living_altar_must_kill()
+        {
+            Assert.True(TurnDecider.ShouldFallWalk(true, true, false, true, false, false));
+            Assert.False(TurnDecider.ShouldFallWalk(true, true, false, true, false, true));
+            Assert.False(TurnDecider.ShouldFallWalk(true, true, true, true, false, false));
+            Assert.False(TurnDecider.ShouldFallWalk(true, true, false, true, true, false));
+        }
+
+        [Fact]
+        public void Altar_must_kill_prefers_hp_damage_over_a_dot_open()
+        {
+            Assert.True(TurnDecider.AltarBurstBeats(4.05f, 147f, 1.55f, 183f, false));
+            Assert.False(TurnDecider.AltarBurstBeats(1.55f, 183f, 4.05f, 147f, false));
+            Assert.True(TurnDecider.AltarBurstBeats(1.55f, 183f, 4.05f, 147f, true));
         }
     }
 }

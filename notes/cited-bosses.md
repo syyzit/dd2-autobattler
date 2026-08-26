@@ -39,7 +39,7 @@ Do not encode a fallback that only we invented.
 ## Tangle / Lost Battalion mashes
 
 - **Sources:** [The Tangle](https://darkestdungeon.wiki.gg/wiki/The_Tangle) - Bishops resurrect via Benediction; Drummers grant Order and move-resist, “killing the Drummer is a high priority.” CSV: Bishop `serve_once_more`; Drummer `death_before_dishonor`.
-- **Rules encoded:** Bishop `must_kill` first; Drummer `commander` next; Knight / foot / arbalist deferred while either is a legal target.
+- **Rules encoded:** Bishop `must_kill` first; Drummer `commander` next (not an add — a mash Drummer has no boss flag, and tagging him add vetoes every connecting hit). Knight / foot / arbalist deferred while either is a connecting legal target. Guard redirect onto a foot is not a Drummer hit. A 0-damage Combo mark on a deferred add is skipped while the Drummer / Bishop is up.
 
 ## Harvest Child (Foetor lair)
 
@@ -61,7 +61,7 @@ Do not encode a fallback that only we invented.
 - **Rules encoded:** if an ally is in crisis (Death's Door or <=35%) and no skill heal is legal, allow a move that lands the healer on a launch rank of an equipped heal that still has uses. Do not un-veto every swap. An enemy attack with a self-heal rider (Crush on Combo) is not a skill heal — do not walk for it.
 - Cleanse items that also heal (antivenom, bandage) are spent on Death's Door / <=30% instead of being scored as a wasted cleanse.
 - If the skill heal is spent (`m_Limit`) and someone is on Death's Door or <=30%, food/bandage/antivenom that still heal are forced. A last-enemy kill does not skip a Death's Door heal. Support (Ounce of Prevention) is penalized while the party is in crisis.
-- Last living enemy behind corpses, or a must-kill this hero cannot damage (Librarian after Categorize): if no damaging attack is legal on that target, walk onto a launch rank of an equipped attack that can hit that rank. 0-damage Combo marks do not count as a hit and are not a skill to walk for. `pass_heal` is Rest, not a skill heal — do not walk for it. Do not un-veto every swap. Do not skip that walk because an ally already reaches, except when swapping would displace the hero who already punches the Librarian.
+- Last living enemy behind corpses, or a must-kill this hero cannot damage (Librarian after Categorize): if no damaging attack is legal on that target, walk onto a launch rank of an equipped attack that can hit that rank. 0-damage Combo marks do not count as a hit and are not a skill to walk for. `pass_heal` is Rest, not a skill heal — do not walk for it. Do not un-veto every swap. Skip that walk when an ally already hits the tile from their current rank (MAA/Dismas ping-pong on Altar). Still never swap the hero who already punches the Librarian.
 - Combat items are classified from CSV conditions/tags, not a name list: `target_is_corpse_hidden` (Pouch of Lye), `target_has_*_dot` (DoT cleanse), `target_is_diseased` (Single Leech), `target_has_blind` (Rag), `stress_heal`, `heal`. Enemy items stay attacks (witchbane). Grenades that click a corpse still skip. Hero clear skills (`lep_purge` `clear_corpse`) use the same `corpse_reach` boost when a front corpse blocks living targets. Buffs (powders, war horn, The Blood) stay on the token/buff scorer — do not dump them.
 
 ## Chirurgeon (Gaunt table)
@@ -119,11 +119,11 @@ Do not encode a fallback that only we invented.
 
 - **Sources:** [wiki Cultists Strategy](https://darkestdungeon.wiki.gg/wiki/Cultists_(Darkest_Dungeon_II)#Strategy); [wiki Exemplar Strategy](https://darkestdungeon.wiki.gg/wiki/Exemplar#Strategy_and_advice). CSV: `cultist_deacon`, `cultist_cardinal`, `cultist_exemplar`, `cultist_altar`, `cultist_herald`, `cultist_cherub`, `cultist_evangelist`. Worship token cap 2 enables Exultation / the minion **Worship** heal.
 - **Rules encoded:**
-  - Deacon or Cardinal on the board: kill regular cultists first (Altar included). The boss is deferred while any regular is alive. Wiki: "imperative to kill regular Cultist enemies, especially Altars, as quickly as possible before they can empower their bosses." Altar pays `AltarMustKillBias` over other regulars. A 0-damage Combo mark does not inherit that must-kill focus.
-  - Exemplar (Act 3+ last-region Rampart): while Exemplar HP% > ~25%, kill Altar first if alive (`must_kill`; denies Pillar → Regen+Worship — Obsession Altar Taunt makes this especially bad), else Herald (`must_kill`). Exemplar is deferred in those cases; Cherub / Evangelist stay deferred. Herald stays legal (not deferred) while Altar is the must-kill so splash can still chip. When Exemplar HP% ≤ ~25% (or no Altar/Herald), Exemplar is `must_kill` and soft adds are deferred; Herald remains legal but not forced.
-  - Holy Water / Combo-strip on a hero who has Combo: spend it. Wiki: The Fall on Combo is how Exemplar gains Worship for Exultation.
-  - The Fall (CSV `exemplar_the_fall`): Combo-gated, `target_ranks` 1-3. Taunt on a rank-4 hero skips it (wiki: forces Prelude / Rapturous Beauty). If Combo is live in ranks 1-3 and this hero cannot strip it, walk onto rank 4 when an equipped Taunt skill launches from there (not Hold the Line / Toe to Toe — those walk you forward).
-  - Defender / Guard on a Combo ally when this hero does not also have Combo: The Fall hits the guarder; Worship only if that guarder has Combo.
+  - Deacon or Cardinal on the board: while Altar is alive it is the exclusive `must_kill` (Cherub / Evangelist deferred; Herald stays legal for splash). Boss deferred. Wiki: "imperative to kill regular Cultist enemies, especially Altars." When Altar is dead, remaining regulars share `must_kill`. `AltarMustKillBias` still pays Altar over other must-kills; each Worship stack on the boss adds `WorshipStackBias`. A 0-damage Combo mark does not inherit that must-kill focus.
+  - Exemplar (Act 3+ last-region Rampart): while Exemplar HP% > ~25% (or Worship ≥ 1 with Altar alive), kill Altar first if alive (`must_kill`; denies Pillar → Regen+Worship — Obsession Altar Taunt makes this especially bad), else Herald (`must_kill`). Exemplar is deferred in those cases; Cherub / Evangelist stay deferred. Herald stays legal (not deferred) while Altar is the must-kill so splash can still chip. When Exemplar HP% ≤ ~25% and Altar is gone (or Worship is 0), Exemplar is `must_kill` and soft adds are deferred; Herald remains legal but not forced. Worship stacks on Exemplar also escalate Altar/Herald focus pay. Skip a deferred punch only when this hero has a damaging must-kill click (HP, or a Taproot tap). Blind Gas / Tracking Shot / any Combo-only tap is not that click — Pillar is Exemplar's forced skill, Blind on Altar does not stop it. If this hero cannot damage Altar, walk onto a launch rank; if an ally already reaches it, a real swing on the deferred target is allowed. On Altar, a bigger HP swing beats a higher-score DoT open unless Altar already dies to DoT.
+  - Holy Water / Combo-strip on a hero who has Combo: spend it — PickAction hard-gate (same utility rule as Implication Blind: not over a kill / last-bar / party crisis). Wiki: The Fall on Combo is how Exemplar gains Worship for Exultation. Same strip gate applies on Ravenous Reach p1 (Setback).
+  - The Fall (CSV `exemplar_the_fall`): Combo-gated, `target_ranks` 1-3. Taunt on a rank-4 hero skips it (wiki: forces Prelude / Rapturous Beauty) — hard-gated like Combo-strip. If Combo is live in ranks 1-3 and this hero cannot strip it, walk onto rank 4 when an equipped Taunt skill launches from there (not Hold the Line / Toe to Toe — those walk you forward). Do not Fall-walk while Altar is the must-kill (Pillar is worse than The Fall, and the walk spends the party's one reach-walk). Retribution does not open over a damaging Altar hit.
+  - Defender / Guard on a Combo ally when this hero does not also have Combo: The Fall hits the guarder; Worship only if that guarder has Combo — also hard-gated.
 - **Not encoded:** Shred of Decency as a named item (it already classifies as a strip if the CSV says so); inn blight resist. Kingdoms Tundra Exemplar.
 
 ## Ravenous Reach (Ambition / Confession 4)
@@ -131,7 +131,7 @@ Do not encode a fallback that only we invented.
 - **Sources:** [wiki Strategy](https://darkestdungeon.wiki.gg/wiki/Ravenous_Reach#Strategy). CSV: `boss_arms_phase1` / `_phase2` / `_phase3`. p1 Ideation Block+ x3 and Setback (Combo: ignore Dodge, +100% DMG, Stun). p2 Dodge x2 and Teardown. p3 Riposte x2.
 - **Rules encoded:**
   - The arms are `must_kill` (only target; marks walk-for-reach).
-  - p1: Combo-strip on heroes (Setback).
+  - p1: Combo-strip on heroes (Setback) — hard-gated like Exemplar strip (not over a kill / last-bar / party crisis).
   - p2 Dodge x2 / p3 Riposte x2: a legal strip (Tracking Shot, Highway Robbery, Bellow, Magnesium Rain) beats a non-kill attack. Last-enemy Riposte no longer waives the peel — the arms *are* the last enemy.
 - **Not encoded:** inn bleed-RES / Fate's Foreteller plan; Sergeant immobility trophy; hero-path skill picks; Bastard's Beacon extra riders. Bleed cleanse on allies is the existing DoT-item policy.
 
@@ -158,6 +158,13 @@ Do not encode a fallback that only we invented.
 - **Sources:** [wiki Ordainment](https://darkestdungeon.wiki.gg/wiki/Ordainment). HP/DMG (and confession-specific) buffs on trash as the mountain run goes on. Act/lair bosses are never ordained except Bastard's Beacon.
 - **Rules encoded:** none. Extra HP and damage already sit in the snapshot and in `QuerySkillPreview`. The wiki has no targeting rule ("kill ordained first" is ours).
 - **Not encoded:** confession-specific on-crit token copy, Block→Block+ conversion, invert-on-crit. No combat click follows from those sentences.
+
+## Cabin Boy
+
+- **Sources:** [wiki Cabin Boy](https://darkestdungeon.wiki.gg/wiki/Cabin_Boy). Skills Unstable Incubation / Spawning Ground; Newborn Mutation on the transformed Fisherfolk.
+- **Rules encoded:**
+  - While any Cabin Boy is alive, set `BurstBeforeEvolve`. Retribution riposte setup and loaded-Implication Blind do not open — Cabin Boys incubate instead of attacking, and a transformed Fisherfolk arrives fully healed with Mutation buffs. Prefer damage.
+- **Not encoded:** which Fisherfolk form Spawning Ground prefers by free ranks; disease from Newborn Mutation.
 
 ## How to add the next boss
 
