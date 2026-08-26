@@ -16,6 +16,7 @@ namespace Dd2Autobattler.Logging
         private static int _turnIndex;
 
         public static string LastSummary { get; private set; } = "DD2 Autobattler idle";
+        public static string LastRunnerUp { get; private set; } = "";
 
         public static void Init(string bepInExRoot, ManualLogSource log)
         {
@@ -42,7 +43,7 @@ namespace Dd2Autobattler.Logging
             obj["fight"] = _fightId;
             obj["utc"] = DateTime.UtcNow.ToString("o");
             WriteLine(obj);
-            SetSummary($"Fight start: {_fightId}");
+            SetSummary($"Fight start: {_fightId}", "");
         }
 
         public static void EndFight(JObject extra)
@@ -53,10 +54,10 @@ namespace Dd2Autobattler.Logging
             obj["turns"] = _turnIndex;
             obj["utc"] = DateTime.UtcNow.ToString("o");
             WriteLine(obj);
-            SetSummary($"Fight end: {_fightId}");
+            SetSummary($"Fight end: {_fightId}", "");
         }
 
-        public static void Turn(JObject record, string summary)
+        public static void Turn(JObject record, string summary, string runnerUp = null)
         {
             _turnIndex++;
             record["type"] = "turn";
@@ -64,7 +65,7 @@ namespace Dd2Autobattler.Logging
             record["turn_index"] = _turnIndex;
             record["utc"] = DateTime.UtcNow.ToString("o");
             WriteLine(record);
-            SetSummary(summary);
+            SetSummary(summary, runnerUp);
         }
 
         public static void ShadowResult(JObject compare)
@@ -85,7 +86,7 @@ namespace Dd2Autobattler.Logging
             var summary = match
                 ? "SHADOW agree " + humanSkill
                 : "SHADOW you " + humanSkill + " | bot " + botSkill + " gap " + gap.ToString("0.0");
-            SetSummary(summary);
+            SetSummary(summary, "");
         }
 
         public static void Info(string message)
@@ -117,10 +118,14 @@ namespace Dd2Autobattler.Logging
             WriteLine(obj);
         }
 
-        private static void SetSummary(string summary)
+        private static void SetSummary(string summary, string runnerUp = null)
         {
             LastSummary = summary ?? "";
+            if (runnerUp != null)
+                LastRunnerUp = runnerUp;
             _log?.LogInfo(summary);
+            if (!string.IsNullOrEmpty(LastRunnerUp))
+                _log?.LogInfo(LastRunnerUp);
         }
 
         private static void WriteLine(JObject obj)

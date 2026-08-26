@@ -151,6 +151,21 @@ namespace Dd2Autobattler.Combat
             return PartySynergy.HitsRankMask(hero.AttackHitRanks, enemyRank);
         }
 
+        // Rank-walk ping-pong: MAA shoves Dismas off the Pistol rank, then
+        // Dismas walks back. If any other attacker already hits this tile, sit.
+        public bool AllyHitsEnemyRank(uint performerGuid, int enemyRank)
+        {
+            for (var i = 0; i < Heroes.Count; i++)
+            {
+                var hero = Heroes[i];
+                if (hero == null || hero.Guid == performerGuid)
+                    continue;
+                if (HitsEnemyRank(hero.Guid, enemyRank))
+                    return true;
+            }
+            return false;
+        }
+
         public bool HeroHeals(uint guid)
         {
             return Hero(guid)?.Heals == true;

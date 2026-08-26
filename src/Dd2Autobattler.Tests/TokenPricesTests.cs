@@ -82,6 +82,36 @@ namespace Dd2Autobattler.Tests
         }
 
         [Fact]
+        public void Guard_guid_on_the_click_target_is_the_protected_actor()
+        {
+            var preview = new PreviewScore { Ok = true, Damage = 4.4f, Kills = true, GuardGuid = 10 };
+            preview.Hits.Add(new PreviewHit { Guid = 10, Damage = 4.4f, Kills = true });
+            preview.Hits.Add(new PreviewHit { Guid = 20, Damage = 4.4f, Kills = true });
+            preview.HitGuids.Add(10);
+            preview.HitGuids.Add(20);
+            var drummer = new TargetInfo { Guid = 10, Hp = 6f };
+            Assert.Equal(20u, TurnDecider.GuardBarGuid(preview, drummer));
+            Assert.Equal(20u, TurnDecider.FocusPayGuid(preview, drummer));
+            TurnDecider.NoteKillFromHp(preview, drummer, null);
+            Assert.True(preview.Kills);
+            Assert.False(TurnDecider.CountsAsDamagingFocusClick("gr_thrown_dagger_p3_u", preview, false));
+        }
+
+        [Fact]
+        public void Damage_into_a_0_hp_bar_is_a_kill()
+        {
+            var preview = new PreviewScore { Ok = true, Damage = 5f };
+            var armor = new TargetInfo { Guid = 3, Hp = 0f, DeathArmor = true };
+            TurnDecider.NoteKillFromHp(preview, armor, null);
+            Assert.True(preview.Kills);
+
+            var tap = new PreviewScore { Ok = true, Damage = 0f };
+            var root = new TargetInfo { Guid = 4, Hp = 0f, Healthless = true };
+            TurnDecider.NoteKillFromHp(tap, root, null);
+            Assert.False(tap.Kills);
+        }
+
+        [Fact]
         public void Stun_the_next_enemy_in_order_pays_extra()
         {
             var preview = new PreviewScore { Ok = true };
