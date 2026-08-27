@@ -39,16 +39,17 @@ Do not encode a fallback that only we invented.
 ## Tangle / Lost Battalion mashes
 
 - **Sources:** [The Tangle](https://darkestdungeon.wiki.gg/wiki/The_Tangle) - Bishops resurrect via Benediction; Drummers grant Order and move-resist, “killing the Drummer is a high priority.” CSV: Bishop `serve_once_more`; Drummer `death_before_dishonor`.
-- **Rules encoded:** Bishop `must_kill` first; Drummer `commander` next (not an add — a mash Drummer has no boss flag, and tagging him add vetoes every connecting hit). Knight / foot / arbalist deferred while either is a connecting legal target. Guard redirect onto a foot is not a Drummer hit. A 0-damage Combo mark on a deferred add is skipped while the Drummer / Bishop is up.
+- **Rules encoded:** Bishop `must_kill` first; Drummer `commander` next. Knight / foot / arbalist deferred while either is a connecting legal target. Guard redirect onto a foot is not a Drummer hit. A 0-damage Combo mark on a deferred add is skipped while the Drummer / Bishop is up. Controller flags share one predicate with add-marking so a mash Drummer is not tagged add.
 
 ## Harvest Child (Foetor lair)
 
 - **Sources:** [wiki Strategy](https://darkestdungeon.wiki.gg/wiki/Harvest_Child#Strategy_&_Advice). CSV/classes: `plague_eater_harvest_table` (Child), `*_fetid_meat`, `*_putrid_meat`. Hunger token `harvest_hunger`; rank 1 is forced `harvest_hunger` / Feed the Hunger (-15% max HP, unresistable).
 - **Rules encoded:**
   - Focus the table. Both meats are deferred while the table is alive. Do not finish a meat if the table is a legal attack.
+  - Rank 1 with `harvest_hunger` is forced Feed the Hunger (CSV `harvest_hunger`, `target_is_meat`). That click is not skipped as a deferred meat punch or a crisis-add punch — the game has no other skill.
   - If another hero has Harvest Hunger and this hero does not, prefer MAA Hold the Line / Hellion Toe to Toe (wiki: take rank 1 and immobilize so the hungry hero is not pulled into the eat). Those skills are not vetoed just because they hit a meat.
   - If this hero is hungry, those same forward-moves are penalized (they walk you into rank 1).
-- **Not encoded:** inn prep (Apples and Cheese, antivenom). Forced eat on rank 1 cannot be skipped. Immobilize on the meats themselves (Leper Bash / net) is not wired.
+- **Not encoded:** inn prep (Apples and Cheese, antivenom). Immobilize on the meats themselves (Leper Bash / net) is not wired.
 
 ## Relationship curses
 
@@ -100,6 +101,8 @@ Do not encode a fallback that only we invented.
   - Phase 1 (`eyes_stalk_*`): every stalk is `must_kill`. Kill them; they split Cluster → Bifurcated → Cloistered.
   - Do not LeaveChip a stalk. A 1 HP Cluster still Gazes / applies Seen.
   - Non-killing AoE on stalks (no DoT) loses to a single-target into one lane. Wiki AoE is a kill or a DoT finish, not a double-split.
+  - Do not open Retribution / Riposte setup over a damaging or DoT hit on a living stalk (same utility gate as Altar).
+  - Blind / Combo-only taps lose to a blight/bleed/burn that still tags a living stalk, including when the cone HitGuids corpses. A corpse-targeted DoT cone is the finish, not skip_corpse.
   - Phase 2 (`boss_eyes`): the mass is `must_kill`. Weak on the mass is extra (wiki: Weak/Block blunt Limerence).
   - Heal/guard the hero with `eyes_focus`.
   - Do not stack a third positive token onto a hero who is not Seen while the mass is up (wiki: Suppress on ≥3 positives).

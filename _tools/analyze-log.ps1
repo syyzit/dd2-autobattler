@@ -56,6 +56,8 @@ $notes = New-Object System.Collections.Generic.List[string]
 $close = 0
 $legalTurns = 0
 $hitAddWithController = 0
+$idleInstead = 0
+$idleNotes = New-Object System.Collections.Generic.List[string]
 $healSkippedDd = 0
 $healSkippedLow = 0
 $comboApplyNoSpender = 0
@@ -199,6 +201,18 @@ foreach ($file in $files) {
                             $spenders = @($o.synergy.combo_spenders)
                             if ($spenders.Count -eq 0) { $comboApplyNoSpender++ }
                         }
+                        $idlePick = $r -eq "support" -or $r -eq "pass" -or $r -eq "heal"
+                        if ($idlePick) {
+                            $cs = if ($picked) { [double]$picked.score } else { -999 }
+                            foreach ($row in $legal) {
+                                if (-not $row.enemy -or $row.kind -ne "Attack") { continue }
+                                if ([double]$row.dmg -lt 1) { continue }
+                                if ([double]$row.score -le $cs) { continue }
+                                $idleInstead++
+                                $idleNotes.Add(("{0} t{1} IDLE {2} while {3} -> {4} scores {5:0.0} dmg={6:0.0}" -f $fight.Id, $fight.Turns, $chosen.skill, $row.skill, $row.target, [double]$row.score, [double]$row.dmg))
+                                break
+                            }
+                        }
                     }
 
                     $ddAlly = $false
@@ -284,6 +298,7 @@ foreach ($k in $gapBuckets.Keys) {
     Write-Host ("    {0,-6} {1}" -f $k, $gapBuckets[$k])
 }
 Write-Host ("  hit ADD while controller legal: {0}" -f $hitAddWithController)
+Write-Host ("  idle while a real hit scored more: {0}" -f $idleInstead)
 Write-Host ("  skipped heal on Deaths Door:    {0}" -f $healSkippedDd)
 Write-Host ("  skipped heal on ally <=35pct:   {0}" -f $healSkippedLow)
 Write-Host ("  applied Combo with no spender:  {0}" -f $comboApplyNoSpender)
@@ -311,6 +326,12 @@ if ($errorNotes.Count -gt 0) {
     Write-Host ""
     Write-Host "======== SILENT FALLBACKS (first 15) ========"
     $errorNotes | Select-Object -First 15 | ForEach-Object { Write-Host ("  {0}" -f $_) }
+}
+
+if ($idleNotes.Count -gt 0) {
+    Write-Host ""
+    Write-Host "======== IDLE WHILE A HIT WAS BETTER (first 15) ========"
+    $idleNotes | Select-Object -First 15 | ForEach-Object { Write-Host ("  {0}" -f $_) }
 }
 
 if ($notes.Count -gt 0) {

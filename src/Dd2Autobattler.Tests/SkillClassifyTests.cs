@@ -273,6 +273,18 @@ namespace Dd2Autobattler.Tests
             var altar = new TargetInfo { Hp = 12f, ClassId = "cultist_altar" };
             Assert.False(TurnDecider.ShouldOpenTankRiposte(false, false, false, 2, true, chip, altar, 2, altarFocus));
             Assert.True(TurnDecider.ShouldOpenTankRiposte(false, false, false, 2, true, chip, enemy, 2, altarFocus));
+            var stalkFocus = new EnemyFocus();
+            stalkFocus.Enemies.Add(new EnemyThreat
+            {
+                Guid = 1,
+                ClassId = "boss_eyes_stalk_l",
+                MustKillFirst = true
+            });
+            var stalk = new TargetInfo { Hp = 12f, ClassId = "boss_eyes_stalk_l" };
+            Assert.False(TurnDecider.ShouldOpenTankRiposte(false, false, false, 2, true, chip, stalk, 2, stalkFocus));
+            Assert.True(TurnDecider.ShouldOpenTankRiposte(false, false, false, 2, true, chip, enemy, 2, stalkFocus));
+            var blight = new PreviewScore { Ok = true, Damage = 0f, Kills = false, ApplyBlight = 5f };
+            Assert.False(TurnDecider.ShouldOpenTankRiposte(false, false, false, 2, true, blight, stalk, 2, stalkFocus));
         }
 
         [Fact]
@@ -340,6 +352,8 @@ namespace Dd2Autobattler.Tests
             Assert.Equal(0f, TurnDecider.CorpseSplashDelta(2, 0, 2, true));
             Assert.Equal(-80f, TurnDecider.CorpseSplashDelta(1, 1, 2, true));
             Assert.Equal(-50f, TurnDecider.CorpseSplashDelta(1, 1, 1, true));
+            Assert.Equal(0f, TurnDecider.CorpseSplashDelta(1, 1, 1, true, 5f));
+            Assert.Equal(-80f, TurnDecider.CorpseSplashDelta(1, 1, 2, true, 5f));
             Assert.Equal(0f, TurnDecider.CorpseSplashDelta(1, 1, 1, false));
             Assert.Equal(0f, TurnDecider.CorpseSplashDelta(2, 1, 2, true));
         }
@@ -425,6 +439,41 @@ namespace Dd2Autobattler.Tests
             Assert.Equal(0f, TurnDecider.StalkChipAoEDelta(true, true, false, 1, 0f));
             Assert.Equal(0f, TurnDecider.StalkChipAoEDelta(true, true, false, 2, 3.5f));
             Assert.Equal(0f, TurnDecider.StalkChipAoEDelta(false, true, false, 2, 0f));
+        }
+
+        [Fact]
+        public void Forced_harvest_eat_is_the_hunger_skill_not_hold_the_line()
+        {
+            Assert.True(TurnDecider.IsForcedHarvestEat("harvest_hunger"));
+            Assert.False(TurnDecider.IsForcedHarvestEat("maa_hold_the_line"));
+            Assert.False(TurnDecider.IsForcedHarvestEat("hel_toe_to_toe"));
+            Assert.False(TurnDecider.IsForcedHarvestEat("hwm_wicked_slice_p1_u"));
+            Assert.False(TurnDecider.IsForcedHarvestEat(null));
+        }
+
+        [Fact]
+        public void Blind_gas_loses_to_blight_that_still_tags_a_stalk()
+        {
+            var gas = new PreviewScore { Ok = true, Damage = 0f };
+            gas.ApplyTarget.Add("combo");
+            gas.ApplyTarget.Add("blind");
+            var blight = new PreviewScore { Ok = true, Damage = 0f, ApplyBlight = 5f };
+            blight.HitGuids.Add(1);
+            blight.HitGuids.Add(2);
+            blight.HitGuids.Add(3);
+            Assert.True(TurnDecider.IsStalkRealHit(
+                true, true, true, "lost_battalion_foot_soldier", "pd_noxious_blast", blight));
+            Assert.True(TurnDecider.IsStalkRealHit(
+                true, true, false, "boss_eyes_stalk_l", "pd_noxious_blast", blight));
+            Assert.False(TurnDecider.IsStalkRealHit(
+                true, true, false, "boss_eyes_stalk_l", "pd_blinding_gas", gas));
+            Assert.True(TurnDecider.StalkTapWaste(true, true, "pd_blinding_gas", gas));
+            Assert.False(TurnDecider.StalkTapWaste(true, false, "pd_blinding_gas", gas));
+            Assert.False(TurnDecider.StalkTapWaste(true, true, "pd_noxious_blast", blight));
+            Assert.Equal(250f, TurnDecider.StalkDotFinishUndo(true, true, true, 5f, 3));
+            Assert.Equal(0f, TurnDecider.StalkDotFinishUndo(true, true, false, 5f, 3));
+            Assert.Equal(0f, TurnDecider.StalkDotFinishUndo(true, true, true, 0f, 3));
+            Assert.True(TurnDecider.IsStalkDotFinish(true, true, true, blight));
         }
 
         [Fact]
@@ -855,6 +904,17 @@ namespace Dd2Autobattler.Tests
         }
 
         [Fact]
+        public void Stalk_must_kill_is_live_until_it_leaves_the_scan()
+        {
+            var focus = new EnemyFocus();
+            var stalk = new EnemyThreat { Guid = 1, ClassId = "boss_eyes_stalk_l", MustKillFirst = true };
+            focus.Enemies.Add(stalk);
+            Assert.True(focus.HasLivingStalkMustKill());
+            stalk.MustKillFirst = false;
+            Assert.False(focus.HasLivingStalkMustKill());
+        }
+
+        [Fact]
         public void Deferred_boss_is_skipped_only_when_this_hero_can_damage_the_must_kill()
         {
             Assert.True(TurnDecider.ShouldSkipDeferredPunch(true, true, false));
@@ -889,13 +949,48 @@ namespace Dd2Autobattler.Tests
         }
 
         [Fact]
+        public void Priority_targets_are_never_marked_adds()
+        {
+            var controllers = new[]
+            {
+                new EnemyThreat { Guid = 1, Boss = true },
+                new EnemyThreat { Guid = 2, Summons = true },
+                new EnemyThreat { Guid = 3, Resurrects = true },
+                new EnemyThreat { Guid = 4, MustKillFirst = true },
+                new EnemyThreat { Guid = 5, Commander = true }
+            };
+            foreach (var e in controllers)
+            {
+                var focus = new EnemyFocus();
+                focus.HasPriorityTarget = true;
+                focus.Enemies.Add(e);
+                focus.Enemies.Add(new EnemyThreat { Guid = 99, ClassId = "cultist_cherub" });
+                EnemyFocus.MarkNonPriorityAdds(focus);
+                Assert.True(focus.IsPriority(e.Guid));
+                Assert.False(focus.IsAdd(e.Guid));
+                Assert.False(focus.IsPriority(99));
+                Assert.True(focus.IsAdd(99));
+            }
+        }
+
+        [Fact]
+        public void Connecting_hit_is_not_replaced_by_setup_or_pass()
+        {
+            Assert.True(TurnDecider.ReplacesAttackWithIdle(SkillKind.Support, false, false));
+            Assert.True(TurnDecider.ReplacesAttackWithIdle(SkillKind.Pass, false, false));
+            Assert.True(TurnDecider.ReplacesAttackWithIdle(SkillKind.Heal, false, false));
+            Assert.False(TurnDecider.ReplacesAttackWithIdle(SkillKind.Heal, false, true));
+            Assert.False(TurnDecider.ReplacesAttackWithIdle(SkillKind.Attack, true, false));
+        }
+
+        [Fact]
         public void Tangle_drummer_is_commander_feet_are_deferred()
         {
             var focus = new EnemyFocus();
             focus.Enemies.Add(new EnemyThreat { Guid = 1, ClassId = "lost_battalion_foot_soldier", Boss = true });
             focus.Enemies.Add(new EnemyThreat { Guid = 2, ClassId = "lost_battalion_foot_soldier", Boss = true });
             focus.Enemies.Add(new EnemyThreat { Guid = 3, ClassId = "lost_battalion_foot_soldier", Boss = true });
-            focus.Enemies.Add(new EnemyThreat { Guid = 4, ClassId = "lost_battalion_drummer", Boss = true, Supports = true });
+            focus.Enemies.Add(new EnemyThreat { Guid = 4, ClassId = "lost_battalion_drummer", Supports = true });
             EnemyFocus.ApplyTangleNotes(focus);
             EnemyFocus.MarkNonPriorityAdds(focus);
             EnemyFocus.ScoreEnemies(focus);

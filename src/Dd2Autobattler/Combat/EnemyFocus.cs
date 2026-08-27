@@ -107,9 +107,14 @@ namespace Dd2Autobattler.Combat
             return focus;
         }
 
-        // Boss / commander / rezzer / summoner stay controllers. Everyone else
-        // in a priority fight is an add (dungeon BossModifier does not make a
-        // Drummer an add, and a mash Drummer is not a boss).
+        // Who IsPriority cares about. MarkNonPriorityAdds uses the same list —
+        // duplicating flags here is how a mash Drummer got tagged add.
+        internal static bool IsController(EnemyThreat t)
+        {
+            return t != null && !t.Defer
+                   && (t.MustKillFirst || t.Commander || t.Boss || t.Summons || t.Resurrects);
+        }
+
         internal static void MarkNonPriorityAdds(EnemyFocus focus)
         {
             if (focus == null)
@@ -117,7 +122,7 @@ namespace Dd2Autobattler.Combat
             for (var i = 0; i < focus.Enemies.Count; i++)
             {
                 var e = focus.Enemies[i];
-                if (!e.Boss && !e.Summons && !e.Resurrects && !e.MustKillFirst && !e.Commander)
+                if (!IsController(e))
                     e.Add = true;
             }
         }
@@ -144,9 +149,7 @@ namespace Dd2Autobattler.Combat
 
         public bool IsPriority(uint guid)
         {
-            var t = Find(guid);
-            return t != null && !t.Defer
-                   && (t.MustKillFirst || t.Commander || t.Boss || t.Summons || t.Resurrects);
+            return IsController(Find(guid));
         }
 
         public bool IsMustKillFirst(uint guid)
@@ -163,6 +166,19 @@ namespace Dd2Autobattler.Combat
             {
                 var e = Enemies[i];
                 if (e != null && e.MustKillFirst && IdHas(e.ClassId, "cultist_altar"))
+                    return true;
+            }
+            return false;
+        }
+
+        // Focused Fault p1: every stalk is must_kill. Same Scan rule as Altar —
+        // if it is still in the list, it is still up.
+        public bool HasLivingStalkMustKill()
+        {
+            for (var i = 0; i < Enemies.Count; i++)
+            {
+                var e = Enemies[i];
+                if (e != null && e.MustKillFirst && IdHas(e.ClassId, "eyes_stalk"))
                     return true;
             }
             return false;

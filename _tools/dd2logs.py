@@ -215,9 +215,10 @@ def cite_turn(turn):
     legal = sorted_legal(turn)
     kind = (picked or {}).get("kind") or ""
     actor = turn.get("actor") or {}
+    free_item = bool((picked or {}).get("item_free"))
 
     kill_rows = [r for r in legal if cited_kill(r)]
-    if is_setup_click(skill, kind, reason) and kill_rows:
+    if (not free_item) and is_setup_click(skill, kind, reason) and kill_rows:
         best = kill_rows[0]
         hits.append(
             (
@@ -227,7 +228,7 @@ def cite_turn(turn):
                 ),
             )
         )
-    elif is_setup_click(skill, kind, reason):
+    elif (not free_item) and is_setup_click(skill, kind, reason):
         best_atk = next(
             (
                 r
