@@ -32,9 +32,9 @@ namespace Dd2Autobattler.Tests
                     bestKill = row;
             }
 
-            if (IsSetup(skill, kind, reason) && bestKill != null)
+            if (IsSetup(skill, kind, reason) && !FreeItem(picked) && bestKill != null)
                 hits.Add("setup_over_kill");
-            else if (IsSetup(skill, kind, reason))
+            else if (IsSetup(skill, kind, reason) && !FreeItem(picked))
             {
                 JObject bestAtk = null;
                 foreach (var token in legal)
@@ -115,6 +115,11 @@ namespace Dd2Autobattler.Tests
         {
             var s = (skill ?? "").ToLowerInvariant();
             return s.IndexOf("flashing") >= 0 || s.IndexOf("blinding_gas") >= 0;
+        }
+
+        private static bool FreeItem(JObject picked)
+        {
+            return picked != null && picked.Value<bool>("item_free");
         }
 
         private static bool IsSetup(string skill, string kind, string reason)

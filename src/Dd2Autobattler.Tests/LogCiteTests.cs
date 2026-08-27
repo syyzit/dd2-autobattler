@@ -73,6 +73,23 @@ namespace Dd2Autobattler.Tests
         }
 
         [Fact]
+        public void Free_laudanum_is_not_a_setup_cite()
+        {
+            var laud = Legal("laudanum", 55f, kills: false, hitN: 0, why: "", kind: "Support");
+            laud["item_free"] = true;
+            laud["item"] = true;
+            var turn = Turn(
+                "laudanum",
+                "item_stress",
+                Legal("gr_pick_to_the_face", 144.8f, kills: true, hitN: 1, why: "boss+eyes"),
+                laud);
+            turn["enemies"] = new JArray { Enemy("boss_eyes_stalk_l") };
+            var hits = LogCite.Check(turn);
+            Assert.DoesNotContain("setup_over_kill", hits);
+            Assert.DoesNotContain("setup_over_swing", hits);
+        }
+
+        [Fact]
         public void Trash_fight_does_not_fire_stalk_cites()
         {
             var turn = Turn(

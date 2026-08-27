@@ -50,7 +50,7 @@ Unique **resources**, not hero names. Phase 1 is Winded, Blind/Ruin, Pain. Phase
   - Duelist's Advance is docked when it would shove an Acid Rain ally from the rank in front of the Highwayman onto rank 2+ (Acid Rain launch is ranks 0–1 only).
   - Do not rank-walk for a must-kill an ally already hits from their current rank (MAA shoving Dismas off the Pistol rank, then Dismas walking back). Librarian still never swaps the hero who punches him.
   - Reach walks score lower while the party is in crisis so Endure / BM / Rest beat a 180 move.
-  - Man-at-Arms Retribution (Taunt + Riposte) is the team's one Riposte open: this hero's token is down, ≥2 enemies live, not over a kill / last-bar finish / Cabin Boy burst (`BurstBeforeEvolve`). Do not open a second Riposte if an ally already has one, unless a living hero is at ≤45% (Taunt should pull those hits). Highwayman Take Aim is not this gate — Duelist's Advance plants Riposte on the attack.
+  - Man-at-Arms Retribution (Taunt + Riposte) is the team's one Riposte open: this hero's token is down, ≥2 enemies live, not over a kill / last-bar finish / Cabin Boy burst (`BurstBeforeEvolve`) / a damaging hit on a living Altar or Focused Fault stalk. Do not open a second Riposte if an ally already has one, unless a living hero is at ≤45% (Taunt should pull those hits). Highwayman Take Aim is not this gate — Duelist's Advance plants Riposte on the attack.
 - **Not encoded:** dancing comps (Jester Echoing March) as a full rank script.
 
 ## Combo reach (party)

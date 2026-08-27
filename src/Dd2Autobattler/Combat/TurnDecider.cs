@@ -630,6 +630,21 @@ namespace Dd2Autobattler.Combat
             if (candidates == null || candidates.Count == 0)
                 return null;
 
+            // wiki.gg/Harvest_Child: rank 1 + harvest_hunger is forced Feed the
+            // Hunger (CSV harvest_hunger, target_is_meat). Meats are deferred
+            // adds, so the crisis/add vetoes would skip the only legal click
+            // (t15 HWM 16% HP → no_legal_action).
+            ScoredAction bestHungerEat = null;
+            foreach (var c in candidates)
+            {
+                if (!IsForcedHarvestEat(c.SkillId))
+                    continue;
+                if (bestHungerEat == null || c.Score > bestHungerEat.Score)
+                    bestHungerEat = c;
+            }
+            if (bestHungerEat != null)
+                return bestHungerEat;
+
             ScoredAction bestItem = null;
             foreach (var c in candidates)
             {
@@ -679,6 +694,8 @@ namespace Dd2Autobattler.Combat
             ScoredAction bestArtilleryBlind = null;
             ScoredAction bestStripCombo = null;
             ScoredAction bestFallDefense = null;
+            var stalksUp = focus != null && focus.HasLivingStalkMustKill();
+            var hasStalkHit = HasStalkRealHit(candidates, stalksUp);
             foreach (var c in candidates)
             {
                 if (c.IsItem && c.FreeAction)
@@ -701,11 +718,12 @@ namespace Dd2Autobattler.Combat
                 var realHit = c.Kind == SkillKind.Attack && c.EnemyTarget && c.Target != null && !c.Target.Corpse
                               && c.Target.Actor != null && c.Target.Actor.IsLiving;
                 var hungerGuard = IsHarvestHungerGuard(c.SkillId);
+                var hungerEat = IsForcedHarvestEat(c.SkillId);
                 var splashFocus = HitsFocusTarget(c, focus);
                 // wiki.gg/Librarian: do not punch stacks even when he is out of reach.
                 if (realHit && focus != null && focus.IsLibrarianStack(c.Target.Actor.ActorGuid))
                     continue;
-                if (realHit && !hungerGuard && !splashFocus
+                if (realHit && !hungerGuard && !hungerEat && !splashFocus
                     && ShouldSkipDeferredPunch(
                         mustKillLegal,
                         focus != null && focus.IsDeferred(c.Target.Actor.ActorGuid),
@@ -713,14 +731,14 @@ namespace Dd2Autobattler.Combat
                     continue;
                 // Taunt on the deferred target is forced; a leftover 0-dmg
                 // click on the must-kill must not veto it.
-                if (realHit && !hungerGuard && !splashFocus && priorityLegal
+                if (realHit && !hungerGuard && !hungerEat && !splashFocus && priorityLegal
                     && focus.IsDeferred(c.Target.Actor.ActorGuid) && !c.Target.Taunt)
                     continue;
-                if (realHit && !hungerGuard && !splashFocus && priorityLegal
+                if (realHit && !hungerGuard && !hungerEat && !splashFocus && priorityLegal
                     && focus.IsAdd(c.Target.Actor.ActorGuid)
                     && !focus.IsPriority(c.Target.Actor.ActorGuid))
                     continue;
-                if (realHit && !splashFocus && performerCrisis && livingEnemies > 1 && focus != null
+                if (realHit && !hungerEat && !splashFocus && performerCrisis && livingEnemies > 1 && focus != null
                     && focus.IsAdd(c.Target.Actor.ActorGuid)
                     && !focus.IsPriority(c.Target.Actor.ActorGuid))
                     continue;
@@ -730,6 +748,10 @@ namespace Dd2Autobattler.Combat
                 if (realHit && ComboChipWaste(c))
                     continue;
                 if (realHit && ComboMarkWaste(c))
+                    continue;
+                // wiki.gg/Focused_Fault: AoE is a kill or a DoT finish. Blind /
+                // Tracking Shot on a Cluster is neither when blight is legal.
+                if (realHit && StalkTapWaste(stalksUp, hasStalkHit, c.SkillId, c.Preview))
                     continue;
                 // Tracking Shot on a deferred foot while a Drummer is up is not
                 // setup. Wiki: kill the controller; Combo on an add is a wasted turn.
@@ -750,7 +772,14 @@ namespace Dd2Autobattler.Combat
                     && (focus.IsMustKillFirst(c.Target.Actor.ActorGuid)
                         || focus.IsPriority(c.Target.Actor.ActorGuid)))
                     continue;
-                if (realHit && (bestAttack == null || BetterAttack(c, bestAttack, focus)))
+                // A blight cone whose click target is a corpse still tags a
+                // living Cluster. That is the wiki DoT finish, not skip_corpse.
+                var stalkDotFinish = IsStalkDotFinish(
+                    stalksUp,
+                    c.EnemyTarget,
+                    c.Target != null && c.Target.Corpse,
+                    c.Preview);
+                if ((realHit || stalkDotFinish) && (bestAttack == null || BetterAttack(c, bestAttack, focus)))
                     bestAttack = c;
                 if (allowSetup && (c.Kind == SkillKind.Support || c.Kind == SkillKind.Pass)
                     && (bestSetup == null || c.Score > bestSetup.Score))
@@ -841,8 +870,8 @@ namespace Dd2Autobattler.Combat
                 }
             }
 
-            // Vetoes ate the Drummer shot (tagged add, etc.). Restore it:
-            // a connecting controller hit always beats Take Aim / Absinthe / Pass.
+            // Vetoes emptied bestAttack while a connecting controller hit was
+            // still in the list. Restore it so setup/pass cannot win.
             if (bestAttack == null)
                 bestAttack = BestFocusAttack(candidates, focus);
 
@@ -850,6 +879,12 @@ namespace Dd2Autobattler.Combat
             if (allowSetup && bestSetup != null && bestAttack != null)
                 return bestSetup;
             // Blind swing at −36 or worse: Reflection / Withstand already outscore it.
+            // A connecting hit that already scored ≥ 0 is not that case.
+            if (bestAttack != null && bestAny != null
+                && ReplacesAttackWithIdle(bestAny.Kind, bestAny.EnemyTarget, false)
+                && !ReplacesAttackWithIdle(bestAttack.Kind, bestAttack.EnemyTarget, false)
+                && bestAttack.Score >= 0f)
+                return bestAttack;
             if (bestAttack != null && bestAttack.Score < 0f && bestAny != null && bestAny.Score > bestAttack.Score)
                 return bestAny;
             if (bestAttack != null)
@@ -861,8 +896,46 @@ namespace Dd2Autobattler.Combat
             return bestAny;
         }
 
+        // Setup / Rest / Absinthe must not beat a connecting hit that already
+        // scored. Crisis heals are a different gate.
+        internal static bool ReplacesAttackWithIdle(SkillKind kind, bool enemyTarget, bool crisisHeal)
+        {
+            if (crisisHeal)
+                return false;
+            if (kind == SkillKind.Attack && enemyTarget)
+                return false;
+            return kind == SkillKind.Support || kind == SkillKind.Pass || kind == SkillKind.Move
+                   || (kind == SkillKind.Heal && !enemyTarget);
+        }
+
+        private static ScoredAction BestFocusAttack(List<ScoredAction> candidates, EnemyFocus focus)
+        {
+            if (candidates == null || focus == null)
+                return null;
+            ScoredAction best = null;
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                var c = candidates[i];
+                if (c.IsItem && c.FreeAction)
+                    continue;
+                if (c.Kind != SkillKind.Attack || !c.EnemyTarget || c.Target == null || c.Target.Actor == null)
+                    continue;
+                if (ComboMarkWaste(c) || IsZeroDamageMark(c.SkillId, c.Preview))
+                    continue;
+                if (!CountsAsDamagingFocusClick(c.SkillId, c.Preview, c.LeaveChip) && !IsTaprootTap(c))
+                    continue;
+                var guid = c.Target.Actor.ActorGuid;
+                if (!focus.IsPriority(guid) && !focus.IsMustKillFirst(guid))
+                    continue;
+                if (best == null || BetterAttack(c, best, focus))
+                    best = c;
+            }
+            return best;
+        }
+
         // Do not open Retribution / artillery Blind over a real kill, last bar,
-        // a Cabin Boy burst window, or a damaging hit on a living Altar must-kill.
+        // a Cabin Boy burst window, or a damaging hit on a living Altar / stalk
+        // must-kill (wiki: kill them; Crush on a Cluster is not setup).
         internal static bool ShouldOpenUtility(PreviewScore attackPreview, TargetInfo attackTarget, int killableEnemies)
         {
             return ShouldOpenUtility(attackPreview, attackTarget, killableEnemies, null);
@@ -880,9 +953,22 @@ namespace Dd2Autobattler.Combat
                 && attackPreview != null && attackPreview.Damage > 0f
                 && attackTarget != null && IdHasClass(attackTarget.ClassId, "cultist_altar"))
                 return false;
+            if (focus != null && focus.HasLivingStalkMustKill()
+                && attackTarget != null && IdHasClass(attackTarget.ClassId, "eyes_stalk")
+                && StalkClickHurts(attackPreview))
+                return false;
             if (attackPreview != null && attackPreview.Kills)
                 return false;
             return !LastKillableFinish(attackPreview, attackTarget, killableEnemies);
+        }
+
+        internal static bool StalkClickHurts(PreviewScore preview)
+        {
+            if (preview == null)
+                return false;
+            if (preview.Damage > 0f)
+                return true;
+            return preview.ApplyBleed + preview.ApplyBlight + preview.ApplyBurn > 0.05f;
         }
 
         private static bool ShouldOpenUtility(ScoredAction bestAttack, int killableEnemies, EnemyFocus focus)
@@ -1173,6 +1259,8 @@ namespace Dd2Autobattler.Combat
             if (!string.IsNullOrEmpty(picked.NoteReason)) return picked.NoteReason;
             if (picked.MustRankWalk) return "rank_walk";
             if (picked.ReachReposition) return "reach_reposition";
+            if (IsForcedHarvestEat(picked.SkillId))
+                return "forced_hunger";
             if (IsHarvestHungerGuard(picked.SkillId) && picked.Score >= 80f)
                 return "hunger_guard";
             if (kind == SkillKind.Heal && target != null && target.DeathsDoor) return "heal_deaths_door";
@@ -1259,6 +1347,14 @@ namespace Dd2Autobattler.Combat
             return "fallback";
         }
 
+        // CSV harvest_hunger: performer_has_harvest_hunger + target_is_meat.
+        // The game replaces the skill bar; this is not Hold the Line.
+        internal static bool IsForcedHarvestEat(string skillId)
+        {
+            return !string.IsNullOrEmpty(skillId)
+                   && skillId.IndexOf("harvest_hunger", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
         private static bool IsHarvestHungerGuard(string skillId)
         {
             return !string.IsNullOrEmpty(skillId)
@@ -1325,6 +1421,71 @@ namespace Dd2Autobattler.Combat
             if (applyDot > 0.05f)
                 return 0f;
             return -16f;
+        }
+
+        // Blind Gas / Tracking Shot while a HP or DoT click on a Cluster is legal.
+        internal static bool StalkTapWaste(bool stalksUp, bool hasStalkRealHit, string skillId, PreviewScore preview)
+        {
+            if (!stalksUp || !hasStalkRealHit)
+                return false;
+            return IsZeroDamageMark(skillId, preview);
+        }
+
+        // HP or blight/bleed/burn on a living Cluster, or a DoT cone whose click
+        // target is a corpse but HitGuids still include another body (the Cluster).
+        internal static bool IsStalkRealHit(
+            bool stalksUp,
+            bool enemyTarget,
+            bool targetCorpse,
+            string classId,
+            string skillId,
+            PreviewScore preview)
+        {
+            if (!stalksUp || !enemyTarget || preview == null)
+                return false;
+            if (IsZeroDamageMark(skillId, preview))
+                return false;
+            var dot = preview.ApplyBleed + preview.ApplyBlight + preview.ApplyBurn;
+            if (!targetCorpse && IdHasClass(classId, "eyes_stalk")
+                && (preview.Damage > 0f || dot > 0.05f))
+                return true;
+            return IsStalkDotFinish(true, true, targetCorpse, preview);
+        }
+
+        // Corpse-targeted blight still lands on a living stalk in the cone.
+        // ScoreAction would skip_corpse (−250); undo that so Rest cannot win.
+        internal static bool IsStalkDotFinish(bool stalksUp, bool enemyTarget, bool targetCorpse, PreviewScore preview)
+        {
+            if (!stalksUp || !enemyTarget || !targetCorpse || preview == null)
+                return false;
+            var dot = preview.ApplyBleed + preview.ApplyBlight + preview.ApplyBurn;
+            if (dot <= 0.05f)
+                return false;
+            return preview.HitGuids != null && preview.HitGuids.Count >= 2;
+        }
+
+        internal static float StalkDotFinishUndo(bool stalksUp, bool enemyTarget, bool targetCorpse, float applyDot, int hitN)
+        {
+            if (!stalksUp || !enemyTarget || !targetCorpse || applyDot <= 0.05f || hitN < 2)
+                return 0f;
+            return 250f;
+        }
+
+        private static bool HasStalkRealHit(List<ScoredAction> candidates, bool stalksUp)
+        {
+            if (!stalksUp || candidates == null)
+                return false;
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                var c = candidates[i];
+                if (c.IsItem && c.FreeAction)
+                    continue;
+                if (c.Kind != SkillKind.Attack || !c.EnemyTarget || c.Target == null)
+                    continue;
+                if (IsStalkRealHit(true, true, c.Target.Corpse, c.Target.ClassId, c.SkillId, c.Preview))
+                    return true;
+            }
+            return false;
         }
 
         private static bool ShouldLeaveChip(ScoredAction c, int livingEnemies, uint performerGuid, List<uint> remaining, BattleTeams teams, PartyKit party)
@@ -1754,7 +1915,10 @@ namespace Dd2Autobattler.Combat
                     if (ol > bestLive)
                         bestLive = ol;
                 }
-                var delta = CorpseSplashDelta(live, dead, bestLive, cleanLiving);
+                var dot = 0f;
+                if (c.Preview != null)
+                    dot = c.Preview.ApplyBleed + c.Preview.ApplyBlight + c.Preview.ApplyBurn;
+                var delta = CorpseSplashDelta(live, dead, bestLive, cleanLiving, dot);
                 if (delta == 0f)
                     continue;
                 c.Score += delta;
@@ -1763,7 +1927,12 @@ namespace Dd2Autobattler.Combat
             }
         }
 
-        internal static float CorpseSplashDelta(int livingHits, int corpseHits, int bestLiveSameSkill, bool cleanLivingHitExists)
+        internal static float CorpseSplashDelta(
+            int livingHits,
+            int corpseHits,
+            int bestLiveSameSkill,
+            bool cleanLivingHitExists,
+            float applyDot = 0f)
         {
             if (corpseHits <= 0)
                 return 0f;
@@ -1772,6 +1941,9 @@ namespace Dd2Autobattler.Combat
             // Two living hits are the reward. Do not veto that cone because a
             // corpse is also in it — Pick would then beat a real AoE.
             if (livingHits >= 2)
+                return 0f;
+            // wiki DoT finish: blight through a corpse still tags the Cluster.
+            if (applyDot > 0.05f && livingHits >= 1)
                 return 0f;
             if (cleanLivingHitExists)
                 return -50f;
@@ -2067,6 +2239,18 @@ namespace Dd2Autobattler.Combat
                         c.Score += aoe;
                         if (string.IsNullOrEmpty(c.NoteReason))
                             c.NoteReason = "stalk_chip_aoe";
+                    }
+                    var undo = StalkDotFinishUndo(
+                        true,
+                        true,
+                        c.Target != null && c.Target.Corpse,
+                        dot,
+                        hits);
+                    if (undo != 0f)
+                    {
+                        c.Score += undo;
+                        if (string.IsNullOrEmpty(c.NoteReason) || c.NoteReason == "corpse_splash")
+                            c.NoteReason = "stalk_dot_finish";
                     }
                 }
             }
