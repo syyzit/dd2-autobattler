@@ -1,0 +1,519 @@
+{
+  "name": "deaths_door_skill_heal",
+  "note": "Death's Door ally gets the skill heal (Battlefield Medicine) over a swing.",
+  "source": "20260827-083746#17/t27 mountain_boss_eyes Paracelsus (logged pd_battlefield_medicine_u->2065 301.0 heal_deaths_door)",
+  "expect": {
+    "Skill": "pd_battlefield_medicine_u",
+    "Target": 2065
+  },
+  "forbid": [],
+  "snap": {
+    "Schema": 1,
+    "PerformerGuid": 2067,
+    "Performer": {
+      "Guid": 2067,
+      "Name": "Paracelsus",
+      "Living": true,
+      "Size": 1,
+      "HpMax": 36.0,
+      "Hp": 27.0,
+      "HpPct": 0.75,
+      "Stress": 5.0,
+      "Rank": 3,
+      "ClassId": "plague_doctor",
+      "Tokens": [],
+      "SkillIds": [
+        "~legacy_kit/2067",
+        "pd_noxious_blast_p2",
+        "pd_blinding_gas_u",
+        "pd_battlefield_medicine_u",
+        "pd_ounce_of_prevention",
+        "pd_move",
+        "pass_stress"
+      ]
+    },
+    "Heroes": [
+      {
+        "Guid": 2065,
+        "Name": "Barristan",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 55.0,
+        "DeathsDoor": true,
+        "Stress": 6.0,
+        "EyesFocus": 2,
+        "ClassId": "man_at_arms",
+        "Tokens": [
+          "eyes_focus",
+          "eyes_focus"
+        ],
+        "SkillIds": [
+          "~legacy_kit/2065"
+        ]
+      },
+      {
+        "Guid": 2062,
+        "Name": "Dismas",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 42.0,
+        "Hp": 23.0,
+        "HpPct": 0.547619045,
+        "Stress": 2.0,
+        "Rank": 1,
+        "ClassId": "highwayman",
+        "Tokens": [],
+        "SkillIds": [
+          "~legacy_kit/2062"
+        ]
+      },
+      {
+        "Guid": 2060,
+        "Name": "Audrey",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 35.0,
+        "Hp": 20.0,
+        "HpPct": 0.5714286,
+        "Stress": 3.0,
+        "NextDot": 2.0,
+        "Vulnerable": true,
+        "Weak": true,
+        "EyesFocus": 3,
+        "Rank": 2,
+        "ClassId": "grave_robber",
+        "Tokens": [
+          "eyes_focus",
+          "eyes_focus",
+          "weak",
+          "eyes_focus",
+          "vulnerable",
+          "vulnerable"
+        ],
+        "SkillIds": [
+          "~legacy_kit/2060"
+        ]
+      },
+      {
+        "Guid": 2067,
+        "Name": "Paracelsus",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 36.0,
+        "Hp": 27.0,
+        "HpPct": 0.75,
+        "Stress": 5.0,
+        "Rank": 3,
+        "ClassId": "plague_doctor",
+        "Tokens": [],
+        "SkillIds": [
+          "~legacy_kit/2067",
+          "pd_noxious_blast_p2",
+          "pd_blinding_gas_u",
+          "pd_battlefield_medicine_u",
+          "pd_ounce_of_prevention",
+          "pd_move",
+          "pass_stress"
+        ]
+      }
+    ],
+    "Enemies": [
+      {
+        "Guid": 2137,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 2,
+        "HpMax": 300.0,
+        "Hp": 229.0,
+        "HpPct": 0.7633333,
+        "NextDot": 3.0,
+        "ClassId": "boss_eyes",
+        "Tokens": [
+          "logic_a"
+        ]
+      }
+    ],
+    "Legal": [
+      {
+        "Skill": "pd_noxious_blast_p2",
+        "Target": 2137,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2137,
+            0,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.4,
+          "ResistBlight": 0.4,
+          "ResistBurn": 0.4,
+          "ResistStun": 1.0,
+          "ApplyBlight": 5.0
+        }
+      },
+      {
+        "Skill": "pd_blinding_gas_u",
+        "Target": 2137,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [
+            "blind"
+          ],
+          "ApplyPerformer": [
+            "combo"
+          ],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2137,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.4,
+          "ResistBlight": 0.4,
+          "ResistBurn": 0.4,
+          "ResistStun": 1.0
+        }
+      },
+      {
+        "Skill": "pd_battlefield_medicine_u",
+        "Target": 2065,
+        "Preview": {
+          "Ok": true,
+          "Heal": 20.0,
+          "HealsDeathsDoor": true,
+          "HealValid": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2065
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "pd_ounce_of_prevention",
+        "Target": 2065,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2065,
+            0,
+            0,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "pd_ounce_of_prevention",
+        "Target": 2062,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2062,
+            0,
+            0,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "pd_ounce_of_prevention",
+        "Target": 2060,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2060,
+            0,
+            0,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "pd_ounce_of_prevention",
+        "Target": 2067,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2067,
+            0,
+            0,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "pd_move",
+        "Target": 2060,
+        "Preview": {
+          "Error": "preview_invalid",
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2060
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "pass_stress",
+        "Target": 2067,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2067
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      }
+    ],
+    "Skills": {
+      "pd_noxious_blast_p2": {
+        "Id": "pd_noxious_blast_p2",
+        "Tags": [
+          "ranged",
+          "pd_noxious_blast"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "pd_blinding_gas_u": {
+        "Id": "pd_blinding_gas_u",
+        "Tags": [
+          "ranged",
+          "pd_blinding_gas"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "pd_battlefield_medicine_u": {
+        "Id": "pd_battlefield_medicine_u",
+        "Tags": [
+          "heal",
+          "pd_battlefield_medicine"
+        ],
+        "Conditions": [
+          "target_meets_heal_threshold_high_hidden",
+          "target_has_bleed_dot_hidden",
+          "target_has_blight_dot_hidden",
+          "target_has_burn_dot_hidden"
+        ],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "pd_ounce_of_prevention": {
+        "Id": "pd_ounce_of_prevention",
+        "IsFriendly": true,
+        "Tags": [
+          "pd_ounce_of_prevention"
+        ],
+        "Conditions": [
+          "target_is_not_corpse_hidden"
+        ],
+        "Role": {},
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "pd_move": {
+        "Id": "pd_move",
+        "IsMove": true,
+        "Tags": [
+          "move"
+        ],
+        "Conditions": [],
+        "Role": {},
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "pass_stress": {
+        "Id": "pass_stress",
+        "Tags": [
+          "pass",
+          "stationary"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/2065": {
+        "Id": "~legacy_kit/2065",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Heals": true,
+          "Stuns": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 16.0,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/2062": {
+        "Id": "~legacy_kit/2062",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Stuns": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 16.0,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/2060": {
+        "Id": "~legacy_kit/2060",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Heals": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 16.0,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/2067": {
+        "Id": "~legacy_kit/2067",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Heals": true,
+          "Stuns": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 16.0,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      }
+    },
+    "RemainingTurns": [],
+    "Memory": {
+      "LastEnemyGuid": 2137,
+      "Round": 7,
+      "ComboSpendersActed": [
+        2060,
+        2062
+      ],
+      "CrisisHealsThisRound": [
+        2060
+      ],
+      "ReachWalkedThisRound": []
+    },
+    "Threats": [
+      {
+        "Guid": 2137,
+        "Name": "2137",
+        "ClassId": "boss_eyes",
+        "Boss": true,
+        "HpPct": 0.7633333,
+        "Size": 2
+      }
+    ],
+    "SummonedClasses": [],
+    "ItemQty": {},
+    "CursedSkills": [
+      "pd_noxious_blast_p2"
+    ],
+    "LimitedSkills": [],
+    "Degraded": [
+      "legacy_schema1",
+      "no_preview_hits",
+      "no_remove_target",
+      "no_equipped_skills",
+      "kit_from_names",
+      "no_turn_order",
+      "no_dot_split",
+      "no_debuff_move_resist",
+      "memory_inferred",
+      "skill_roles_ranks_missing"
+    ]
+  }
+}

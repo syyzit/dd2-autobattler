@@ -14,6 +14,9 @@
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
       <_Parameter1>Dd2Autobattler.Tests</_Parameter1>
     </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>Dd2Replay</_Parameter1>
+    </AssemblyAttribute>
   </ItemGroup>
 
   <ItemGroup>
@@ -51,7 +54,32 @@
     </Reference>
   </ItemGroup>
 
-  <Target Name="CopyToGame" AfterTargets="Build">
+  <!-- Stamp the git commit into the assembly so session_start can say which build played. -->
+  <Target Name="Dd2StampGitCommit" BeforeTargets="GetAssemblyAttributes;CoreGenerateAssemblyInfo">
+    <Exec Command="git rev-parse --short=12 HEAD" ConsoleToMSBuild="true" IgnoreExitCode="true" StandardOutputImportance="low" StandardErrorImportance="low" WorkingDirectory="$(MSBuildProjectDirectory)" Condition="'$(GitCommit)' == ''">
+      <Output TaskParameter="ConsoleOutput" PropertyName="GitCommit" />
+    </Exec>
+    <Exec Command="git status --porcelain --untracked-files=no" ConsoleToMSBuild="true" IgnoreExitCode="true" StandardOutputImportance="low" StandardErrorImportance="low" WorkingDirectory="$(MSBuildProjectDirectory)">
+      <Output TaskParameter="ConsoleOutput" PropertyName="GitStatusOut" />
+    </Exec>
+    <PropertyGroup>
+      <GitDirty Condition="'$(GitStatusOut)' != ''">true</GitDirty>
+      <GitDirty Condition="'$(GitStatusOut)' == ''">false</GitDirty>
+    </PropertyGroup>
+    <ItemGroup>
+      <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+        <_Parameter1>GitCommit</_Parameter1>
+        <_Parameter2>$(GitCommit)</_Parameter2>
+      </AssemblyAttribute>
+      <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+        <_Parameter1>GitDirty</_Parameter1>
+        <_Parameter2>$(GitDirty)</_Parameter2>
+      </AssemblyAttribute>
+    </ItemGroup>
+  </Target>
+
+  <!-- SkipGameCopy=true (set by src/Dd2Replay) builds without deploying. -->
+  <Target Name="CopyToGame" AfterTargets="Build" Condition="'$(SkipGameCopy)' != 'true'">
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(BepInExPlugins)" SkipUnchangedFiles="true" />
     <Message Text="Copied $(TargetFileName) to BepInEx plugins" Importance="high" />
   </Target>

@@ -1,0 +1,647 @@
+{
+  "name": "search_blind_the_attacker",
+  "note": "Search: Blinding Gas ties (15.0) on both back-rank enemies; blind the spearman whose thrusts reach the Hellion at 3-7 HP before the next heal, not the one that cannot. Turn order inferred from action_result (schema-1 log), hero kits from the fight's rows.",
+  "source": "20261116-144559#5/t25 military_mash_5 Paracelsus (logged pd_blinding_gas->2246 13.5 attack_enemy)",
+  "expect": {
+    "Skill": "pd_blinding_gas",
+    "Target": 2246
+  },
+  "expect_search": {
+    "Skill": "pd_blinding_gas",
+    "Target": 2247
+  },
+  "forbid": [],
+  "snap": {
+    "Schema": 1,
+    "PerformerGuid": 2227,
+    "Performer": {
+      "Guid": 2227,
+      "Name": "Paracelsus",
+      "Living": true,
+      "Size": 1,
+      "HpMax": 30.0,
+      "Hp": 21.0,
+      "HpPct": 0.7,
+      "Stress": 7.0,
+      "Weak": true,
+      "Rank": 3,
+      "ClassId": "plague_doctor",
+      "Tokens": [
+        "weak"
+      ],
+      "SkillIds": [
+        "~legacy_kit/2227",
+        "pd_noxious_blast",
+        "pd_blinding_gas",
+        "pd_ounce_of_prevention",
+        "pd_move",
+        "pass_stress"
+      ]
+    },
+    "Heroes": [
+      {
+        "Guid": 2221,
+        "Name": "Boudica",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 39.0,
+        "Hp": 12.0,
+        "HpPct": 0.307692319,
+        "Stress": 8.0,
+        "NextDot": 5.0,
+        "StrengthCount": 1,
+        "PositiveTokens": 1,
+        "ClassId": "hellion",
+        "Winded": 2,
+        "Tokens": [
+          "hellion_winded",
+          "hellion_winded",
+          "strength"
+        ],
+        "SkillIds": [
+          "hel_wicked_hack",
+          "hel_iron_swan",
+          "hel_barbaric_yawp",
+          "hel_toe_to_toe",
+          "hel_move",
+          "pass_stress",
+          "pass_heal"
+        ]
+      },
+      {
+        "Guid": 2219,
+        "Name": "Damian",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 50.0,
+        "Hp": 18.0,
+        "HpPct": 0.36,
+        "Stress": 1.0,
+        "Dodge": true,
+        "DodgeCount": 1,
+        "PositiveTokens": 1,
+        "Rank": 1,
+        "ClassId": "flagellant",
+        "Tokens": [
+          "virulent_blight",
+          "virulent_blight_manager",
+          "dodge"
+        ],
+        "SkillIds": [
+          "flg_punish",
+          "flg_redeem",
+          "flg_endure",
+          "flg_move",
+          "pass_stress",
+          "flg_lash_gift",
+          "pass_heal",
+          "flg_fester"
+        ]
+      },
+      {
+        "Guid": 2224,
+        "Name": "Baldwin",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 52.0,
+        "Hp": 52.0,
+        "HpPct": 1.0,
+        "BlockCount": 3,
+        "PositiveTokens": 3,
+        "Rank": 2,
+        "Taunt": true,
+        "ClassId": "leper",
+        "Tokens": [
+          "block",
+          "taunt",
+          "taunt",
+          "block",
+          "block"
+        ],
+        "SkillIds": [
+          "lep_withstand",
+          "lep_move",
+          "pass_stress",
+          "lep_chop",
+          "lep_solemnity",
+          "lep_reflection",
+          "lep_purge"
+        ]
+      },
+      {
+        "Guid": 2227,
+        "Name": "Paracelsus",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 30.0,
+        "Hp": 21.0,
+        "HpPct": 0.7,
+        "Stress": 7.0,
+        "Weak": true,
+        "Rank": 3,
+        "ClassId": "plague_doctor",
+        "Tokens": [
+          "weak"
+        ],
+        "SkillIds": [
+          "~legacy_kit/2227",
+          "pd_noxious_blast",
+          "pd_blinding_gas",
+          "pd_ounce_of_prevention",
+          "pd_move",
+          "pass_stress"
+        ]
+      }
+    ],
+    "Enemies": [
+      {
+        "Guid": 2244,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 1,
+        "HpMax": 20.0,
+        "Hp": 16.0,
+        "HpPct": 0.8,
+        "ClassId": "shared_barricade_cover1",
+        "Tokens": []
+      },
+      {
+        "Guid": 2245,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 1,
+        "HpMax": 25.0,
+        "Hp": 25.0,
+        "HpPct": 1.0,
+        "Rank": 1,
+        "ClassId": "shared_barricade_swordsman",
+        "Tokens": [
+          "guard",
+          "guard",
+          "guard"
+        ]
+      },
+      {
+        "Guid": 2246,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 1,
+        "HpMax": 20.0,
+        "Hp": 20.0,
+        "HpPct": 1.0,
+        "Rank": 2,
+        "ClassId": "shared_barricade_cover1",
+        "Tokens": []
+      },
+      {
+        "Guid": 2247,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 1,
+        "HpMax": 25.0,
+        "Hp": 25.0,
+        "HpPct": 1.0,
+        "Rank": 3,
+        "ClassId": "shared_barricade_spearman",
+        "Tokens": [
+          "guard",
+          "guard",
+          "guard"
+        ]
+      }
+    ],
+    "Legal": [
+      {
+        "Skill": "pd_noxious_blast",
+        "Target": 2244,
+        "Preview": {
+          "Ok": true,
+          "Damage": 1.0,
+          "DamageLow": 1.0,
+          "DamageHigh": 1.0,
+          "DamageValid": true,
+          "ConsumeTarget": [
+            "weak"
+          ],
+          "ConsumePerformer": [
+            "weak"
+          ],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2244,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 2.0,
+          "ResistBlight": 2.0,
+          "ResistBurn": 0.1,
+          "ResistStun": 2.0,
+          "ApplyBlight": 4.0
+        }
+      },
+      {
+        "Skill": "pd_noxious_blast",
+        "Target": 2245,
+        "Preview": {
+          "Ok": true,
+          "Damage": 2.0,
+          "DamageLow": 1.0,
+          "DamageHigh": 1.0,
+          "DamageValid": true,
+          "ConsumeTarget": [
+            "weak"
+          ],
+          "ConsumePerformer": [
+            "weak"
+          ],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2245,
+            0,
+            0
+          ],
+          "Hits": [],
+          "GuardGuid": 2245,
+          "ResistOk": true,
+          "ResistBleed": 2.0,
+          "ResistBlight": 2.0,
+          "ResistBurn": 0.1,
+          "ResistStun": 2.0,
+          "ApplyBlight": 4.0
+        }
+      },
+      {
+        "Skill": "pd_blinding_gas",
+        "Target": 2246,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [
+            "blind"
+          ],
+          "ApplyPerformer": [
+            "combo"
+          ],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2246,
+            0,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.5,
+          "ResistBlight": 0.4,
+          "ResistBurn": 0.1,
+          "ResistStun": 0.1
+        }
+      },
+      {
+        "Skill": "pd_blinding_gas",
+        "Target": 2247,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [
+            "blind"
+          ],
+          "ApplyPerformer": [
+            "combo"
+          ],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2247,
+            0,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.5,
+          "ResistBlight": 0.4,
+          "ResistBurn": 0.1,
+          "ResistStun": 0.1
+        }
+      },
+      {
+        "Skill": "pd_ounce_of_prevention",
+        "Target": 2221,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2221,
+            0,
+            0,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "pd_ounce_of_prevention",
+        "Target": 2219,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2219,
+            0,
+            0,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "pd_ounce_of_prevention",
+        "Target": 2224,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2224,
+            0,
+            0,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "pd_ounce_of_prevention",
+        "Target": 2227,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2227,
+            0,
+            0,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "pd_move",
+        "Target": 2224,
+        "Preview": {
+          "Error": "preview_invalid",
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2224
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "pass_stress",
+        "Target": 2227,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2227
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      }
+    ],
+    "Skills": {
+      "pd_noxious_blast": {
+        "Id": "pd_noxious_blast",
+        "Tags": [
+          "ranged",
+          "pd_noxious_blast"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "pd_blinding_gas": {
+        "Id": "pd_blinding_gas",
+        "Tags": [
+          "ranged",
+          "pd_blinding_gas"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "pd_ounce_of_prevention": {
+        "Id": "pd_ounce_of_prevention",
+        "IsFriendly": true,
+        "Tags": [
+          "pd_ounce_of_prevention"
+        ],
+        "Conditions": [
+          "target_is_not_corpse_hidden"
+        ],
+        "Role": {},
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "pd_move": {
+        "Id": "pd_move",
+        "IsMove": true,
+        "Tags": [
+          "move"
+        ],
+        "Conditions": [],
+        "Role": {},
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "pass_stress": {
+        "Id": "pass_stress",
+        "Tags": [
+          "pass",
+          "stationary"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/2221": {
+        "Id": "~legacy_kit/2221",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 6.0,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/2219": {
+        "Id": "~legacy_kit/2219",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Heals": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 6.0,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/2224": {
+        "Id": "~legacy_kit/2224",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Heals": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 6.0,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/2227": {
+        "Id": "~legacy_kit/2227",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Heals": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 6.0,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      }
+    },
+    "RemainingTurns": [
+      2219,
+      2245,
+      2247,
+      2224,
+      2221
+    ],
+    "Memory": {
+      "Round": 7,
+      "ComboSpendersActed": [],
+      "CrisisHealsThisRound": [],
+      "ReachWalkedThisRound": []
+    },
+    "Threats": [
+      {
+        "Guid": 2244,
+        "Name": "2244",
+        "ClassId": "shared_barricade_cover1",
+        "HpPct": 0.8,
+        "Size": 1
+      },
+      {
+        "Guid": 2245,
+        "Name": "2245",
+        "ClassId": "shared_barricade_swordsman",
+        "HpPct": 1.0,
+        "Size": 1
+      },
+      {
+        "Guid": 2246,
+        "Name": "2246",
+        "ClassId": "shared_barricade_cover1",
+        "HpPct": 1.0,
+        "Size": 1
+      },
+      {
+        "Guid": 2247,
+        "Name": "2247",
+        "ClassId": "shared_barricade_spearman",
+        "HpPct": 1.0,
+        "Size": 1
+      }
+    ],
+    "SummonedClasses": [],
+    "ItemQty": {},
+    "CursedSkills": [],
+    "LimitedSkills": [],
+    "Degraded": [
+      "legacy_schema1",
+      "no_preview_hits",
+      "no_remove_target",
+      "no_equipped_skills",
+      "kit_from_names",
+      "no_turn_order",
+      "no_dot_split",
+      "no_debuff_move_resist",
+      "memory_inferred",
+      "skill_roles_ranks_missing",
+      "turn_order_from_action_results",
+      "hero_kits_from_fight_rows"
+    ]
+  }
+}

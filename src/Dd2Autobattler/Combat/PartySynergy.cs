@@ -56,7 +56,7 @@ namespace Dd2Autobattler.Combat
                 var hero = party.Heroes[i];
                 if (hero == null || !hero.Living || !hero.SpendsCombo || hero.Guid == performerGuid)
                     continue;
-                if (CombatMemory.ComboSpenderActedThisRound(hero.Guid))
+                if (party.ComboSpenderActed(hero.Guid))
                     continue;
                 if (hero.ComboHitRanks == ComboRanksUnknown)
                     return true;

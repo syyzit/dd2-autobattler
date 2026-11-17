@@ -9,10 +9,16 @@ using Newtonsoft.Json.Linq;
 
 namespace Dd2Autobattler.Combat
 {
+    // Plain-data view of one actor (no game types). Built by
+    // GameSnapshot.Describe from the live game, or from a logged turn.
     public sealed class TargetInfo
     {
-        public ActorInstance Actor;
         public uint Guid;
+        public string Name;
+        public int Team;
+        public bool Living;
+        public int Size;
+        public float HpMax;
         public float Hp;
         public float HpPct;
         public bool DeathsDoor;
@@ -55,6 +61,37 @@ namespace Dd2Autobattler.Combat
         public bool DefensiveStance;
         public bool BeastMode;
         public bool Healthless;
+        // CSV ActorDataClass m_IsBattleComplete: the battle can end with this
+        // actor still standing (IL NoTeamBattleCondition.IsConditionMet counts
+        // only actors without it). Librarian book stacks, Mother mushrooms,
+        // barricades, story props, corpses. False in logs before the field.
+        public bool BattleComplete;
+        // Token definition ids, one per instance (CountToken semantics).
+        public List<string> Tokens;
+        public List<string> SkillIds;
+        // Equipped skill ids this actor holds as a combat item
+        // (HasCombatSkillItemWithId).
+        public List<string> HeldItems;
+
+        // Substring count over token ids, like GameSnapshot.CountToken(actor, key).
+        public int CountToken(string idContains)
+        {
+            if (Tokens == null || string.IsNullOrEmpty(idContains))
+                return 0;
+            var n = 0;
+            for (var i = 0; i < Tokens.Count; i++)
+            {
+                var id = Tokens[i];
+                if (!string.IsNullOrEmpty(id) && id.IndexOf(idContains, StringComparison.OrdinalIgnoreCase) >= 0)
+                    n++;
+            }
+            return n;
+        }
+
+        public bool HoldsItem(string skillId)
+        {
+            return HeldItems != null && !string.IsNullOrEmpty(skillId) && HeldItems.Contains(skillId);
+        }
     }
 
     public static class GameSnapshot
@@ -139,11 +176,25 @@ namespace Dd2Autobattler.Combat
 
         public static TargetInfo Describe(ActorInstance actor)
         {
-            var info = new TargetInfo { Actor = actor };
+            var info = new TargetInfo();
             if (actor == null)
                 return info;
 
             try { info.Guid = actor.ActorGuid; } catch { }
+            try { info.Name = actor.ActorName; } catch { }
+            try { info.Team = actor.TeamIndex; } catch { }
+            try { info.Living = actor.IsLiving; } catch { }
+            info.Size = 1;
+            try { info.Size = actor.Size; } catch { }
+            try { info.HpMax = actor.CurrentHpMax; } catch { }
+            info.Tokens = TokenIds(actor);
+            try
+            {
+                var ids = actor.GetEquippedCombatSkillIds();
+                if (ids != null)
+                    info.SkillIds = new List<string>(ids);
+            }
+            catch { }
             info.Hp = actor.HpRounded;
             info.HpPct = actor.CurrentHpPercent;
             try { info.Stress = actor.Stress; } catch { }
@@ -181,6 +232,7 @@ namespace Dd2Autobattler.Combat
             info.CallOfTheDeep = CountToken(actor, "call_of_the_deep") > 0;
             try { info.ClassId = actor.ActorDataClass != null ? actor.ActorDataClass.GetKey() : null; } catch { }
             info.Healthless = IsHealthless(actor, info.ClassId);
+            info.BattleComplete = IsBattleComplete(actor);
             info.Winded = CountToken(actor, "winded");
             info.RuinReady = CountToken(actor, "ruin_ready") > 0;
             info.Pain = CountToken(actor, "pain_heal") > 0;
@@ -190,6 +242,28 @@ namespace Dd2Autobattler.Combat
             info.DefensiveStance = CountToken(actor, "defensive_stance") > 0;
             info.BeastMode = CountToken(actor, "beast_mode") > 0;
             return info;
+        }
+
+        public static List<string> TokenIds(ActorInstance actor)
+        {
+            var list = new List<string>();
+            if (actor == null || actor.TokenContainer == null)
+                return list;
+            try
+            {
+                var instances = actor.TokenContainer.GetInstances();
+                if (instances == null)
+                    return list;
+                for (var i = 0; i < instances.Count; i++)
+                {
+                    var def = instances[i] != null ? instances[i].Definition : null;
+                    var id = def != null ? def.GetKey() : null;
+                    if (!string.IsNullOrEmpty(id))
+                        list.Add(id);
+                }
+            }
+            catch { }
+            return list;
         }
 
         public static bool IsHealthless(ActorInstance actor, string classId)
@@ -214,6 +288,32 @@ namespace Dd2Autobattler.Combat
             }
             catch { }
             return false;
+        }
+
+        // ActorDataClass.m_IsBattleComplete (CSV). The game's end check
+        // (NoTeamBattleCondition.IsConditionMet) skips actors that have it, so
+        // a team of only such actors is beaten (logs: a Librarian kill ends the
+        // fight with a book stack still at 15 HP).
+        public static bool IsBattleComplete(ActorInstance actor)
+        {
+            if (actor == null)
+                return false;
+            try
+            {
+                var cls = actor.ActorDataClass;
+                if (cls == null)
+                    return false;
+                var t = cls.GetType();
+                var f = t.GetField("m_IsBattleComplete");
+                if (f != null)
+                    return true.Equals(f.GetValue(cls));
+                var p = t.GetProperty("m_IsBattleComplete") ?? t.GetProperty("IsBattleComplete");
+                return p != null && true.Equals(p.GetValue(cls, null));
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         public static bool HasToken(ActorInstance actor, TokenType type, string idContains)

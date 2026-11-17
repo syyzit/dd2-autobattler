@@ -4,7 +4,7 @@ using Newtonsoft.Json.Linq;
 namespace Dd2Autobattler.Tests
 {
     /// <summary>
-    /// Cited-note checks on a logged turn (legal + chosen). Mirrors _tools/dd2logs.py cite_turn.
+    /// Cited-note checks on a logged turn (legal + chosen).
     /// Replay without going through PickAction / the live game.
     /// </summary>
     internal static class LogCite

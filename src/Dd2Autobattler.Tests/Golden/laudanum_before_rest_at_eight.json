@@ -1,0 +1,1141 @@
+{
+  "name": "laudanum_before_rest_at_eight",
+  "note": "Vestal on Death's Door at 8 stress, holds laudanum, Rest legal (CSV pass_heal stress_damage_2: 8 -> 10, overstress). Laudanum (stress_heal_1, free action) first: 8 -> 7, the Rest then lands at 9.",
+  "source": "20261117-044649#39/t21 mountain_boss_brain_5 Junia (logged pass_heal->4639 296.0 self_crisis)",
+  "expect": {
+    "Skill": "laudanum",
+    "Target": 0
+  },
+  "expect_search": null,
+  "forbid": [
+    {
+      "Skill": "pass_heal",
+      "Target": 0
+    }
+  ],
+  "snap": {
+    "Schema": 2,
+    "FightId": "mountain_boss_brain_5",
+    "PerformerGuid": 4639,
+    "Performer": {
+      "Guid": 4639,
+      "Name": "Junia",
+      "Living": true,
+      "Size": 1,
+      "HpMax": 49.0,
+      "DeathsDoor": true,
+      "Stress": 8.0,
+      "Weak": true,
+      "ClassId": "vestal",
+      "Conviction": 1,
+      "Tokens": [
+        "lock_ranged",
+        "weak",
+        "conviction"
+      ],
+      "SkillIds": [
+        "ves_hand_of_light",
+        "ves_illumination",
+        "ves_judgement",
+        "ves_divine_grace",
+        "ves_blessing_of_fortitude"
+      ],
+      "HeldItems": [
+        "laudanum"
+      ]
+    },
+    "Heroes": [
+      {
+        "Guid": 4639,
+        "Name": "Junia",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 49.0,
+        "DeathsDoor": true,
+        "Stress": 8.0,
+        "Weak": true,
+        "ClassId": "vestal",
+        "Conviction": 1,
+        "Tokens": [
+          "lock_ranged",
+          "weak",
+          "conviction"
+        ],
+        "SkillIds": [
+          "ves_hand_of_light",
+          "ves_illumination",
+          "ves_judgement",
+          "ves_divine_grace",
+          "ves_blessing_of_fortitude"
+        ],
+        "HeldItems": [
+          "laudanum"
+        ]
+      },
+      {
+        "Guid": 4630,
+        "Name": "Audrey",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 35.0,
+        "Hp": 10.0,
+        "HpPct": 0.2857143,
+        "Stress": 3.0,
+        "Dodge": true,
+        "Weak": true,
+        "DodgeCount": 2,
+        "PositiveTokens": 2,
+        "Rank": 1,
+        "ClassId": "grave_robber",
+        "Tokens": [
+          "weak",
+          "lock_ranged",
+          "dodge",
+          "dodge",
+          "speed"
+        ],
+        "SkillIds": [
+          "gr_pick_to_the_face_u",
+          "gr_thrown_dagger_u",
+          "gr_flashing_daggers_u",
+          "gr_poison_dart",
+          "gr_artemisia"
+        ]
+      }
+    ],
+    "Enemies": [
+      {
+        "Guid": 4695,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 1,
+        "HpMax": 55.0,
+        "Hp": 55.0,
+        "HpPct": 1.0,
+        "ClassId": "boss_brain_lock_health",
+        "Tokens": [],
+        "SkillIds": [
+          "brain_lock_health_activate",
+          "brain_lock_health_unique",
+          "brain_lock_health_doubt",
+          "brain_lock_health_fear"
+        ]
+      },
+      {
+        "Guid": 4697,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 1,
+        "HpMax": 55.0,
+        "Hp": 20.0,
+        "HpPct": 0.363636374,
+        "Rank": 1,
+        "ClassId": "boss_brain_lock_ranged",
+        "Tokens": [
+          "count"
+        ],
+        "SkillIds": [
+          "brain_lock_ranged_activate",
+          "brain_lock_ranged_unique",
+          "brain_lock_ranged_doubt",
+          "brain_lock_ranged_fear"
+        ]
+      },
+      {
+        "Guid": 4698,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 1,
+        "HpMax": 55.0,
+        "Hp": 50.0,
+        "HpPct": 0.909090936,
+        "Rank": 2,
+        "ClassId": "boss_brain_lock_stress",
+        "Tokens": [
+          "count"
+        ],
+        "SkillIds": [
+          "brain_lock_stress_activate",
+          "brain_lock_stress_unique",
+          "brain_lock_stress_doubt",
+          "brain_lock_stress_fear"
+        ]
+      }
+    ],
+    "Legal": [
+      {
+        "Skill": "ves_hand_of_light",
+        "Target": 4695,
+        "Preview": {
+          "Ok": true,
+          "Damage": 1.5,
+          "DamageLow": 1.0,
+          "DamageHigh": 2.0,
+          "DamageValid": true,
+          "ConsumeTarget": [
+            "weak"
+          ],
+          "ConsumePerformer": [
+            "weak"
+          ],
+          "ApplyTarget": [],
+          "ApplyPerformer": [
+            "strength",
+            "block"
+          ],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            4639,
+            4695
+          ],
+          "Hits": [
+            {
+              "Guid": 4639
+            },
+            {
+              "Guid": 4695,
+              "Damage": 1.5
+            }
+          ],
+          "ResistOk": true,
+          "ResistBleed": 0.5,
+          "ResistBlight": 0.5,
+          "ResistBurn": 0.5,
+          "ResistStun": 0.5,
+          "ResistDebuff": 0.2,
+          "ResistMove": 0.3
+        }
+      },
+      {
+        "Skill": "ves_hand_of_light",
+        "Target": 4697,
+        "Preview": {
+          "Ok": true,
+          "Damage": 1.5,
+          "DamageLow": 1.0,
+          "DamageHigh": 2.0,
+          "DamageValid": true,
+          "ConsumeTarget": [
+            "weak"
+          ],
+          "ConsumePerformer": [
+            "weak"
+          ],
+          "ApplyTarget": [],
+          "ApplyPerformer": [
+            "strength",
+            "block"
+          ],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            4639,
+            4697
+          ],
+          "Hits": [
+            {
+              "Guid": 4639
+            },
+            {
+              "Guid": 4697,
+              "Damage": 1.5
+            }
+          ],
+          "ResistOk": true,
+          "ResistBleed": 0.1,
+          "ResistBlight": 0.3,
+          "ResistBurn": 0.1,
+          "ResistStun": 0.4,
+          "ResistDebuff": 0.3,
+          "ResistMove": 0.4
+        }
+      },
+      {
+        "Skill": "ves_hand_of_light",
+        "Target": 4698,
+        "Preview": {
+          "Ok": true,
+          "Damage": 1.5,
+          "DamageLow": 1.0,
+          "DamageHigh": 2.0,
+          "DamageValid": true,
+          "ConsumeTarget": [
+            "weak"
+          ],
+          "ConsumePerformer": [
+            "weak"
+          ],
+          "ApplyTarget": [],
+          "ApplyPerformer": [
+            "strength",
+            "block"
+          ],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            4639,
+            4698
+          ],
+          "Hits": [
+            {
+              "Guid": 4639
+            },
+            {
+              "Guid": 4698,
+              "Damage": 1.5
+            }
+          ],
+          "ResistOk": true,
+          "ResistBleed": 0.2,
+          "ResistBlight": 0.2,
+          "ResistBurn": 0.2,
+          "ResistStun": 0.5,
+          "ResistDebuff": 0.4,
+          "ResistMove": 0.1
+        }
+      },
+      {
+        "Skill": "ves_blessing_of_fortitude",
+        "Target": 4639,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [
+            "blessing_of_fortitude"
+          ],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            4639
+          ],
+          "Hits": [
+            {
+              "Guid": 4639
+            }
+          ]
+        }
+      },
+      {
+        "Skill": "ves_blessing_of_fortitude",
+        "Target": 4630,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [
+            "blessing_of_fortitude"
+          ],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            4630
+          ],
+          "Hits": [
+            {
+              "Guid": 4630
+            }
+          ]
+        }
+      },
+      {
+        "Skill": "ves_move",
+        "Target": 4630,
+        "Preview": {
+          "Error": "preview_invalid",
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [],
+          "Hits": []
+        }
+      },
+      {
+        "Skill": "pass_heal",
+        "Target": 4639,
+        "Preview": {
+          "Ok": true,
+          "Heal": 10.0,
+          "HealValid": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            4639
+          ],
+          "Hits": [
+            {
+              "Guid": 4639
+            }
+          ]
+        }
+      },
+      {
+        "Skill": "laudanum",
+        "Target": 4639,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            4639
+          ],
+          "Hits": [
+            {
+              "Guid": 4639
+            }
+          ]
+        }
+      },
+      {
+        "Skill": "laudanum",
+        "Target": 4630,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            4630
+          ],
+          "Hits": [
+            {
+              "Guid": 4630
+            }
+          ]
+        }
+      }
+    ],
+    "Skills": {
+      "ves_hand_of_light": {
+        "Id": "ves_hand_of_light",
+        "Tags": [
+          "melee",
+          "ves_hand_of_light"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "AppliesStrength": true,
+          "AppliesBlock": true
+        },
+        "OwnerSize": 1,
+        "LaunchMask": 7,
+        "TargetMasks": [
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "ves_illumination": {
+        "Id": "ves_illumination",
+        "Tags": [
+          "ranged",
+          "ves_illumination"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Stuns": true
+        },
+        "OwnerSize": 1,
+        "LaunchMask": 15,
+        "TargetMasks": [
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "ves_judgement": {
+        "Id": "ves_judgement",
+        "Tags": [
+          "ranged",
+          "ves_judgement"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Burn": true
+        },
+        "OwnerSize": 1,
+        "LaunchMask": 12,
+        "TargetMasks": [
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "ves_divine_grace": {
+        "Id": "ves_divine_grace",
+        "IsFriendly": true,
+        "Tags": [
+          "heal",
+          "ves_divine_grace"
+        ],
+        "Conditions": [
+          "target_meets_heal_threshold_med",
+          "target_is_not_corpse_hidden"
+        ],
+        "Role": {
+          "Heals": true
+        },
+        "OwnerSize": 1,
+        "LaunchMask": 12,
+        "TargetMasks": [
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "ves_blessing_of_fortitude": {
+        "Id": "ves_blessing_of_fortitude",
+        "IsFriendly": true,
+        "Tags": [
+          "blessing",
+          "ves_blessing_of_fortitude"
+        ],
+        "Conditions": [
+          "target_is_not_corpse_hidden"
+        ],
+        "Role": {},
+        "OwnerSize": 1,
+        "LaunchMask": 15,
+        "TargetMasks": [
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "ves_move": {
+        "Id": "ves_move",
+        "IsMove": true,
+        "IsFriendly": true,
+        "Tags": [
+          "move"
+        ],
+        "Conditions": [],
+        "Role": {},
+        "OwnerSize": 1,
+        "LaunchMask": 15,
+        "TargetMasks": [
+          2,
+          3,
+          3,
+          3,
+          5,
+          7,
+          7,
+          7,
+          10,
+          15,
+          15,
+          15,
+          4,
+          14,
+          15,
+          15
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "pass_heal": {
+        "Id": "pass_heal",
+        "IsFriendly": true,
+        "Tags": [
+          "pass",
+          "heal"
+        ],
+        "Conditions": [
+          "performer_health_under_25pct"
+        ],
+        "Role": {
+          "Heals": true
+        },
+        "OwnerSize": 1,
+        "LaunchMask": 15,
+        "TargetMasks": [
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "laudanum": {
+        "Id": "laudanum",
+        "IsFriendly": true,
+        "IsItemSkill": true,
+        "IsFree": true,
+        "Tags": [
+          "stress_heal",
+          "laudanum",
+          "combat_item"
+        ],
+        "Conditions": [
+          "target_has_horror_hidden",
+          "target_has_stress_hidden"
+        ],
+        "Role": {},
+        "OwnerSize": 1,
+        "LaunchMask": 15,
+        "TargetMasks": [
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "gr_pick_to_the_face_u": {
+        "Id": "gr_pick_to_the_face_u",
+        "Tags": [
+          "melee",
+          "gr_pick_to_the_face"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 6.0
+        },
+        "OwnerSize": 1,
+        "LaunchMask": 7,
+        "TargetMasks": [
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "gr_thrown_dagger_u": {
+        "Id": "gr_thrown_dagger_u",
+        "Tags": [
+          "ranged",
+          "gr_thrown_dagger"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 6.0
+        },
+        "OwnerSize": 1,
+        "LaunchMask": 14,
+        "TargetMasks": [
+          14,
+          15,
+          15,
+          15,
+          14,
+          15,
+          15,
+          15,
+          14,
+          15,
+          15,
+          15,
+          14,
+          15,
+          15,
+          15
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "gr_flashing_daggers_u": {
+        "Id": "gr_flashing_daggers_u",
+        "Tags": [
+          "ranged",
+          "gr_flashing_daggers"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "LaunchMask": 14,
+        "TargetMasks": [
+          6,
+          7,
+          7,
+          7,
+          6,
+          7,
+          7,
+          7,
+          6,
+          7,
+          7,
+          7,
+          6,
+          7,
+          7,
+          7
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "gr_poison_dart": {
+        "Id": "gr_poison_dart",
+        "Tags": [
+          "ranged",
+          "gr_poison_dart"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 6.0,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "LaunchMask": 14,
+        "TargetMasks": [
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "gr_artemisia": {
+        "Id": "gr_artemisia",
+        "IsFriendly": true,
+        "Tags": [
+          "heal",
+          "gr_artemisia"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Heals": true
+        },
+        "OwnerSize": 1,
+        "LaunchMask": 15,
+        "TargetMasks": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    "RemainingTurns": [
+      4639,
+      4698
+    ],
+    "Memory": {
+      "ItemActorGuid": 4639,
+      "ItemsUsedThisActorTurn": 1,
+      "Round": 8,
+      "ComboSpendersActed": [
+        4630
+      ],
+      "CrisisHealsThisRound": [
+        4630
+      ],
+      "ReachWalkedThisRound": []
+    },
+    "Threats": [
+      {
+        "Guid": 4695,
+        "Name": "4695",
+        "ClassId": "boss_brain_lock_health",
+        "Boss": true,
+        "HpPct": 1.0,
+        "Size": 1
+      },
+      {
+        "Guid": 4697,
+        "Name": "4697",
+        "ClassId": "boss_brain_lock_ranged",
+        "Boss": true,
+        "HpPct": 0.363636374,
+        "Size": 1
+      },
+      {
+        "Guid": 4698,
+        "Name": "4698",
+        "ClassId": "boss_brain_lock_stress",
+        "Boss": true,
+        "HpPct": 0.909090936,
+        "Size": 1
+      }
+    ],
+    "SummonedClasses": [],
+    "ItemQty": {
+      "laudanum": 1
+    },
+    "CursedSkills": [],
+    "LimitedSkills": [],
+    "Degraded": []
+  }
+}

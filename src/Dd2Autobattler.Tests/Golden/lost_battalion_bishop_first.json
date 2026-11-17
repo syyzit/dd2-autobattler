@@ -1,0 +1,936 @@
+{
+  "name": "lost_battalion_bishop_first",
+  "note": "wiki Lost Battalion: kill the Bishop (rez) before the Drummer and the deferred foot soldiers.",
+  "source": "20260827-110739#1/t1 forest_dungeon_2d Dismas (logged hwm_pistol_shot->2196 190.6 focus_bishop)",
+  "expect": {
+    "Skill": "hwm_pistol_shot",
+    "Target": 2196
+  },
+  "forbid": [],
+  "snap": {
+    "Schema": 1,
+    "PerformerGuid": 2141,
+    "Performer": {
+      "Guid": 2141,
+      "Name": "Dismas",
+      "Living": true,
+      "Size": 1,
+      "HpMax": 42.0,
+      "Hp": 40.0,
+      "HpPct": 0.952380955,
+      "Stress": 2.0,
+      "Rank": 1,
+      "Taunt": true,
+      "ClassId": "highwayman",
+      "Tokens": [
+        "taunt"
+      ],
+      "SkillIds": [
+        "~legacy_kit/2141",
+        "hwm_wicked_slice_p1_u",
+        "hwm_pistol_shot",
+        "hwm_duelists_advance_p1_u",
+        "hwm_tracking_shot",
+        "hwm_take_aim_p1",
+        "hwm_move",
+        "pass_stress",
+        "laudanum"
+      ]
+    },
+    "Heroes": [
+      {
+        "Guid": 2144,
+        "Name": "Barristan",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 55.0,
+        "Hp": 55.0,
+        "HpPct": 1.0,
+        "Stress": 4.0,
+        "BlockCount": 1,
+        "PositiveTokens": 1,
+        "ClassId": "man_at_arms",
+        "Tokens": [
+          "block_plus"
+        ],
+        "SkillIds": [
+          "~legacy_kit/2144"
+        ]
+      },
+      {
+        "Guid": 2141,
+        "Name": "Dismas",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 42.0,
+        "Hp": 40.0,
+        "HpPct": 0.952380955,
+        "Stress": 2.0,
+        "Rank": 1,
+        "Taunt": true,
+        "ClassId": "highwayman",
+        "Tokens": [
+          "taunt"
+        ],
+        "SkillIds": [
+          "~legacy_kit/2141",
+          "hwm_wicked_slice_p1_u",
+          "hwm_pistol_shot",
+          "hwm_duelists_advance_p1_u",
+          "hwm_tracking_shot",
+          "hwm_take_aim_p1",
+          "hwm_move",
+          "pass_stress",
+          "laudanum"
+        ]
+      },
+      {
+        "Guid": 2139,
+        "Name": "Audrey",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 35.0,
+        "Hp": 25.0,
+        "HpPct": 0.714285731,
+        "BlockCount": 2,
+        "PositiveTokens": 2,
+        "Rank": 2,
+        "ClassId": "grave_robber",
+        "Tokens": [
+          "block_plus",
+          "block"
+        ],
+        "SkillIds": [
+          "~legacy_kit/2139"
+        ]
+      },
+      {
+        "Guid": 2067,
+        "Name": "Paracelsus",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 36.0,
+        "Hp": 25.0,
+        "HpPct": 0.6944444,
+        "Stress": 2.0,
+        "BlockCount": 1,
+        "PositiveTokens": 1,
+        "Rank": 3,
+        "ClassId": "plague_doctor",
+        "Tokens": [
+          "block_plus"
+        ],
+        "SkillIds": [
+          "~legacy_kit/2067"
+        ]
+      }
+    ],
+    "Enemies": [
+      {
+        "Guid": 2193,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 1,
+        "HpMax": 24.0,
+        "Hp": 24.0,
+        "HpPct": 1.0,
+        "DeathArmor": true,
+        "BlockCount": 3,
+        "PositiveTokens": 3,
+        "ClassId": "lost_battalion_foot_soldier",
+        "Tokens": [
+          "block",
+          "block",
+          "deaths_door_armor",
+          "block_plus"
+        ]
+      },
+      {
+        "Guid": 2194,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 1,
+        "HpMax": 24.0,
+        "Hp": 24.0,
+        "HpPct": 1.0,
+        "DeathArmor": true,
+        "BlockCount": 2,
+        "PositiveTokens": 2,
+        "Rank": 1,
+        "ClassId": "lost_battalion_foot_soldier",
+        "Tokens": [
+          "block",
+          "block",
+          "deaths_door_armor"
+        ]
+      },
+      {
+        "Guid": 2195,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 1,
+        "HpMax": 19.0,
+        "Hp": 19.0,
+        "HpPct": 1.0,
+        "Rank": 2,
+        "ClassId": "lost_battalion_drummer",
+        "Tokens": [
+          "guard"
+        ]
+      },
+      {
+        "Guid": 2196,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 1,
+        "HpMax": 31.0,
+        "Hp": 31.0,
+        "HpPct": 1.0,
+        "Rank": 3,
+        "ClassId": "lost_battalion_bishop",
+        "Tokens": [
+          "benediction",
+          "benediction"
+        ]
+      }
+    ],
+    "Legal": [
+      {
+        "Skill": "hwm_wicked_slice_p1_u",
+        "Target": 2193,
+        "Preview": {
+          "Ok": true,
+          "Damage": 2.3,
+          "DamageLow": 2.0,
+          "DamageHigh": 2.0,
+          "DamageValid": true,
+          "ConsumeTarget": [
+            "block_plus"
+          ],
+          "ConsumePerformer": [
+            "block_plus"
+          ],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2193,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.3,
+          "ResistBlight": 0.3,
+          "ResistBurn": 0.1,
+          "ResistStun": 0.5
+        }
+      },
+      {
+        "Skill": "hwm_wicked_slice_p1_u",
+        "Target": 2194,
+        "Preview": {
+          "Ok": true,
+          "Damage": 4.0,
+          "DamageLow": 3.0,
+          "DamageHigh": 5.0,
+          "DamageValid": true,
+          "ConsumeTarget": [
+            "block"
+          ],
+          "ConsumePerformer": [
+            "block"
+          ],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2194,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.3,
+          "ResistBlight": 0.3,
+          "ResistBurn": 0.1,
+          "ResistStun": 0.5
+        }
+      },
+      {
+        "Skill": "hwm_pistol_shot",
+        "Target": 2194,
+        "Preview": {
+          "Ok": true,
+          "Damage": 3.0,
+          "DamageLow": 2.0,
+          "DamageHigh": 3.0,
+          "DamageValid": true,
+          "ConsumeTarget": [
+            "block"
+          ],
+          "ConsumePerformer": [
+            "block"
+          ],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2194,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.3,
+          "ResistBlight": 0.3,
+          "ResistBurn": 0.1,
+          "ResistStun": 0.5
+        }
+      },
+      {
+        "Skill": "hwm_pistol_shot",
+        "Target": 2195,
+        "Preview": {
+          "Ok": true,
+          "Damage": 3.0,
+          "DamageLow": 1.0,
+          "DamageHigh": 2.0,
+          "DamageValid": true,
+          "ConsumeTarget": [
+            "block_plus"
+          ],
+          "ConsumePerformer": [
+            "block_plus"
+          ],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2195,
+            0,
+            0
+          ],
+          "Hits": [],
+          "GuardGuid": 2195,
+          "ResistOk": true,
+          "ResistBleed": 0.3,
+          "ResistBlight": 0.3,
+          "ResistBurn": 0.1,
+          "ResistStun": 0.5
+        }
+      },
+      {
+        "Skill": "hwm_pistol_shot",
+        "Target": 2196,
+        "Preview": {
+          "Ok": true,
+          "Damage": 4.8,
+          "DamageLow": 3.0,
+          "DamageHigh": 6.0,
+          "DamageValid": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2196
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.3,
+          "ResistBlight": 0.3,
+          "ResistBurn": 0.2,
+          "ResistStun": 0.2
+        }
+      },
+      {
+        "Skill": "hwm_duelists_advance_p1_u",
+        "Target": 2193,
+        "Preview": {
+          "Ok": true,
+          "Damage": 1.5,
+          "DamageLow": 1.0,
+          "DamageHigh": 2.0,
+          "DamageValid": true,
+          "ConsumeTarget": [
+            "block_plus"
+          ],
+          "ConsumePerformer": [
+            "block_plus"
+          ],
+          "ApplyTarget": [],
+          "ApplyPerformer": [
+            "riposte",
+            "block_plus"
+          ],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2193,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.3,
+          "ResistBlight": 0.3,
+          "ResistBurn": 0.1,
+          "ResistStun": 0.5
+        }
+      },
+      {
+        "Skill": "hwm_duelists_advance_p1_u",
+        "Target": 2194,
+        "Preview": {
+          "Ok": true,
+          "Damage": 2.5,
+          "DamageLow": 2.0,
+          "DamageHigh": 3.0,
+          "DamageValid": true,
+          "ConsumeTarget": [
+            "block"
+          ],
+          "ConsumePerformer": [
+            "block"
+          ],
+          "ApplyTarget": [],
+          "ApplyPerformer": [
+            "riposte",
+            "block_plus"
+          ],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2194,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.3,
+          "ResistBlight": 0.3,
+          "ResistBurn": 0.1,
+          "ResistStun": 0.5
+        }
+      },
+      {
+        "Skill": "hwm_duelists_advance_p1_u",
+        "Target": 2195,
+        "Preview": {
+          "Ok": true,
+          "Damage": 3.0,
+          "DamageLow": 1.0,
+          "DamageHigh": 2.0,
+          "DamageValid": true,
+          "ConsumeTarget": [
+            "block_plus"
+          ],
+          "ConsumePerformer": [
+            "block_plus"
+          ],
+          "ApplyTarget": [],
+          "ApplyPerformer": [
+            "riposte",
+            "block_plus"
+          ],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2195,
+            0,
+            0
+          ],
+          "Hits": [],
+          "GuardGuid": 2195,
+          "ResistOk": true,
+          "ResistBleed": 0.3,
+          "ResistBlight": 0.3,
+          "ResistBurn": 0.1,
+          "ResistStun": 0.5
+        }
+      },
+      {
+        "Skill": "hwm_tracking_shot",
+        "Target": 2193,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [
+            "combo"
+          ],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2193
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.3,
+          "ResistBlight": 0.3,
+          "ResistBurn": 0.1,
+          "ResistStun": 0.5
+        }
+      },
+      {
+        "Skill": "hwm_tracking_shot",
+        "Target": 2194,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [
+            "combo"
+          ],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2194
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.3,
+          "ResistBlight": 0.3,
+          "ResistBurn": 0.1,
+          "ResistStun": 0.5
+        }
+      },
+      {
+        "Skill": "hwm_tracking_shot",
+        "Target": 2195,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [
+            "combo"
+          ],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2195,
+            0
+          ],
+          "Hits": [],
+          "GuardGuid": 2195,
+          "ResistOk": true,
+          "ResistBleed": 0.3,
+          "ResistBlight": 0.3,
+          "ResistBurn": 0.1,
+          "ResistStun": 0.5
+        }
+      },
+      {
+        "Skill": "hwm_tracking_shot",
+        "Target": 2196,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [
+            "combo"
+          ],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2196
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.3,
+          "ResistBlight": 0.3,
+          "ResistBurn": 0.2,
+          "ResistStun": 0.2
+        }
+      },
+      {
+        "Skill": "hwm_take_aim_p1",
+        "Target": 2141,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [
+            "speed",
+            "riposte"
+          ],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2141
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "hwm_move",
+        "Target": 2144,
+        "Preview": {
+          "Error": "preview_invalid",
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2144
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "hwm_move",
+        "Target": 2139,
+        "Preview": {
+          "Error": "preview_invalid",
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2139
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "hwm_move",
+        "Target": 2067,
+        "Preview": {
+          "Error": "preview_invalid",
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2067
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "pass_stress",
+        "Target": 2141,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2141
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "laudanum",
+        "Target": 2144,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2144
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "laudanum",
+        "Target": 2141,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2141
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "laudanum",
+        "Target": 2067,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2067
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      }
+    ],
+    "Skills": {
+      "hwm_wicked_slice_p1_u": {
+        "Id": "hwm_wicked_slice_p1_u",
+        "Tags": [
+          "melee",
+          "hwm_wicked_slice"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "hwm_pistol_shot": {
+        "Id": "hwm_pistol_shot",
+        "Tags": [
+          "ranged",
+          "hwm_pistol_shot"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "hwm_duelists_advance_p1_u": {
+        "Id": "hwm_duelists_advance_p1_u",
+        "Tags": [
+          "melee",
+          "hwm_duelists_advance"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "hwm_tracking_shot": {
+        "Id": "hwm_tracking_shot",
+        "Tags": [
+          "ranged",
+          "hwm_tracking_shot"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "hwm_take_aim_p1": {
+        "Id": "hwm_take_aim_p1",
+        "IsFriendly": true,
+        "Tags": [
+          "hwm_take_aim"
+        ],
+        "Conditions": [],
+        "Role": {},
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "hwm_move": {
+        "Id": "hwm_move",
+        "IsMove": true,
+        "Tags": [
+          "move"
+        ],
+        "Conditions": [],
+        "Role": {},
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "pass_stress": {
+        "Id": "pass_stress",
+        "Tags": [
+          "pass",
+          "stationary"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "laudanum": {
+        "Id": "laudanum",
+        "IsFriendly": true,
+        "IsItemSkill": true,
+        "IsFree": true,
+        "Tags": [
+          "stress_heal",
+          "laudanum",
+          "combat_item"
+        ],
+        "Conditions": [
+          "target_has_horror_hidden",
+          "target_has_stress_hidden"
+        ],
+        "Role": {},
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/2144": {
+        "Id": "~legacy_kit/2144",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Heals": true,
+          "Stuns": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 14.0,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/2141": {
+        "Id": "~legacy_kit/2141",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Stuns": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 14.0,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/2139": {
+        "Id": "~legacy_kit/2139",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Heals": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 14.0,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/2067": {
+        "Id": "~legacy_kit/2067",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Heals": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 14.0,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      }
+    },
+    "RemainingTurns": [],
+    "Memory": {
+      "Round": 1,
+      "ComboSpendersActed": [],
+      "CrisisHealsThisRound": [],
+      "ReachWalkedThisRound": []
+    },
+    "Threats": [
+      {
+        "Guid": 2193,
+        "Name": "2193",
+        "ClassId": "lost_battalion_foot_soldier",
+        "Boss": true,
+        "Add": true,
+        "HpPct": 1.0,
+        "Size": 1
+      },
+      {
+        "Guid": 2194,
+        "Name": "2194",
+        "ClassId": "lost_battalion_foot_soldier",
+        "Boss": true,
+        "Add": true,
+        "HpPct": 1.0,
+        "Size": 1
+      },
+      {
+        "Guid": 2195,
+        "Name": "2195",
+        "ClassId": "lost_battalion_drummer",
+        "Supports": true,
+        "HpPct": 1.0,
+        "Size": 1
+      },
+      {
+        "Guid": 2196,
+        "Name": "2196",
+        "ClassId": "lost_battalion_bishop",
+        "Boss": true,
+        "Resurrects": true,
+        "Supports": true,
+        "HpPct": 1.0,
+        "Size": 1
+      }
+    ],
+    "SummonedClasses": [],
+    "ItemQty": {
+      "laudanum": 1
+    },
+    "CursedSkills": [],
+    "LimitedSkills": [],
+    "Degraded": [
+      "legacy_schema1",
+      "no_preview_hits",
+      "no_remove_target",
+      "no_equipped_skills",
+      "kit_from_names",
+      "no_turn_order",
+      "no_dot_split",
+      "no_debuff_move_resist",
+      "memory_inferred",
+      "skill_roles_ranks_missing"
+    ]
+  }
+}

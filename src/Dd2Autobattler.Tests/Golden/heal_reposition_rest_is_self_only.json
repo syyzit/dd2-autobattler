@@ -1,0 +1,1165 @@
+{
+  "name": "heal_reposition_rest_is_self_only",
+  "note": "PD 7/33 at 6 stress on rank index 1 (Medicine launches from 3-4), Occultist 7/37 behind her: a legal Rest on herself no longer counts as an ally heal, so the walk back onto a launch rank fires",
+  "source": "20261117-021815#53/t26 cultist_mash_8 Paracelsus (logged pd_noxious_blast_u->4208 91.6 peel)",
+  "expect": {
+    "Skill": "pd_move",
+    "Target": 4145
+  },
+  "expect_search": null,
+  "forbid": [],
+  "snap": {
+    "Schema": 2,
+    "PerformerGuid": 4146,
+    "Performer": {
+      "Guid": 4146,
+      "Name": "Paracelsus",
+      "Living": true,
+      "Size": 1,
+      "HpMax": 33.0,
+      "Hp": 7.0,
+      "HpPct": 0.212121218,
+      "Stress": 6.0,
+      "NextDot": 4.0,
+      "BleedDot": 4.0,
+      "Weak": true,
+      "Rank": 1,
+      "ClassId": "plague_doctor",
+      "Tokens": [
+        "weak",
+        "weak"
+      ],
+      "SkillIds": [
+        "pd_noxious_blast_u",
+        "pd_blinding_gas",
+        "pd_incision",
+        "pd_battlefield_medicine_u",
+        "pd_ounce_of_prevention"
+      ]
+    },
+    "Heroes": [
+      {
+        "Guid": 4144,
+        "Name": "Barristan",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 24.0,
+        "Hp": 21.0,
+        "HpPct": 0.875,
+        "Corpse": true,
+        "NextDot": 2.0,
+        "BleedDot": 2.0,
+        "ClassId": "man_at_arms_corpse",
+        "Tokens": [],
+        "SkillIds": []
+      },
+      {
+        "Guid": 4146,
+        "Name": "Paracelsus",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 33.0,
+        "Hp": 7.0,
+        "HpPct": 0.212121218,
+        "Stress": 6.0,
+        "NextDot": 4.0,
+        "BleedDot": 4.0,
+        "Weak": true,
+        "Rank": 1,
+        "ClassId": "plague_doctor",
+        "Tokens": [
+          "weak",
+          "weak"
+        ],
+        "SkillIds": [
+          "pd_noxious_blast_u",
+          "pd_blinding_gas",
+          "pd_incision",
+          "pd_battlefield_medicine_u",
+          "pd_ounce_of_prevention"
+        ]
+      },
+      {
+        "Guid": 4145,
+        "Name": "Alhazred",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 37.0,
+        "Hp": 7.0,
+        "HpPct": 0.1891892,
+        "Stress": 8.0,
+        "NextDot": 4.0,
+        "BleedDot": 4.0,
+        "Weak": true,
+        "Rank": 2,
+        "ClassId": "occultist",
+        "Tokens": [
+          "weak",
+          "weak"
+        ],
+        "SkillIds": [
+          "occ_sacrificial_stab",
+          "occ_abyssal_artillery",
+          "occ_weakening_curse",
+          "occ_wyrd_reconstruction",
+          "occ_daemons_pull"
+        ]
+      }
+    ],
+    "Enemies": [
+      {
+        "Guid": 4208,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 1,
+        "HpMax": 34.0,
+        "DeathsDoor": true,
+        "DeathArmor": true,
+        "BlockCount": 1,
+        "PositiveTokens": 2,
+        "ClassId": "cultist_evangelist",
+        "Tokens": [
+          "crit",
+          "block",
+          "deaths_door_armor"
+        ],
+        "SkillIds": [
+          "evangelist_blood_commune",
+          "evangelist_blood_bond",
+          "evangelist_nocturne_commune",
+          "evangelist_rush_judgement",
+          "evangelist_worship"
+        ]
+      },
+      {
+        "Guid": 4209,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 1,
+        "HpMax": 28.0,
+        "Hp": 22.0,
+        "HpPct": 0.785714269,
+        "DeathArmor": true,
+        "BlockCount": 1,
+        "PositiveTokens": 1,
+        "Rank": 1,
+        "ClassId": "cultist_evangelist",
+        "Tokens": [
+          "deaths_door_armor",
+          "block"
+        ],
+        "SkillIds": [
+          "evangelist_blood_commune",
+          "evangelist_blood_bond",
+          "evangelist_nocturne_commune",
+          "evangelist_rush_judgement",
+          "evangelist_worship"
+        ]
+      },
+      {
+        "Guid": 4210,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 1,
+        "HpMax": 22.0,
+        "Hp": 12.0,
+        "HpPct": 0.545454562,
+        "Rank": 2,
+        "ClassId": "cultist_herald",
+        "Tokens": [],
+        "SkillIds": [
+          "herald_first_trumpet",
+          "herald_clarion_call",
+          "herald_inversion",
+          "herald_harmonious_end",
+          "herald_worship"
+        ]
+      },
+      {
+        "Guid": 4211,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 1,
+        "HpMax": 18.0,
+        "Hp": 11.0,
+        "HpPct": 0.6111111,
+        "Rank": 3,
+        "ClassId": "cultist_herald",
+        "Tokens": [],
+        "SkillIds": [
+          "herald_first_trumpet",
+          "herald_clarion_call",
+          "herald_inversion",
+          "herald_harmonious_end",
+          "herald_worship"
+        ]
+      }
+    ],
+    "Legal": [
+      {
+        "Skill": "pd_noxious_blast_u",
+        "Target": 4208,
+        "Preview": {
+          "Ok": true,
+          "Damage": 1.1,
+          "DamageLow": 1.0,
+          "DamageHigh": 1.0,
+          "DamageValid": true,
+          "ConsumeTarget": [
+            "block",
+            "deaths_door_armor",
+            "weak"
+          ],
+          "ConsumePerformer": [
+            "weak",
+            "block",
+            "deaths_door_armor"
+          ],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [
+            "combo"
+          ],
+          "RemovePerformer": [],
+          "HitGuids": [
+            4208,
+            4146
+          ],
+          "Hits": [
+            {
+              "Guid": 4208,
+              "Damage": 1.1
+            },
+            {
+              "Guid": 4146
+            }
+          ],
+          "ResistOk": true,
+          "ResistBleed": 0.2,
+          "ResistBlight": 0.2,
+          "ResistBurn": 0.2,
+          "ResistStun": 0.6,
+          "ResistDebuff": 0.2,
+          "ResistMove": 0.4,
+          "ApplyBlight": 5.0
+        }
+      },
+      {
+        "Skill": "pd_noxious_blast_u",
+        "Target": 4209,
+        "Preview": {
+          "Ok": true,
+          "Damage": 1.0,
+          "DamageLow": 1.0,
+          "DamageHigh": 1.0,
+          "DamageValid": true,
+          "ConsumeTarget": [
+            "block",
+            "weak"
+          ],
+          "ConsumePerformer": [
+            "weak",
+            "block"
+          ],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [
+            "combo"
+          ],
+          "RemovePerformer": [],
+          "HitGuids": [
+            4209,
+            4146
+          ],
+          "Hits": [
+            {
+              "Guid": 4209,
+              "Damage": 1.0
+            },
+            {
+              "Guid": 4146
+            }
+          ],
+          "ResistOk": true,
+          "ResistBleed": 0.2,
+          "ResistBlight": 0.2,
+          "ResistBurn": 0.2,
+          "ResistStun": 0.4,
+          "ResistDebuff": 0.2,
+          "ResistMove": 0.4,
+          "ApplyBlight": 5.0
+        }
+      },
+      {
+        "Skill": "pd_incision",
+        "Target": 4208,
+        "Preview": {
+          "Ok": true,
+          "Damage": 1.5,
+          "DamageLow": 1.0,
+          "DamageHigh": 2.0,
+          "DamageValid": true,
+          "ConsumeTarget": [
+            "block",
+            "deaths_door_armor",
+            "weak"
+          ],
+          "ConsumePerformer": [
+            "weak",
+            "block",
+            "deaths_door_armor"
+          ],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [
+            "combo"
+          ],
+          "RemovePerformer": [],
+          "HitGuids": [
+            4208,
+            4146
+          ],
+          "Hits": [
+            {
+              "Guid": 4208,
+              "Damage": 1.5
+            },
+            {
+              "Guid": 4146
+            }
+          ],
+          "ResistOk": true,
+          "ResistBleed": 0.2,
+          "ResistBlight": 0.2,
+          "ResistBurn": 0.2,
+          "ResistStun": 0.6,
+          "ResistDebuff": 0.2,
+          "ResistMove": 0.4,
+          "ApplyBleed": 3.0
+        }
+      },
+      {
+        "Skill": "pd_incision",
+        "Target": 4209,
+        "Preview": {
+          "Ok": true,
+          "Damage": 1.55,
+          "DamageLow": 1.0,
+          "DamageHigh": 2.0,
+          "DamageValid": true,
+          "ConsumeTarget": [
+            "block",
+            "weak"
+          ],
+          "ConsumePerformer": [
+            "weak",
+            "block"
+          ],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [
+            "combo"
+          ],
+          "RemovePerformer": [],
+          "HitGuids": [
+            4209,
+            4146
+          ],
+          "Hits": [
+            {
+              "Guid": 4209,
+              "Damage": 1.55
+            },
+            {
+              "Guid": 4146
+            }
+          ],
+          "ResistOk": true,
+          "ResistBleed": 0.2,
+          "ResistBlight": 0.2,
+          "ResistBurn": 0.2,
+          "ResistStun": 0.4,
+          "ResistDebuff": 0.2,
+          "ResistMove": 0.4,
+          "ApplyBleed": 3.0
+        }
+      },
+      {
+        "Skill": "pd_ounce_of_prevention",
+        "Target": 4146,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            4146,
+            4145
+          ],
+          "Hits": [
+            {
+              "Guid": 4146
+            },
+            {
+              "Guid": 4145
+            }
+          ]
+        }
+      },
+      {
+        "Skill": "pd_ounce_of_prevention",
+        "Target": 4145,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            4146,
+            4145
+          ],
+          "Hits": [
+            {
+              "Guid": 4146
+            },
+            {
+              "Guid": 4145
+            }
+          ]
+        }
+      },
+      {
+        "Skill": "pd_move",
+        "Target": 4144,
+        "Preview": {
+          "Error": "preview_invalid",
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [],
+          "Hits": []
+        }
+      },
+      {
+        "Skill": "pd_move",
+        "Target": 4145,
+        "Preview": {
+          "Error": "preview_invalid",
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [],
+          "Hits": []
+        }
+      },
+      {
+        "Skill": "pass_heal",
+        "Target": 4146,
+        "Preview": {
+          "Ok": true,
+          "Heal": 5.0,
+          "HealValid": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            4146
+          ],
+          "Hits": [
+            {
+              "Guid": 4146
+            }
+          ]
+        }
+      }
+    ],
+    "Skills": {
+      "pd_noxious_blast_u": {
+        "Id": "pd_noxious_blast_u",
+        "Tags": [
+          "ranged",
+          "pd_noxious_blast"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 6.0,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "LaunchMask": 14,
+        "TargetMasks": [
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "pd_blinding_gas": {
+        "Id": "pd_blinding_gas",
+        "Tags": [
+          "ranged",
+          "pd_blinding_gas"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "AppliesCombo": true
+        },
+        "OwnerSize": 1,
+        "LaunchMask": 12,
+        "TargetMasks": [
+          12,
+          14,
+          15,
+          15,
+          12,
+          14,
+          15,
+          15,
+          12,
+          14,
+          15,
+          15,
+          12,
+          14,
+          15,
+          15
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "pd_incision": {
+        "Id": "pd_incision",
+        "Tags": [
+          "melee",
+          "pd_incision"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 6.0,
+          "Bleed": true
+        },
+        "OwnerSize": 1,
+        "LaunchMask": 7,
+        "TargetMasks": [
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "pd_battlefield_medicine_u": {
+        "Id": "pd_battlefield_medicine_u",
+        "IsFriendly": true,
+        "Tags": [
+          "heal",
+          "pd_battlefield_medicine"
+        ],
+        "Conditions": [
+          "target_meets_heal_threshold_high_hidden",
+          "target_has_bleed_dot_hidden",
+          "target_has_blight_dot_hidden",
+          "target_has_burn_dot_hidden"
+        ],
+        "Role": {
+          "Heals": true
+        },
+        "OwnerSize": 1,
+        "LaunchMask": 12,
+        "TargetMasks": [
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "pd_ounce_of_prevention": {
+        "Id": "pd_ounce_of_prevention",
+        "IsFriendly": true,
+        "Tags": [
+          "pd_ounce_of_prevention"
+        ],
+        "Conditions": [
+          "target_is_not_corpse_hidden"
+        ],
+        "Role": {},
+        "OwnerSize": 1,
+        "LaunchMask": 14,
+        "TargetMasks": [
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "pd_move": {
+        "Id": "pd_move",
+        "IsMove": true,
+        "IsFriendly": true,
+        "Tags": [
+          "move"
+        ],
+        "Conditions": [],
+        "Role": {},
+        "OwnerSize": 1,
+        "LaunchMask": 15,
+        "TargetMasks": [
+          2,
+          3,
+          3,
+          3,
+          5,
+          7,
+          7,
+          7,
+          10,
+          15,
+          15,
+          15,
+          4,
+          14,
+          15,
+          15
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "pass_heal": {
+        "Id": "pass_heal",
+        "IsFriendly": true,
+        "Tags": [
+          "pass",
+          "heal"
+        ],
+        "Conditions": [
+          "performer_health_under_25pct"
+        ],
+        "Role": {
+          "Heals": true
+        },
+        "OwnerSize": 1,
+        "LaunchMask": 15,
+        "TargetMasks": [
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "occ_sacrificial_stab": {
+        "Id": "occ_sacrificial_stab",
+        "Tags": [
+          "melee",
+          "occ_sacrificial_stab"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 6.0
+        },
+        "OwnerSize": 1,
+        "LaunchMask": 7,
+        "TargetMasks": [
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "occ_abyssal_artillery": {
+        "Id": "occ_abyssal_artillery",
+        "Tags": [
+          "ranged",
+          "occ_abyssal_artillery"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "AppliesCombo": true
+        },
+        "OwnerSize": 1,
+        "LaunchMask": 12,
+        "TargetMasks": [
+          12,
+          14,
+          15,
+          15,
+          12,
+          14,
+          15,
+          15,
+          12,
+          14,
+          15,
+          15,
+          12,
+          14,
+          15,
+          15
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "occ_weakening_curse": {
+        "Id": "occ_weakening_curse",
+        "Tags": [
+          "ranged",
+          "occ_weakening_curse"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "AppliesCombo": true
+        },
+        "OwnerSize": 1,
+        "LaunchMask": 15,
+        "TargetMasks": [
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "occ_wyrd_reconstruction": {
+        "Id": "occ_wyrd_reconstruction",
+        "IsFriendly": true,
+        "Tags": [
+          "heal",
+          "occ_wyrd_reconstruction"
+        ],
+        "Conditions": [
+          "target_meets_heal_threshold_high"
+        ],
+        "Role": {
+          "Bleed": true
+        },
+        "OwnerSize": 1,
+        "LaunchMask": 15,
+        "TargetMasks": [
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "occ_daemons_pull": {
+        "Id": "occ_daemons_pull",
+        "Tags": [
+          "ranged",
+          "occ_daemons_pull"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Stuns": true,
+          "AppliesCombo": true
+        },
+        "OwnerSize": 1,
+        "LaunchMask": 14,
+        "TargetMasks": [
+          12,
+          14,
+          15,
+          15,
+          12,
+          14,
+          15,
+          15,
+          12,
+          14,
+          15,
+          15,
+          12,
+          14,
+          15,
+          15
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    "RemainingTurns": [
+      4146,
+      4208,
+      4211
+    ],
+    "Memory": {
+      "Round": 8,
+      "ComboSpendersActed": [
+        4145
+      ],
+      "CrisisHealsThisRound": [
+        4146
+      ],
+      "ReachWalkedThisRound": []
+    },
+    "Threats": [
+      {
+        "Guid": 4208,
+        "Name": "4208",
+        "ClassId": "cultist_evangelist",
+        "Boss": true,
+        "Supports": true,
+        "Size": 1
+      },
+      {
+        "Guid": 4209,
+        "Name": "4209",
+        "ClassId": "cultist_evangelist",
+        "Supports": true,
+        "HpPct": 0.785714269,
+        "Size": 1
+      },
+      {
+        "Guid": 4210,
+        "Name": "4210",
+        "ClassId": "cultist_herald",
+        "Boss": true,
+        "Supports": true,
+        "HpPct": 0.545454562,
+        "Size": 1
+      },
+      {
+        "Guid": 4211,
+        "Name": "4211",
+        "ClassId": "cultist_herald",
+        "Supports": true,
+        "HpPct": 0.6111111,
+        "Size": 1
+      }
+    ],
+    "SummonedClasses": [],
+    "ItemQty": {},
+    "CursedSkills": [],
+    "LimitedSkills": [],
+    "Degraded": []
+  }
+}

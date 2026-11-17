@@ -43,136 +43,230 @@ namespace Dd2Autobattler.Combat
             Decide(controller, false);
         }
 
+        // Live entry point: read the game into a snapshot, decide on plain
+        // data, then write memory back and log. Picks are the same as
+        // DecideSnapshot on the logged "snap".
         public static ChosenAction Decide(ActorControllerBase controller, bool commit)
         {
             var performer = controller != null ? GetPerformer(controller) : null;
             if (performer == null)
                 return null;
 
-            var entries = controller.GetValidSkillTargetEntries();
             var teams = GetTeams(controller);
-            var livingEnemies = CountLivingEnemies(teams);
-            var killableEnemies = CountKillableEnemies(teams);
-            var performerGuid = performer.ActorGuid;
-            var party = PartyKit.Scan(teams, performerGuid);
-            var focus = EnemyFocus.Scan(teams);
-            var remaining = ReadRemainingTurns();
-            var nextEnemyGuid = FirstEnemyInOrder(remaining, teams);
-            var performerBody = GameSnapshot.Describe(performer);
+            var snap = LiveTurnReader.Capture(controller, performer, teams);
+            var result = DecideSnapshot(snap);
+            // Optional round lookahead (Search.Mode; default Off).
+            Search.SearchResult search = null;
+            try { search = Search.SearchHook.ApplyLive(snap, result); }
+            catch (Exception ex) { DecisionLog.Warn("Search failed: " + ex.Message); }
+            var performerGuid = snap.PerformerGuid;
+            var best = result.Chosen;
+            var rows = result.Rows;
+
+            if (best == null)
+            {
+                CombatMemory.Restore(result.Memory);
+                if (!commit)
+                    CombatMemory.NoteShadowPick(performerGuid, null, rows);
+                LogTurn(controller, performer, snap, rows, null, "no_legal_action", result.Party, result.Focus, commit);
+                return null;
+            }
+
+            if (!commit)
+            {
+                CombatMemory.Restore(result.Memory);
+                CombatMemory.NoteShadowPick(performerGuid, best, rows);
+                LogTurn(controller, performer, snap, rows, best, best.Reason, result.Party, result.Focus, false, search);
+                return best;
+            }
+
+            ApplyCommit(result.Memory, result);
+            CombatMemory.Restore(result.Memory);
+            _pendingTarget = best.TargetGuid;
+            LogTurn(controller, performer, snap, rows, best, best.Reason, result.Party, result.Focus, true, search);
+            return best;
+        }
+
+        // Pure decision over plain data. No game calls, no static state: the
+        // snapshot's memory is cloned, probed (setup / item budgets) and
+        // returned in result.Memory. Same picks and log rows as the live path.
+        internal static DecisionResult DecideSnapshot(TurnSnapshot snap)
+        {
+            var result = new DecisionResult();
+            if (snap == null)
+            {
+                result.Reason = "no_legal_action";
+                result.Candidates = new List<ScoredAction>();
+                result.Rows = new List<JObject>();
+                result.Memory = new MemoryState();
+                return result;
+            }
+
+            var memory = (snap.Memory ?? new MemoryState()).Clone();
+            var performerGuid = snap.PerformerGuid;
+            var performerBody = snap.Performer ?? snap.Find(performerGuid) ?? new TargetInfo { Guid = performerGuid };
+            var livingEnemies = CountLivingEnemies(snap);
+            var killableEnemies = CountKillableEnemies(snap);
+            var party = PartyKit.Scan(snap);
+            var focus = EnemyFocus.Scan(snap);
+            var remaining = snap.RemainingTurns ?? new List<uint>();
+            var nextEnemyGuid = FirstEnemyInOrder(remaining, snap);
             var candidates = new List<ScoredAction>();
 
-            if (entries != null)
+            if (snap.Legal != null)
             {
-                for (var i = 0; i < entries.Count; i++)
+                for (var i = 0; i < snap.Legal.Count; i++)
                 {
-                    var entry = entries[i];
-                    if (entry == null || !entry.IsValid || string.IsNullOrEmpty(entry.m_SkillId))
+                    var legal = snap.Legal[i];
+                    if (legal == null || string.IsNullOrEmpty(legal.Skill) || legal.Target == 0)
                         continue;
 
-                    var skillDef = GetSkill(entry.m_SkillId);
-                    var targets = entry.m_ValidTargetActorGuids;
-                    if (targets == null || targets.Count == 0)
-                        continue;
+                    var skillId = legal.Skill;
+                    var targetGuid = legal.Target;
+                    var skillDef = snap.Skill(skillId);
+                    var stealthed = legal.Stealthed;
 
-                    for (var t = 0; t < targets.Count; t++)
+                    var preview = legal.Preview != null
+                        ? legal.Preview.Clone()
+                        : new PreviewScore { Error = "no_preview" };
+                    if (preview.Ok)
+                        ClampPreviewToLivingHits(preview, snap, performerGuid);
+                    var target = snap.Find(targetGuid) ?? new TargetInfo();
+                    if (preview.Ok)
+                        SkillPreviewReader.ApplyComboBleedDouble(skillId, target.Combo, preview, targetGuid);
+                    var enemyTarget = snap.IsEnemy(targetGuid);
+                    var kind = Classify(skillId, skillDef, preview, enemyTarget);
+                    NoteKillFromHp(preview, target, snap);
+                    if (target.DiesToDot && livingEnemies > 1)
+                        preview.Kills = false;
+                    var role = skillDef != null && skillDef.Role != null ? skillDef.Role : new SkillRole();
+                    var tokens = TokenPrices.Evaluate(kind, enemyTarget, preview, target, livingEnemies, party, performerGuid, role, performerBody, nextEnemyGuid, memory);
+                    var isItem = ItemPolicy.IsCombatItem(skillDef, skillId, performerBody);
+                    var clearsCorpse = ItemPolicy.ClearsCorpse(skillId, skillDef);
+                    var freeItem = isItem && ItemPolicy.IsFreeAction(skillDef);
+                    var qty = isItem ? snap.RemainingQty(skillId) : 0;
+                    var item = isItem
+                        ? ItemPolicy.Evaluate(skillId, skillDef, kind, enemyTarget, preview, target, tokens, livingEnemies, qty)
+                        : null;
+                    var setup = party != null ? party.SetupBonus(role, target, enemyTarget, preview) : 0f;
+                    if (TokenPrices.IsEarlySetup(memory.Round, livingEnemies))
+                        setup *= 1.5f;
+                    // Corpse-clear skills skip token/setup on a corpse click — Lye scoring.
+                    var score = ScoreAction(skillId, kind, enemyTarget, stealthed || target.Stealth, preview, target, livingEnemies, party, focus, clearsCorpse);
+                    if (item != null)
+                        score = item.Score;
+                    else if (!(clearsCorpse && target.Corpse))
+                        score += tokens.Score + setup;
+                    if (enemyTarget && kind == SkillKind.Attack && !isItem)
+                        score += SelfHitPenalty(preview, performerBody);
+                    var focusGuid = enemyTarget ? FocusPayGuid(preview, target) : 0u;
+                    candidates.Add(new ScoredAction
                     {
-                        var targetGuid = targets[t];
-                        if (targetGuid == 0)
-                            continue;
-
-                        var stealthed = false;
-                        try { stealthed = controller.GetIsStealthedTarget(entry.m_SkillId, targetGuid); } catch { }
-
-                        var preview = SkillPreviewReader.Score(performer.ActorGuid, entry.m_SkillId, targetGuid);
-                        if (preview.Ok)
-                        {
-                            SkillPreviewReader.AddSkillTokenAdds(skillDef, preview);
-                            ClampPreviewToLivingHits(preview, teams, performer.ActorGuid);
-                        }
-                        var target = GameSnapshot.Describe(GetActor(teams, targetGuid));
-                        if (preview.Ok)
-                        {
-                            SkillPreviewReader.AddConditionalDotDealt(performer, entry.m_SkillId, preview);
-                            SkillPreviewReader.ApplyComboBleedDouble(entry.m_SkillId, target.Combo, preview);
-                        }
-                        var enemyTarget = IsEnemy(teams, targetGuid);
-                        var kind = Classify(entry.m_SkillId, skillDef, preview, enemyTarget);
-                        NoteKillFromHp(preview, target, teams);
-                        if (target.DiesToDot && livingEnemies > 1)
-                            preview.Kills = false;
-                        var role = PartyKit.DescribeSkill(skillDef);
-                        var tokens = TokenPrices.Evaluate(kind, enemyTarget, preview, target, livingEnemies, party, performerGuid, role, performerBody, nextEnemyGuid);
-                        var isItem = ItemPolicy.IsCombatItem(skillDef, entry.m_SkillId, performer);
-                        var clearsCorpse = ItemPolicy.ClearsCorpse(entry.m_SkillId, skillDef);
-                        var freeItem = isItem && ItemPolicy.IsFreeAction(skillDef);
-                        var qty = isItem ? ItemPolicy.RemainingQty(performer, entry.m_SkillId) : 0;
-                        var item = isItem
-                            ? ItemPolicy.Evaluate(entry.m_SkillId, skillDef, kind, enemyTarget, preview, target, tokens, livingEnemies, qty)
-                            : null;
-                        var setup = party != null ? party.SetupBonus(role, target, enemyTarget, preview) : 0f;
-                        if (TokenPrices.IsEarlySetup(CombatMemory.Round, livingEnemies))
-                            setup *= 1.5f;
-                        // Corpse-clear skills skip token/setup on a corpse click — Lye scoring.
-                        var score = ScoreAction(entry.m_SkillId, kind, enemyTarget, stealthed || target.Stealth, preview, target, livingEnemies, party, focus, clearsCorpse);
-                        if (item != null)
-                            score = item.Score;
-                        else if (!(clearsCorpse && target.Corpse))
-                            score += tokens.Score + setup;
-                        var focusGuid = enemyTarget ? FocusPayGuid(preview, target) : 0u;
-                        candidates.Add(new ScoredAction
-                        {
-                            SkillId = entry.m_SkillId,
-                            TargetGuid = targetGuid,
-                            Kind = kind,
-                            EnemyTarget = enemyTarget,
-                            Target = target,
-                            Preview = preview,
-                            Tokens = tokens,
-                            Item = item,
-                            IsItem = isItem,
-                            ClearsCorpse = clearsCorpse,
-                            FreeAction = freeItem,
-                            ItemQty = qty,
-                            Score = score,
-                            Stealthed = stealthed || target.Stealth,
-                            Focus = focusGuid != 0 ? focus.ScoreOf(focusGuid) : 0f,
-                            FocusWhy = focusGuid != 0 ? focus.Why(focusGuid) : (GuardRedirects(preview, target) ? "guard" : null),
-                            Cursed = IsCursedSkill(performer, entry.m_SkillId)
-                        });
-                    }
+                        SkillId = skillId,
+                        TargetGuid = targetGuid,
+                        Kind = kind,
+                        EnemyTarget = enemyTarget,
+                        Target = target,
+                        Preview = preview,
+                        Tokens = tokens,
+                        Item = item,
+                        IsItem = isItem,
+                        ClearsCorpse = clearsCorpse,
+                        FreeAction = freeItem,
+                        ItemQty = qty,
+                        Score = score,
+                        Stealthed = stealthed || target.Stealth,
+                        Focus = focusGuid != 0 ? focus.ScoreOf(focusGuid) : 0f,
+                        FocusWhy = focusGuid != 0 ? focus.Why(focusGuid) : (GuardRedirects(preview, target) ? "guard" : null),
+                        Cursed = snap.IsCursed(skillId)
+                    });
                 }
             }
 
             ApplyCursePenalty(candidates);
-            if (AllyInCrisis(teams) && !HasLegalAllyHeal(candidates))
-                ApplyHealReposition(candidates, performer);
-            ApplyHarvestHungerGuard(candidates, performer, teams, focus);
+            if (AllyInCrisis(snap) && !HasLegalAllyHeal(candidates))
+                ApplyHealReposition(candidates, performerBody, snap);
+            ApplyHarvestHungerGuard(candidates, performerBody, snap, focus);
             ApplyLibrarianBookVeto(candidates, focus);
-            ApplyCorpseSplash(candidates, teams);
+            ApplyCorpseSplash(candidates, snap);
             ApplySighLungVeto(candidates, focus);
             ApplyFocusedFaultNotes(candidates, focus);
             ApplyImplicationBlindNotes(candidates, focus);
-            ApplyLaterActNotes(candidates, focus, performer);
-            ApplyRankWalks(candidates, performer, teams, focus, livingEnemies, performerGuid, party);
+            ApplyLaterActNotes(candidates, focus, performerBody);
+            ApplyChirurgeonDotWaste(candidates, focus, snap);
+            ApplyRankWalks(candidates, performerBody, snap, focus, livingEnemies, performerGuid, party, memory);
             ApplyCorpseReach(candidates, focus, livingEnemies);
-            ApplyOnePly(candidates, livingEnemies, performerGuid, remaining, teams, party);
+            ApplyOnePly(candidates, livingEnemies, performerGuid, remaining, snap, party);
             ApplyComboChipVeto(candidates);
-            var partyDoor = PartyHasDeathsDoor(teams);
-            ApplyKitSafety(candidates, performerBody, livingEnemies, partyDoor, party, performerGuid);
-            ApplyCrisisStabilize(candidates, teams);
+            var partyDoor = PartyHasDeathsDoor(snap);
+            ApplyKitSafety(candidates, performerBody, livingEnemies, partyDoor, party, performerGuid, snap);
+            // Again after the DoT pay above (KitSafety dot_host): a live Poison
+            // Dart blight must not climb back over the direct hit on him.
+            ApplyChirurgeonDotWaste(candidates, focus, snap);
+            ApplyCrisisStabilize(candidates, snap, focus);
+            ApplyStressBeforeRest(candidates);
+            ApplyRestOverSelfMedicine(candidates, performerBody);
+            ApplyMountainCultistTaunt(candidates, snap, performerBody, focus);
+            // Librarian: Duelist's Advance / Rampart that leave fewer heroes on
+            // him rank below a hit that does not (LibrarianPlay).
+            LibrarianPlay.DemoteReachLosingSelfMoves(candidates, performerBody, snap);
+            // Shackles of Denial: a free DoT item on a lock is worth its ticks
+            // (DenialPlay; ItemPolicy counts direct damage only).
+            DenialPlay.ScoreDotItems(candidates, snap, focus);
 
             var lastEnemy = FindLastLivingEnemy(candidates);
-            var lastGuid = lastEnemy != null && lastEnemy.Actor != null ? lastEnemy.Actor.ActorGuid : 0u;
+            var lastGuid = lastEnemy != null ? lastEnemy.Guid : 0u;
             var awkward = lastEnemy != null && (lastEnemy.Riposte || lastEnemy.Dodge);
-            var allowSetup = livingEnemies <= 1 && awkward && CombatMemory.CanSpendSetup(lastGuid);
+            var allowSetup = livingEnemies <= 1 && awkward && memory.CanSpendSetup(lastGuid);
 
             var performerCrisis = performerBody.DeathsDoor || performerBody.HpPct <= 0.20f
                                   || performerBody.DiesToDot
                                   || (performerBody.Hp > 0f && performerBody.NextDot + 0.05f >= performerBody.Hp);
-            var partyCrisis = partyDoor || AllyInCrisis(teams);
-            var allyRiposte = AllyHasRiposte(teams, performerGuid);
-            var allyLow = AllyNeedsCover(teams);
-            var picked = PickAction(candidates, livingEnemies, allowSetup, performerGuid, focus, killableEnemies, performerCrisis, partyCrisis, performerBody.Riposte, allyRiposte, allyLow);
+            var partyCrisis = partyDoor || AllyInCrisis(snap);
+            var allyRiposte = AllyHasRiposte(snap, performerGuid);
+            var allyLow = AllyNeedsCover(snap);
+            var trace = new PickTrace();
+            var picked = PickAction(candidates, livingEnemies, allowSetup, performerGuid, focus, killableEnemies, performerCrisis, partyCrisis, performerBody.Riposte, allyRiposte, allyLow, memory, trace);
+            var opened = OpenAddOverIdle(picked, candidates, focus);
+            // A cited replacement, not the scorer's pick among equals: the
+            // round search must not swap the filler back in.
+            if (opened != picked)
+                trace.Gate = "open_add";
+            picked = opened;
+            // Shackles of Denial: the lock attack with the most weighted damage
+            // (DenialPlay). Cited like open_add: the search must not swap it back.
+            var denialHit = DenialPlay.BestLockAttack(picked, candidates, snap, focus, performerBody, trace.Gate);
+            if (denialHit != picked)
+                trace.Gate = "denial_ev";
+            picked = denialHit;
+            picked = RecoverOverIdle(picked, candidates, focus, snap, performerBody, livingEnemies, killableEnemies, LastEnemyRecovery);
+            var cover = CoverGuardOverSwing(picked, candidates, snap, performerBody, trace.Gate);
+            // Cited like open_add: the search must not swap the swing back in.
+            if (cover != picked)
+                trace.Gate = "cover_guard";
+            picked = cover;
+            var bolster = MountainBolsterOverSwing(picked, candidates, snap, performerBody, focus, trace.Gate, killableEnemies);
+            // Cited like cover_guard: the search must not swap the swing back in.
+            if (bolster != picked)
+                trace.Gate = "mountain_bolster";
+            picked = bolster;
+            var free = FreeOverPass(picked, candidates, focus, snap, performerBody, livingEnemies);
+            // Cited like open_add: the search must not swap the pass back in.
+            if (free != picked)
+                trace.Gate = "over_pass";
+            picked = free;
+            // Shackles of Denial: a hero whose rank launches no attack walks back
+            // onto one instead of an uncited support or a pass (DenialPlay).
+            var walk = DenialPlay.WalkToLaunch(picked, candidates, snap, focus, performerBody, trace.Gate);
+            if (walk != picked)
+                trace.Gate = "denial_walk";
+            picked = walk;
+            // Ignited Librarian: a damaging hit on him over any heal / Rest /
+            // support (LibrarianPlay). Cited like over_pass.
+            var race = LibrarianPlay.IgnitedRace(picked, candidates, snap);
+            if (race != picked)
+                trace.Gate = "librarian_race";
+            picked = race;
             var best = picked == null
                 ? null
                 : new ChosenAction
@@ -183,44 +277,91 @@ namespace Dd2Autobattler.Combat
                     IsItem = picked.IsItem,
                     Score = picked.Score
                 };
-            var rows = ToLogRows(candidates, focus);
 
-            if (best == null)
-            {
-                if (!commit)
-                    CombatMemory.NoteShadowPick(performerGuid, null, rows);
-                LogTurn(controller, performer, rows, null, "no_legal_action", party, focus, commit);
-                return null;
-            }
+            result.Chosen = best;
+            result.Reason = best != null ? best.Reason : "no_legal_action";
+            result.Picked = picked;
+            result.Candidates = candidates;
+            result.Rows = ToLogRows(candidates, focus);
+            result.Party = party;
+            result.Focus = focus;
+            result.Memory = memory;
+            result.PerformerGuid = performerGuid;
+            result.LastEnemyGuid = lastGuid;
+            result.AllowSetup = allowSetup;
+            result.Trace = trace;
+            return result;
+        }
 
-            if (!commit)
-            {
-                CombatMemory.NoteShadowPick(performerGuid, best, rows);
-                LogTurn(controller, performer, rows, best, best.Reason, party, focus, false);
-                return best;
-            }
-
+        // Commit side effects of a pick onto memory (live: after an AUTO
+        // click; replay: the logged pick, so later turns see the same memory).
+        internal static void ApplyCommit(MemoryState memory, DecisionResult result, ScoredAction picked = null)
+        {
+            if (memory == null || result == null)
+                return;
+            picked = picked ?? result.Picked;
+            if (picked == null)
+                return;
+            var performerGuid = result.PerformerGuid;
+            var party = result.Party;
+            var focus = result.Focus;
             var wasSetup = picked.Kind == SkillKind.Support || picked.Kind == SkillKind.Pass;
-            CombatMemory.NoteChosen(lastGuid, wasSetup && allowSetup && !picked.IsItem);
+            memory.NoteChosen(result.LastEnemyGuid, wasSetup && result.AllowSetup && !picked.IsItem);
             if (picked.ReachReposition || picked.MustRankWalk)
-                CombatMemory.NoteReachWalk(performerGuid);
+                memory.NoteReachWalk(performerGuid);
             if (picked.IsItem)
-                CombatMemory.NoteItemUsed(performerGuid);
+                memory.NoteItemUsed(performerGuid);
             if (!picked.IsItem && party != null && party.HeroSpendsCombo(performerGuid))
-                CombatMemory.NoteComboSpenderActed(performerGuid);
+                memory.NoteComboSpenderActed(performerGuid);
             // Items (bandage) must not burn the once-per-round skill-heal gate.
             if (!picked.IsItem && !picked.EnemyTarget && picked.Target != null
                 && CountsAsCrisisHealSpend(picked.SkillId, picked.Kind)
                 && (picked.Target.DeathsDoor || picked.Target.HpPct <= 0.35f))
-                CombatMemory.NoteCrisisHeal(picked.TargetGuid);
+                memory.NoteCrisisHeal(picked.TargetGuid);
             if (!picked.IsItem && picked.EnemyTarget && focus != null && focus.IsTaproot(picked.TargetGuid))
-                CombatMemory.NoteTaprootHit();
-            _pendingTarget = best.TargetGuid;
-            LogTurn(controller, performer, rows, best, best.Reason, party, focus, true);
-            return best;
+                memory.NoteTaprootHit();
         }
 
-        private sealed class ScoredAction
+        internal sealed class DecisionResult
+        {
+            public ChosenAction Chosen;
+            // Chosen reason, or "no_legal_action".
+            public string Reason;
+            public ScoredAction Picked;
+            // Legal order (the log's "legal" rows).
+            public List<ScoredAction> Candidates;
+            public List<JObject> Rows;
+            public PartyKit Party;
+            public EnemyFocus Focus;
+            // Snapshot memory after this decision's probes, before commit.
+            public MemoryState Memory;
+            public uint PerformerGuid;
+            public uint LastEnemyGuid;
+            public bool AllowSetup;
+            public PickTrace Trace;
+
+            // Candidates best first (stable on legal order for ties).
+            public List<ScoredAction> Ranked()
+            {
+                var list = new List<ScoredAction>();
+                if (Candidates == null)
+                    return list;
+                var idx = new Dictionary<ScoredAction, int>();
+                for (var i = 0; i < Candidates.Count; i++)
+                {
+                    list.Add(Candidates[i]);
+                    idx[Candidates[i]] = i;
+                }
+                list.Sort((a, b) =>
+                {
+                    var c = b.Score.CompareTo(a.Score);
+                    return c != 0 ? c : idx[a].CompareTo(idx[b]);
+                });
+                return list;
+            }
+        }
+
+        internal sealed class ScoredAction
         {
             public string SkillId;
             public uint TargetGuid;
@@ -242,6 +383,9 @@ namespace Dd2Autobattler.Combat
             public bool HealReposition;
             public bool ReachReposition;
             public bool MustRankWalk;
+            // cultist_mountain_*: a self-taunt that would only pile stress on the
+            // tank (ApplyMountainCultistTaunt). Never the tank_riposte open.
+            public bool TauntBlocked;
             public string NoteReason;
             public float Ply;
             public bool LeaveChip;
@@ -253,7 +397,7 @@ namespace Dd2Autobattler.Combat
         // not the click target's. CSV/preview: m_GuardingActorGuid is the
         // protected actor when you click them (same guid); the guardian is the
         // other HitGuids entry. Living 0 HP (Death Armor) is a kill.
-        internal static void NoteKillFromHp(PreviewScore preview, TargetInfo clickTarget, BattleTeams teams)
+        internal static void NoteKillFromHp(PreviewScore preview, TargetInfo clickTarget, TurnSnapshot snap)
         {
             if (preview == null || clickTarget == null)
                 return;
@@ -266,20 +410,28 @@ namespace Dd2Autobattler.Combat
             {
                 // IsKill is the guardian dying, not the protected click target.
                 preview.Kills = false;
-                barGuid = GuardBarGuid(preview, clickTarget);
+                barGuid = GuardBarGuid(preview, clickTarget, HeroGuidTest(snap));
                 if (barGuid == 0 || barGuid == clickTarget.Guid)
                     return;
-                var actor = GetActor(teams, barGuid);
-                if (actor == null)
+                var described = snap != null ? snap.Find(barGuid) : null;
+                if (described == null)
                 {
                     if (HitKills(preview, barGuid))
                         preview.Kills = true;
                     return;
                 }
-                var described = GameSnapshot.Describe(actor);
-                if (described == null || described.Corpse || described.Healthless)
+                if (described.Corpse || described.Healthless)
                     return;
                 bar = described;
+            }
+
+            // Death's Door armor: a lethal hit only drops the bar to 0 HP, and at
+            // 0 HP each token absorbs one hit. Logs 2026-11-16: 18 of 19 flagged
+            // kills on an armored bar did not die; 10 of 10 at 0 HP unarmored did.
+            if (bar.DeathArmor)
+            {
+                preview.Kills = false;
+                return;
             }
 
             float dmg;
@@ -299,7 +451,12 @@ namespace Dd2Autobattler.Combat
 
         // Other actor if the preview names them; otherwise the first Hit that
         // is not the protected click target. 0 = redirect with no bar yet.
-        internal static uint GuardBarGuid(PreviewScore preview, TargetInfo clickTarget)
+        // skip: guids that cannot be the guardian (our own heroes). The preview
+        // lists the Riposte return hit on the performer first (logged turn:
+        // Hits [MAA 6.0, guardian mongrel 1.3]); taking the performer's
+        // 0 HP Death's Door bar as the guardian scored a "kill" and MAA crushed
+        // into the Riposte on Death's Door and died.
+        internal static uint GuardBarGuid(PreviewScore preview, TargetInfo clickTarget, Func<uint, bool> skip = null)
         {
             if (preview == null || clickTarget == null || preview.GuardGuid == 0)
                 return 0;
@@ -310,7 +467,7 @@ namespace Dd2Autobattler.Combat
                 for (var i = 0; i < preview.Hits.Count; i++)
                 {
                     var g = preview.Hits[i] != null ? preview.Hits[i].Guid : 0u;
-                    if (g != 0 && g != clickTarget.Guid)
+                    if (g != 0 && g != clickTarget.Guid && (skip == null || !skip(g)))
                         return g;
                 }
             }
@@ -319,20 +476,31 @@ namespace Dd2Autobattler.Combat
                 for (var i = 0; i < preview.HitGuids.Count; i++)
                 {
                     var g = preview.HitGuids[i];
-                    if (g != 0 && g != clickTarget.Guid)
+                    if (g != 0 && g != clickTarget.Guid && (skip == null || !skip(g)))
                         return g;
                 }
             }
             return 0;
         }
 
+        // A guid the snapshot knows as one of our heroes (never a guardian).
+        internal static Func<uint, bool> HeroGuidTest(TurnSnapshot snap)
+        {
+            if (snap == null)
+                return null;
+            return g => snap.Find(g) != null && !snap.IsEnemy(g);
+        }
+
+        // Not given the hero skip (unlike NoteKillFromHp): when the preview lists
+        // the performer first, the pay still goes to that hero guid (0 focus).
+        // Pointing it at the guardian puts the deferred-add penalty on guarded
+        // clicks (replay 2026-11-17: Highwayman Take Aim at +2 over a damaging
+        // hit) — a separate change, not made here.
         internal static uint FocusPayGuid(PreviewScore preview, TargetInfo target)
         {
             if (target == null)
                 return 0;
-            var click = target.Actor != null && target.Actor.ActorGuid != 0
-                ? target.Actor.ActorGuid
-                : target.Guid;
+            var click = target.Guid;
             if (!GuardRedirects(preview, target))
                 return click;
             var bar = GuardBarGuid(preview, target);
@@ -370,9 +538,9 @@ namespace Dd2Autobattler.Combat
             return false;
         }
 
-        internal static SkillKind Classify(string skillId, ActorDataSkill def, PreviewScore preview, bool enemyTarget)
+        internal static SkillKind Classify(string skillId, SkillSnap def, PreviewScore preview, bool enemyTarget)
         {
-            if (def != null && def.IsMoveSkill)
+            if (def != null && def.IsMove)
                 return SkillKind.Move;
             if (EnemyFocus.IsTangleWasteSkill(skillId))
                 return SkillKind.Move;
@@ -384,12 +552,12 @@ namespace Dd2Autobattler.Combat
                 return SkillKind.Heal;
             if (!string.IsNullOrEmpty(skillId) && skillId.StartsWith("pass_", StringComparison.OrdinalIgnoreCase))
                 return SkillKind.Pass;
-            if (def != null && def.m_IsFriendly)
+            if (def != null && def.IsFriendly)
                 return SkillKind.Support;
             return SkillKind.Attack;
         }
 
-        internal static bool LooksLikeHeal(string skillId, ActorDataSkill def, PreviewScore preview)
+        internal static bool LooksLikeHeal(string skillId, SkillSnap def, PreviewScore preview)
         {
             if (preview != null && (preview.HealValid || preview.Heal > 0f))
                 return true;
@@ -399,7 +567,7 @@ namespace Dd2Autobattler.Combat
             // is not enough: More MORE! is tagged heal and is a taunt.
             if (def != null)
             {
-                if (HasSkillTag(def, "heal") && PartyKit.DescribeSkill(def).Heals)
+                if (def.HasTag("heal") && def.Role != null && def.Role.Heals)
                     return true;
                 return false;
             }
@@ -415,74 +583,60 @@ namespace Dd2Autobattler.Combat
                    || skillId.IndexOf("grace", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
-        private static bool HasSkillTag(ActorDataSkill def, string key)
+        private static int CountLivingEnemies(TurnSnapshot snap)
         {
-            if (def == null || string.IsNullOrEmpty(key))
-                return false;
-            try
-            {
-                var tags = def.m_Tags;
-                if (tags == null)
-                    return false;
-                for (var i = 0; i < tags.Count; i++)
-                {
-                    var tag = tags[i];
-                    if (!string.IsNullOrEmpty(tag) && tag.IndexOf(key, StringComparison.OrdinalIgnoreCase) >= 0)
-                        return true;
-                }
-            }
-            catch { }
-            return false;
-        }
-
-        private static bool IsEnemy(BattleTeams teams, uint targetGuid)
-        {
-            if (teams == null)
-                return false;
-            try { return teams.GetTeamIndexFromActorGuid(targetGuid) == BattleTeams.ENEMY_TEAM_INDEX; }
-            catch { return false; }
-        }
-
-        private static ActorDataSkill GetSkill(string skillId)
-        {
-            try
-            {
-                var lib = SingletonMonoBehaviour<Library<string, ActorDataSkill>>.Instance;
-                return lib != null ? lib.GetLibraryElement(skillId) : null;
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        private static int CountLivingEnemies(BattleTeams teams)
-        {
-            return CountEnemies(teams, includeHealthless: true);
+            return CountEnemies(snap, includeHealthless: true);
         }
 
         // Taproot is living but has no HP bar. Last-kill / finish checks
         // ignore it so a General kill can end the fight.
-        private static int CountKillableEnemies(BattleTeams teams)
+        private static int CountKillableEnemies(TurnSnapshot snap)
         {
-            return CountEnemies(teams, includeHealthless: false);
+            return CountEnemies(snap, includeHealthless: false);
         }
 
-        private static int CountEnemies(BattleTeams teams, bool includeHealthless)
+        private static int CountEnemies(TurnSnapshot snap, bool includeHealthless)
         {
             var n = 0;
-            foreach (var actor in GameSnapshot.TeamActors(teams, BattleTeams.ENEMY_TEAM_INDEX))
+            foreach (var info in snap.Enemies)
             {
-                if (actor == null || !actor.IsLiving)
+                if (info == null || !info.Living)
                     continue;
-                var info = GameSnapshot.Describe(actor);
                 if (info.Corpse)
                     continue;
                 if (!includeHealthless && info.Healthless)
                     continue;
+                // Book stacks (m_IsBattleComplete) do not keep the fight going:
+                // a Librarian kill is the last-bar finish.
+                if (!includeHealthless && !LibrarianPlay.HoldsBattleOpen(info))
+                    continue;
                 n++;
             }
             return n;
+        }
+
+        // The preview lists the Riposte return (or a self-cost) as a Hit on the
+        // performer. On Death's Door every damage instance rolls deathblow (CSV
+        // hero resistance death 0.6, min 0.33; deathblow_chance_shaping_heroes
+        // -0.1 per survived roll until combat end), so that click is a death roll
+        // the hero chooses. In one logged turn the MAA on Death's Door
+        // crushed a guarded pillager, the guardian mongrel's Riposte killed him.
+        // A self-hit that only drops a living hero onto Death's Door costs less.
+        internal const float SelfHitOnDeathsDoorPenalty = 200f;
+        internal const float SelfHitIntoDeathsDoorPenalty = 60f;
+
+        internal static float SelfHitPenalty(PreviewScore preview, TargetInfo performer)
+        {
+            if (preview == null || !preview.Ok || performer == null || performer.Guid == 0 || performer.Corpse)
+                return 0f;
+            float self;
+            if (!TryHitDamageOn(preview, performer.Guid, out self) || self <= 0f)
+                return 0f;
+            if (performer.DeathsDoor)
+                return -SelfHitOnDeathsDoorPenalty;
+            if (performer.Hp > 0f && self + 0.05f >= performer.Hp)
+                return -SelfHitIntoDeathsDoorPenalty;
+            return 0f;
         }
 
         private static float ScoreAction(string skillId, SkillKind kind, bool enemyTarget, bool stealthed, PreviewScore preview, TargetInfo target, int livingEnemies, PartyKit party, EnemyFocus focus, bool clearsCorpse = false)
@@ -498,6 +652,11 @@ namespace Dd2Autobattler.Combat
                     break;
                 case SkillKind.Pass:
                     score -= 50f;
+                    // CSV pass_stress: performer_effects stress_damage_2. At 8+ that is
+                    // Overstress at 10 (80% Meltdown: HP down to 10%). Logs: 28 such
+                    // passes; all 14 checked overstressed. Any other click, a swap included, is better.
+                    if (PassOverstresses(skillId, target))
+                        score -= 1100f;
                     break;
                 case SkillKind.Heal:
                     if (enemyTarget)
@@ -510,6 +669,12 @@ namespace Dd2Autobattler.Combat
                     if (!RestoresHp(preview))
                     {
                         score -= 20f;
+                        break;
+                    }
+                    // Rest at 8+ stress is a Meltdown, not a heal (RestIntoMeltdown).
+                    if (RestIntoMeltdown(skillId, target))
+                    {
+                        score -= RestIntoMeltdownPenalty;
                         break;
                     }
                     if (target != null && target.DeathsDoor)
@@ -532,7 +697,7 @@ namespace Dd2Autobattler.Combat
                     score += preview.Heal * 0.3f;
                     if (!enemyTarget && target != null && LooksLikeStressSupport(skillId))
                     {
-                        if (target.Stress >= 9f)
+                        if (MeltdownImminent(target, focus))
                             score += 55f;
                         else if (target.Stress >= 7f)
                             score += 24f;
@@ -562,7 +727,7 @@ namespace Dd2Autobattler.Combat
                         if (lastEnemy && preview.Damage > 0f)
                             score += 30f;
                     }
-                    if (enemyTarget && focus != null && target != null && target.Actor != null)
+                    if (enemyTarget && focus != null && target != null && target.Guid != 0)
                     {
                         var payGuid = FocusPayGuid(preview, target);
                         var pay = payGuid != 0 ? focus.ScoreOf(payGuid) : 0f;
@@ -591,21 +756,6 @@ namespace Dd2Autobattler.Combat
             return score;
         }
 
-        private static ActorInstance GetActor(BattleTeams teams, uint targetGuid)
-        {
-            if (teams == null)
-                return null;
-            try
-            {
-                var team = teams.GetTeamFromActorGuid(targetGuid);
-                return team != null ? team.GetActorFromGuid(targetGuid) : null;
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
         private static TargetInfo FindLastLivingEnemy(List<ScoredAction> candidates)
         {
             if (candidates == null)
@@ -613,11 +763,11 @@ namespace Dd2Autobattler.Combat
             TargetInfo found = null;
             foreach (var c in candidates)
             {
-                if (c.Target == null || !c.EnemyTarget || c.Target.Corpse || c.Target.Actor == null || !c.Target.Actor.IsLiving)
+                if (c.Target == null || !c.EnemyTarget || c.Target.Corpse || c.Target.Guid == 0 || !c.Target.Living)
                     continue;
                 if (found == null)
                     found = c.Target;
-                else if (c.Target.Actor.ActorGuid != found.Actor.ActorGuid)
+                else if (c.Target.Guid != found.Guid)
                     return null;
             }
             return found;
@@ -625,7 +775,22 @@ namespace Dd2Autobattler.Combat
 
         private const float HealBeatsAttackGap = 40f;
 
-        private static ScoredAction PickAction(List<ScoredAction> candidates, int livingEnemies, bool allowSetup, uint performerGuid, EnemyFocus focus, int killableEnemies, bool performerCrisis, bool partyCrisis, bool performerRiposte, bool allyRiposte, bool allyLow)
+        // Which PickAction gate returned the pick, and the candidates that
+        // survived the cited vetoes (the only picks a lookahead may make).
+        internal sealed class PickTrace
+        {
+            public string Gate;
+            public readonly List<ScoredAction> Eligible = new List<ScoredAction>();
+        }
+
+        private static ScoredAction Gate(PickTrace trace, string gate, ScoredAction pick)
+        {
+            if (trace != null)
+                trace.Gate = gate;
+            return pick;
+        }
+
+        private static ScoredAction PickAction(List<ScoredAction> candidates, int livingEnemies, bool allowSetup, uint performerGuid, EnemyFocus focus, int killableEnemies, bool performerCrisis, bool partyCrisis, bool performerRiposte, bool allyRiposte, bool allyLow, MemoryState memory, PickTrace trace = null)
         {
             if (candidates == null || candidates.Count == 0)
                 return null;
@@ -643,20 +808,20 @@ namespace Dd2Autobattler.Combat
                     bestHungerEat = c;
             }
             if (bestHungerEat != null)
-                return bestHungerEat;
+                return Gate(trace, "hunger_eat", bestHungerEat);
 
             ScoredAction bestItem = null;
             foreach (var c in candidates)
             {
                 if (!c.IsItem || !c.FreeAction || c.Item == null || !c.Item.UseNow)
                     continue;
-                if (!CombatMemory.CanSpendItem(performerGuid, c.Item.Crisis))
+                if (!memory.CanSpendItem(performerGuid, c.Item.Crisis))
                     continue;
                 if (bestItem == null || c.Score > bestItem.Score)
                     bestItem = c;
             }
             if (bestItem != null)
-                return bestItem;
+                return Gate(trace, "free_item", bestItem);
 
             var priorityLegal = false;
             var mustKillLegal = false;
@@ -669,7 +834,11 @@ namespace Dd2Autobattler.Combat
                         continue;
                     if (NeedsReachPeel(c, focus) && StripsReachDefense(c))
                         peelLegal = true;
-                    if (c.Kind != SkillKind.Attack || !c.EnemyTarget || c.Target == null || c.Target.Actor == null)
+                    if (c.Kind != SkillKind.Attack || !c.EnemyTarget || c.Target == null || c.Target.Guid == 0)
+                        continue;
+                    // A click on a stealthed must-kill scores -200 and is never
+                    // taken; it must not veto the hits this hero can make.
+                    if (c.Stealthed)
                         continue;
                     if (ComboMarkWaste(c))
                         continue;
@@ -679,9 +848,9 @@ namespace Dd2Autobattler.Combat
                                    || IsTaprootTap(c);
                     if (!focusHit)
                         continue;
-                    if (focus.HasPriorityTarget && focus.IsPriority(c.Target.Actor.ActorGuid))
+                    if (focus.HasPriorityTarget && focus.IsPriority(c.Target.Guid))
                         priorityLegal = true;
-                    if (focus.HasMustKillFirst && focus.IsMustKillFirst(c.Target.Actor.ActorGuid))
+                    if (focus.HasMustKillFirst && focus.IsMustKillFirst(c.Target.Guid))
                         mustKillLegal = true;
                 }
             }
@@ -716,31 +885,31 @@ namespace Dd2Autobattler.Combat
                     && (bestFallDefense == null || c.Score > bestFallDefense.Score))
                     bestFallDefense = c;
                 var realHit = c.Kind == SkillKind.Attack && c.EnemyTarget && c.Target != null && !c.Target.Corpse
-                              && c.Target.Actor != null && c.Target.Actor.IsLiving;
+                              && c.Target.Guid != 0 && c.Target.Living;
                 var hungerGuard = IsHarvestHungerGuard(c.SkillId);
                 var hungerEat = IsForcedHarvestEat(c.SkillId);
                 var splashFocus = HitsFocusTarget(c, focus);
                 // wiki.gg/Librarian: do not punch stacks even when he is out of reach.
-                if (realHit && focus != null && focus.IsLibrarianStack(c.Target.Actor.ActorGuid))
+                if (realHit && focus != null && focus.IsLibrarianStack(c.Target.Guid))
                     continue;
                 if (realHit && !hungerGuard && !hungerEat && !splashFocus
                     && ShouldSkipDeferredPunch(
                         mustKillLegal,
-                        focus != null && focus.IsDeferred(c.Target.Actor.ActorGuid),
+                        focus != null && focus.IsDeferred(c.Target.Guid),
                         LastKillableFinish(c.Preview, c.Target, killableEnemies)))
                     continue;
                 // Taunt on the deferred target is forced; a leftover 0-dmg
                 // click on the must-kill must not veto it.
                 if (realHit && !hungerGuard && !hungerEat && !splashFocus && priorityLegal
-                    && focus.IsDeferred(c.Target.Actor.ActorGuid) && !c.Target.Taunt)
+                    && focus.IsDeferred(c.Target.Guid) && !c.Target.Taunt)
                     continue;
                 if (realHit && !hungerGuard && !hungerEat && !splashFocus && priorityLegal
-                    && focus.IsAdd(c.Target.Actor.ActorGuid)
-                    && !focus.IsPriority(c.Target.Actor.ActorGuid))
+                    && focus.IsAdd(c.Target.Guid)
+                    && !focus.IsPriority(c.Target.Guid))
                     continue;
                 if (realHit && !hungerEat && !splashFocus && performerCrisis && livingEnemies > 1 && focus != null
-                    && focus.IsAdd(c.Target.Actor.ActorGuid)
-                    && !focus.IsPriority(c.Target.Actor.ActorGuid))
+                    && focus.IsAdd(c.Target.Guid)
+                    && !focus.IsPriority(c.Target.Guid))
                     continue;
                 if (realHit && peelLegal && NeedsReachPeel(c, focus) && !StripsReachDefense(c)
                     && (c.Preview == null || !c.Preview.Kills))
@@ -757,20 +926,20 @@ namespace Dd2Autobattler.Combat
                 // setup. Wiki: kill the controller; Combo on an add is a wasted turn.
                 if (realHit && ComboMarkOnDeferredAdd(
                         focus != null && focus.HasPriorityTarget,
-                        focus != null && c.Target.Actor != null
-                            && (focus.IsDeferred(c.Target.Actor.ActorGuid)
-                                || focus.IsAdd(c.Target.Actor.ActorGuid)),
+                        focus != null && c.Target.Guid != 0
+                            && (focus.IsDeferred(c.Target.Guid)
+                                || focus.IsAdd(c.Target.Guid)),
                         c.SkillId,
                         c.Preview))
                     continue;
                 // 0-damage Tracking Shot on the Librarian while Wicked Slice is
                 // legal on him (t18: 170 vs 169.5). A mark is not a hit.
                 if (realHit && IsZeroDamageMark(c.SkillId, c.Preview)
-                    && c.Target.Actor != null
-                    && HasDamagingHitOn(candidates, c.Target.Actor.ActorGuid)
+                    && c.Target.Guid != 0
+                    && HasDamagingHitOn(candidates, c.Target.Guid)
                     && focus != null
-                    && (focus.IsMustKillFirst(c.Target.Actor.ActorGuid)
-                        || focus.IsPriority(c.Target.Actor.ActorGuid)))
+                    && (focus.IsMustKillFirst(c.Target.Guid)
+                        || focus.IsPriority(c.Target.Guid)))
                     continue;
                 // A blight cone whose click target is a corpse still tags a
                 // living Cluster. That is the wiki DoT finish, not skip_corpse.
@@ -781,38 +950,63 @@ namespace Dd2Autobattler.Combat
                     c.Preview);
                 if ((realHit || stalkDotFinish) && (bestAttack == null || BetterAttack(c, bestAttack, focus)))
                     bestAttack = c;
-                if (allowSetup && (c.Kind == SkillKind.Support || c.Kind == SkillKind.Pass)
+                // A pass sets nothing up (CSV pass_stress: +2 stress only;
+                // Riposte / Dodge last 3 of their own turns, so waiting does
+                // not strip them).
+                if (allowSetup && c.Kind == SkillKind.Support
                     && (bestSetup == null || c.Score > bestSetup.Score))
                     bestSetup = c;
                 // After the vetoes so a skipped deferred punch cannot leak
                 // through as bestAny when bestAttack is null or negative.
                 if (bestAny == null || c.Score > bestAny.Score)
                     bestAny = c;
+                // Survived every cited veto above (search may only pick these).
+                if (trace != null)
+                    trace.Eligible.Add(c);
             }
 
             if (bestCrisisHeal != null
+                && !ChirurgeonKillBeatsHeal(bestAttack, bestCrisisHeal, focus)
+                && !MustKillFinishBeatsHeal(bestAttack, bestCrisisHeal, focus)
                 && ShouldTakeCrisisHeal(
                     bestCrisisHeal.Target,
                     bestAttack != null ? bestAttack.Preview : null,
                     bestAttack != null ? bestAttack.Target : null,
                     killableEnemies,
-                    CombatMemory.CrisisHealThisRound(bestCrisisHeal.TargetGuid)))
-                return bestCrisisHeal;
+                    memory.CrisisHealed(bestCrisisHeal.TargetGuid)))
+                return Gate(trace, "crisis_heal", bestCrisisHeal);
+
+            // Shackles of Denial: Doubt lands every round, so a hero at 8+ stress
+            // Meltdowns (HP to 10%) unless stress-healed. Bolster before a non-kill
+            // swing or Retribution (logs: Bolster on a 9-stress ally lost to both).
+            if (focus != null && focus.DenialLocks && ShouldOpenUtility(bestAttack, killableEnemies, focus))
+            {
+                var meltdownGuard = BestMeltdownGuard(candidates, focus);
+                if (meltdownGuard != null)
+                {
+                    meltdownGuard.NoteReason = "meltdown_guard";
+                    return Gate(trace, "meltdown_guard", meltdownGuard);
+                }
+            }
 
             // Strip Combo / Fall Taunt-Guard before punching Altar or Reach.
             // Same utility gate as Implication Blind — not over a kill/crisis.
             var cultistDefense = PreferCultistDefense(bestStripCombo, bestFallDefense, bestAttack, killableEnemies, partyCrisis);
             if (cultistDefense != null)
-                return cultistDefense;
+                return Gate(trace, "cultist_defense", cultistDefense);
 
             // Blind loaded Implication before BOOOOOOOM! — not over a kill/crisis/evolve pack.
             if (bestArtilleryBlind != null && !partyCrisis
                 && ShouldOpenUtility(bestAttack, killableEnemies, focus))
-                return bestArtilleryBlind;
+                return Gate(trace, "artillery_blind", bestArtilleryBlind);
 
             // MAA Retribution (taunt+riposte) is the team's one Riposte. Take Aim
             // is not this gate — Duelist's Advance plants Riposte on the attack.
-            if (ShouldOpenTankRiposte(
+            // Librarian: the party reach walk goes first (logs: Retribution in
+            // round 1-2 put the MAA's rank 3 -> 1 walk off by a round, with GR
+            // on rank 1 unable to hit him meanwhile).
+            if (!(LibrarianReachWalkLegal(candidates) && !partyCrisis)
+                && ShouldOpenTankRiposte(
                     performerRiposte,
                     allyRiposte,
                     allyLow,
@@ -822,7 +1016,7 @@ namespace Dd2Autobattler.Combat
                     bestAttack != null ? bestAttack.Target : null,
                     killableEnemies,
                     focus))
-                return bestRiposteSetup;
+                return Gate(trace, "tank_riposte", bestRiposteSetup);
 
             ScoredAction bestCorpseReach = null;
             foreach (var c in candidates)
@@ -833,7 +1027,7 @@ namespace Dd2Autobattler.Combat
                 {
                     if (c.Item == null || !c.Item.UseNow)
                         continue;
-                    if (!CombatMemory.CanSpendItem(performerGuid, true))
+                    if (!memory.CanSpendItem(performerGuid, true))
                         continue;
                 }
                 else if (!c.ClearsCorpse)
@@ -844,7 +1038,7 @@ namespace Dd2Autobattler.Combat
                     bestCorpseReach = c;
             }
             if (bestCorpseReach != null)
-                return bestCorpseReach;
+                return Gate(trace, "corpse_reach", bestCorpseReach);
 
             ScoredAction bestReposition = null;
             foreach (var c in candidates)
@@ -864,9 +1058,9 @@ namespace Dd2Autobattler.Combat
                 if (!crisisWalk)
                 {
                     if (!bestReposition.ReachReposition || bestReposition.MustRankWalk)
-                        return bestReposition;
+                        return Gate(trace, "reposition", bestReposition);
                     if (!PlaysFocusClick(bestAttack, focus))
-                        return bestReposition;
+                        return Gate(trace, "reposition", bestReposition);
                 }
             }
 
@@ -876,24 +1070,41 @@ namespace Dd2Autobattler.Combat
                 bestAttack = BestFocusAttack(candidates, focus);
 
             // One setup while the last enemy is awkward, then we must swing.
-            if (allowSetup && bestSetup != null && bestAttack != null)
-                return bestSetup;
+            // Not while an ally is on Death's Door / <=35%: the crisis docks every
+            // support (ApplyCrisisStabilize) and this gate must not take it back
+            // (a logged turn: Ounce of Prevention at -120 over a
+            // 175 Noxious Blast on the Deacon with MAA at 6/55).
+            if (allowSetup && bestSetup != null && bestAttack != null && !partyCrisis)
+                return Gate(trace, "setup", bestSetup);
+            // A stress heal on an ally one point from Meltdown (MeltdownImminent:
+            // 9+, overstress at 10 is meltdown_health = HP to 10%) that already
+            // outscores the best swing is not idle. In one logged round a
+            // blinded Rampart (1.25 damage, 41.7) beat Bolster on the 9-stress PD
+            // (57) through attack_over_idle; she melted 16 -> 3 HP next round.
+            if (bestAttack != null && bestAny != null && !ReferenceEquals(bestAny, bestAttack)
+                && bestAny.Score > bestAttack.Score
+                && IsMeltdownGuardClick(bestAny, focus)
+                && ShouldOpenUtility(bestAttack.Preview, bestAttack.Target, killableEnemies, focus))
+            {
+                bestAny.NoteReason = "meltdown_guard";
+                return Gate(trace, "meltdown_guard", bestAny);
+            }
             // Blind swing at −36 or worse: Reflection / Withstand already outscore it.
             // A connecting hit that already scored ≥ 0 is not that case.
             if (bestAttack != null && bestAny != null
                 && ReplacesAttackWithIdle(bestAny.Kind, bestAny.EnemyTarget, false)
                 && !ReplacesAttackWithIdle(bestAttack.Kind, bestAttack.EnemyTarget, false)
                 && bestAttack.Score >= 0f)
-                return bestAttack;
+                return Gate(trace, "attack_over_idle", bestAttack);
             if (bestAttack != null && bestAttack.Score < 0f && bestAny != null && bestAny.Score > bestAttack.Score)
-                return bestAny;
+                return Gate(trace, "any_over_negative_attack", bestAny);
             if (bestAttack != null)
             {
                 if (HealBeatsAttack(bestAny.Kind, bestAny.SkillId, bestAny.EnemyTarget, bestAny.Target, bestAny.Preview, bestAny.Score, bestAttack.Score))
-                    return bestAny;
-                return bestAttack;
+                    return Gate(trace, "heal_beats_attack", bestAny);
+                return Gate(trace, "attack", bestAttack);
             }
-            return bestAny;
+            return Gate(trace, "any", bestAny);
         }
 
         // Setup / Rest / Absinthe must not beat a connecting hit that already
@@ -918,13 +1129,13 @@ namespace Dd2Autobattler.Combat
                 var c = candidates[i];
                 if (c.IsItem && c.FreeAction)
                     continue;
-                if (c.Kind != SkillKind.Attack || !c.EnemyTarget || c.Target == null || c.Target.Actor == null)
+                if (c.Kind != SkillKind.Attack || !c.EnemyTarget || c.Target == null || c.Target.Guid == 0)
                     continue;
                 if (ComboMarkWaste(c) || IsZeroDamageMark(c.SkillId, c.Preview))
                     continue;
                 if (!CountsAsDamagingFocusClick(c.SkillId, c.Preview, c.LeaveChip) && !IsTaprootTap(c))
                     continue;
-                var guid = c.Target.Actor.ActorGuid;
+                var guid = c.Target.Guid;
                 if (!focus.IsPriority(guid) && !focus.IsMustKillFirst(guid))
                     continue;
                 if (best == null || BetterAttack(c, best, focus))
@@ -1058,7 +1269,7 @@ namespace Dd2Autobattler.Combat
 
         private static bool IsTankRiposteSetup(ScoredAction c)
         {
-            return c != null && !c.IsItem
+            return c != null && !c.IsItem && !c.TauntBlocked
                    && IsTankRiposteSetup(c.SkillId, c.EnemyTarget, c.Preview, c.Tokens);
         }
 
@@ -1096,10 +1307,10 @@ namespace Dd2Autobattler.Combat
                 return false;
             var count = 0;
             var forcedMiss = 0;
-            if (target.Actor != null)
+            if (target.Guid != 0)
             {
-                count = GameSnapshot.CountToken(target.Actor, "count");
-                forcedMiss = GameSnapshot.CountToken(target.Actor, "forced_miss");
+                count = target.CountToken("count");
+                forcedMiss = target.CountToken("forced_miss");
             }
             return IsLoadedArtillery(target.ClassId, target.Blind, count, forcedMiss);
         }
@@ -1365,7 +1576,7 @@ namespace Dd2Autobattler.Combat
         // Paper-apply this click's preview onto the board. Remaining enemy HP and
         // kills beat a 0-damage Combo mark. If a later ally acts before this
         // enemy, do not dump a 15 dmg swing into a 1 HP chip.
-        private static void ApplyOnePly(List<ScoredAction> candidates, int livingEnemies, uint performerGuid, List<uint> remaining, BattleTeams teams, PartyKit party)
+        private static void ApplyOnePly(List<ScoredAction> candidates, int livingEnemies, uint performerGuid, List<uint> remaining, TurnSnapshot snap, PartyKit party)
         {
             if (candidates == null)
                 return;
@@ -1375,7 +1586,7 @@ namespace Dd2Autobattler.Combat
                 if (c.IsItem)
                     continue;
                 var ply = BoardDelta(c);
-                var leave = ShouldLeaveChip(c, livingEnemies, performerGuid, remaining, teams, party);
+                var leave = ShouldLeaveChip(c, livingEnemies, performerGuid, remaining, snap, party);
                 if (leave)
                 {
                     var dmg = c.Preview != null ? c.Preview.Damage : 0f;
@@ -1488,7 +1699,7 @@ namespace Dd2Autobattler.Combat
             return false;
         }
 
-        private static bool ShouldLeaveChip(ScoredAction c, int livingEnemies, uint performerGuid, List<uint> remaining, BattleTeams teams, PartyKit party)
+        private static bool ShouldLeaveChip(ScoredAction c, int livingEnemies, uint performerGuid, List<uint> remaining, TurnSnapshot snap, PartyKit party)
         {
             if (c == null || c.Kind != SkillKind.Attack || !c.EnemyTarget || c.Target == null || c.Target.Corpse)
                 return false;
@@ -1502,46 +1713,27 @@ namespace Dd2Autobattler.Combat
             var leftover = c.Preview.Damage - hp;
             if (!TokenPrices.IsChipHp(hp) && leftover < 6f)
                 return false;
-            var enemyGuid = c.Target.Actor != null ? c.Target.Actor.ActorGuid : 0u;
-            return LaterAllyBeforeEnemy(remaining, performerGuid, enemyGuid, teams, party);
+            var enemyGuid = c.Target.Guid;
+            return LaterAllyBeforeEnemy(remaining, performerGuid, enemyGuid, snap, party);
         }
 
-        private static List<uint> ReadRemainingTurns()
+        internal static uint FirstEnemyInOrder(List<uint> remaining, TurnSnapshot snap)
         {
-            var list = new List<uint>();
-            try
-            {
-                var q = QueryTurnOrder.Trigger(false);
-                if (q == null || q.m_RemainingTurnOrder == null)
-                    return list;
-                for (var i = 0; i < q.m_RemainingTurnOrder.Count; i++)
-                {
-                    var g = q.m_RemainingTurnOrder[i];
-                    if (g != 0)
-                        list.Add(g);
-                }
-            }
-            catch { }
-            return list;
-        }
-
-        internal static uint FirstEnemyInOrder(List<uint> remaining, BattleTeams teams)
-        {
-            if (remaining == null)
+            if (remaining == null || snap == null)
                 return 0;
             for (var i = 0; i < remaining.Count; i++)
             {
                 var g = remaining[i];
-                if (g == 0 || !IsEnemy(teams, g))
+                if (g == 0 || !snap.IsEnemy(g))
                     continue;
-                var actor = GetActor(teams, g);
-                if (actor != null && actor.IsLiving && !GameSnapshot.IsCorpse(actor))
+                var actor = snap.Find(g);
+                if (actor != null && actor.Living && !actor.Corpse)
                     return g;
             }
             return 0;
         }
 
-        private static bool LaterAllyBeforeEnemy(List<uint> remaining, uint performerGuid, uint enemyGuid, BattleTeams teams, PartyKit party)
+        private static bool LaterAllyBeforeEnemy(List<uint> remaining, uint performerGuid, uint enemyGuid, TurnSnapshot snap, PartyKit party)
         {
             if (remaining == null || party == null || enemyGuid == 0)
                 return false;
@@ -1554,8 +1746,8 @@ namespace Dd2Autobattler.Combat
                     return false;
                 if (!party.HeroAttacks(g))
                     continue;
-                var actor = GetActor(teams, g);
-                if (actor != null && actor.IsLiving)
+                var actor = snap.Find(g);
+                if (actor != null && actor.Living)
                     return true;
             }
             return false;
@@ -1662,9 +1854,9 @@ namespace Dd2Autobattler.Combat
         // Tracking Shot from rank 0 on the Librarian is not "already playing."
         private static bool PlaysFocusClick(ScoredAction c, EnemyFocus focus)
         {
-            if (c == null || c.Target == null || c.Target.Actor == null || focus == null)
+            if (c == null || c.Target == null || c.Target.Guid == 0 || focus == null)
                 return false;
-            var guid = c.Target.Actor.ActorGuid;
+            var guid = c.Target.Guid;
             if (!focus.IsMustKillFirst(guid) && !focus.IsPriority(guid))
                 return false;
             if (ComboMarkWaste(c) || IsZeroDamageMark(c.SkillId, c.Preview))
@@ -1675,25 +1867,17 @@ namespace Dd2Autobattler.Combat
         }
 
         // Crush self-heals on Combo. That is not a skill heal; do not walk for it.
-        internal static bool IsAllyHealSkill(string skillId, ActorDataSkill def)
+        internal static bool IsAllyHealSkill(string skillId, SkillSnap def)
         {
             if (string.IsNullOrEmpty(skillId) || IsPassHeal(skillId))
                 return false;
             if (def != null)
             {
-                try
-                {
-                    if (def.IsMoveSkill || def.IsItemSkill)
-                        return false;
-                }
-                catch { }
-                try
-                {
-                    if (!def.m_IsFriendly)
-                        return false;
-                }
-                catch { return false; }
-                var role = PartyKit.DescribeSkill(def);
+                if (def.IsMove || def.IsItemSkill)
+                    return false;
+                if (!def.IsFriendly)
+                    return false;
+                var role = def.Role;
                 if (role != null && role.Attacks)
                     return false;
                 return (role != null && role.Heals) || LooksLikeHeal(skillId, def, null);
@@ -1705,20 +1889,22 @@ namespace Dd2Autobattler.Combat
             return LooksLikeHeal(skillId, null, null);
         }
 
-        // Last HP bar only. Healthless Taproot is ignored. Death Armor at 0 HP
-        // is a kill once NoteKillFromHp has run (hp already 0 still connects).
+        // Last HP bar only. Healthless Taproot is ignored. A bar still holding
+        // Death's Door armor is never the finish.
         internal static bool LastKillableFinish(PreviewScore preview, TargetInfo target, int killableEnemies)
         {
             if (preview == null || target == null || target.Corpse || target.Healthless)
                 return false;
             if (killableEnemies > 1)
                 return false;
+            if (target.DeathArmor)
+                return false; // armor absorbs this hit; the fight does not end
             if (preview.Kills)
                 return true;
             return preview.Damage > 0f && (target.Hp <= 0.05f || target.DeathsDoor);
         }
 
-        private static void ApplyKitSafety(List<ScoredAction> candidates, TargetInfo performer, int livingEnemies, bool partyDoor, PartyKit party, uint performerGuid)
+        private static void ApplyKitSafety(List<ScoredAction> candidates, TargetInfo performer, int livingEnemies, bool partyDoor, PartyKit party, uint performerGuid, TurnSnapshot snap = null)
         {
             if (candidates == null)
                 return;
@@ -1736,9 +1922,9 @@ namespace Dd2Autobattler.Combat
                     continue;
                 var targetAttacks = false;
                 var targetHeals = false;
-                if (party != null && c.Target != null && c.Target.Actor != null)
+                if (party != null && c.Target != null && c.Target.Guid != 0)
                 {
-                    var guid = c.Target.Actor.ActorGuid;
+                    var guid = c.Target.Guid;
                     targetAttacks = party.HeroAttacks(guid);
                     targetHeals = party.HeroHeals(guid);
                 }
@@ -1756,7 +1942,8 @@ namespace Dd2Autobattler.Combat
                     AnyEnemyStealth = anyStealth,
                     TargetAttacks = targetAttacks,
                     TargetHeals = targetHeals,
-                    Party = party
+                    Party = party,
+                    Snap = snap
                 };
                 var delta = KitSafety.Score(c.SkillId, ctx, out why);
                 if (delta == 0f)
@@ -1826,13 +2013,13 @@ namespace Dd2Autobattler.Combat
             return sum;
         }
 
-        private static void ClampPreviewToLivingHits(PreviewScore preview, BattleTeams teams, uint performerGuid)
+        private static void ClampPreviewToLivingHits(PreviewScore preview, TurnSnapshot snap, uint performerGuid)
         {
             if (preview == null || !preview.Ok)
                 return;
             int livingHits;
             bool kills;
-            var live = SumLivingHitDamage(preview, guid => IsLivingEnemyHit(teams, guid, performerGuid),
+            var live = SumLivingHitDamage(preview, guid => IsLivingEnemyHit(snap, guid, performerGuid),
                 out livingHits, out kills);
             if (livingHits <= 0)
                 return;
@@ -1842,9 +2029,9 @@ namespace Dd2Autobattler.Combat
                 for (var i = 0; i < preview.Hits.Count; i++)
                 {
                     var hit = preview.Hits[i];
-                    if (hit == null || hit.Damage <= 0f || !IsLivingEnemyHit(teams, hit.Guid, performerGuid))
+                    if (hit == null || hit.Damage <= 0f || !IsLivingEnemyHit(snap, hit.Guid, performerGuid))
                         continue;
-                    var bar = GameSnapshot.Describe(GetActor(teams, hit.Guid));
+                    var bar = snap.Find(hit.Guid);
                     if (bar == null || bar.Corpse || bar.Healthless || bar.Hp <= 0f)
                         continue;
                     if (hit.Damage >= bar.Hp)
@@ -1857,28 +2044,23 @@ namespace Dd2Autobattler.Combat
             preview.Kills = kills;
         }
 
-        private static bool IsLivingEnemyHit(BattleTeams teams, uint guid, uint performerGuid)
+        private static bool IsLivingEnemyHit(TurnSnapshot snap, uint guid, uint performerGuid)
         {
             if (guid == 0 || guid == performerGuid)
                 return false;
-            if (!IsEnemy(teams, guid))
+            if (!snap.IsEnemy(guid))
                 return false;
-            var actor = GetActor(teams, guid);
+            var actor = snap.Find(guid);
             if (actor == null)
                 return false;
-            try
-            {
-                if (GameSnapshot.IsCorpse(actor))
-                    return false;
-            }
-            catch { }
-            try { return actor.IsLiving; }
-            catch { return false; }
+            if (actor.Corpse)
+                return false;
+            return actor.Living;
         }
 
         // Flashing Daggers (m_IsMultiHit) can HitGuids a corpse + a live enemy
         // while another click of the same skill, or Pick/Thrown, hits only living.
-        private static void ApplyCorpseSplash(List<ScoredAction> candidates, BattleTeams teams)
+        private static void ApplyCorpseSplash(List<ScoredAction> candidates, TurnSnapshot snap)
         {
             if (candidates == null)
                 return;
@@ -1890,7 +2072,7 @@ namespace Dd2Autobattler.Combat
                     continue;
                 int live;
                 int dead;
-                CountSplashHits(c, teams, out live, out dead);
+                CountSplashHits(c, snap, out live, out dead);
                 if (live > 0 && dead == 0)
                     cleanLiving = true;
             }
@@ -1901,7 +2083,7 @@ namespace Dd2Autobattler.Combat
                     continue;
                 int live;
                 int dead;
-                CountSplashHits(c, teams, out live, out dead);
+                CountSplashHits(c, snap, out live, out dead);
                 var bestLive = live;
                 for (var j = 0; j < candidates.Count; j++)
                 {
@@ -1911,7 +2093,7 @@ namespace Dd2Autobattler.Combat
                         continue;
                     int ol;
                     int od;
-                    CountSplashHits(o, teams, out ol, out od);
+                    CountSplashHits(o, snap, out ol, out od);
                     if (ol > bestLive)
                         bestLive = ol;
                 }
@@ -1958,7 +2140,7 @@ namespace Dd2Autobattler.Combat
                 : -250f;
         }
 
-        private static void CountSplashHits(ScoredAction c, BattleTeams teams, out int living, out int corpses)
+        private static void CountSplashHits(ScoredAction c, TurnSnapshot snap, out int living, out int corpses)
         {
             living = 0;
             corpses = 0;
@@ -1973,10 +2155,10 @@ namespace Dd2Autobattler.Combat
                     var guid = hits[i];
                     if (guid == 0 || !seen.Add(guid))
                         continue;
-                    CountOneHit(GetActor(teams, guid), ref living, ref corpses);
+                    CountOneHit(snap.Find(guid), ref living, ref corpses);
                 }
             }
-            if (c.Target != null && c.Target.Actor != null && seen.Add(c.Target.Guid != 0 ? c.Target.Guid : c.Target.Actor.ActorGuid))
+            if (c.Target != null && c.Target.Guid != 0 && seen.Add(c.Target.Guid))
             {
                 if (c.Target.Corpse)
                     corpses++;
@@ -1985,25 +2167,17 @@ namespace Dd2Autobattler.Combat
             }
         }
 
-        private static void CountOneHit(ActorInstance actor, ref int living, ref int corpses)
+        private static void CountOneHit(TargetInfo actor, ref int living, ref int corpses)
         {
             if (actor == null)
                 return;
-            try
+            if (actor.Corpse)
             {
-                if (GameSnapshot.IsCorpse(actor))
-                {
-                    corpses++;
-                    return;
-                }
+                corpses++;
+                return;
             }
-            catch { }
-            try
-            {
-                if (actor.IsLiving)
-                    living++;
-            }
-            catch { }
+            if (actor.Living)
+                living++;
         }
 
         // Front corpse in a lower rank than every living enemy clogs reach.
@@ -2112,8 +2286,8 @@ namespace Dd2Autobattler.Combat
                 var c = candidates[i];
                 if (!c.EnemyTarget)
                     continue;
-                var clickStack = c.Target != null && c.Target.Actor != null
-                                 && focus.IsLibrarianStack(c.Target.Actor.ActorGuid);
+                var clickStack = c.Target != null && c.Target.Guid != 0
+                                 && focus.IsLibrarianStack(c.Target.Guid);
                 var splashStack = HitsLibrarianStack(c, focus, clickStack);
                 if (!clickStack && !splashStack)
                     continue;
@@ -2131,7 +2305,7 @@ namespace Dd2Autobattler.Combat
             var hits = c.Preview.HitGuids;
             if (hits == null || hits.Count == 0)
                 return false;
-            var clickGuid = c.Target != null && c.Target.Actor != null ? c.Target.Actor.ActorGuid : 0u;
+            var clickGuid = c.Target != null ? c.Target.Guid : 0u;
             for (var i = 0; i < hits.Count; i++)
             {
                 var guid = hits[i];
@@ -2206,10 +2380,9 @@ namespace Dd2Autobattler.Combat
             {
                 var c = candidates[i];
                 if (c.EnemyTarget && massUp && c.Tokens != null && TokenPrices.HasId(c.Tokens.Apply, "weak")
-                    && c.Target != null && c.Target.Actor != null)
+                    && c.Target != null && c.Target.Guid != 0)
                 {
-                    string classId = null;
-                    try { classId = c.Target.Actor.ActorDataClass != null ? c.Target.Actor.ActorDataClass.GetKey() : null; } catch { }
+                    var classId = c.Target.ClassId;
                     if (IdHasClass(classId, "boss_eyes") && !IdHasClass(classId, "stalk"))
                         c.Score += 12f;
                 }
@@ -2262,7 +2435,7 @@ namespace Dd2Autobattler.Combat
         // wiki.gg/Ravenous_Reach p1 Setback Combo-strip; p2 Dodge / p3 Riposte
         // peel before you swing. wiki.gg/Body_of_Work p2 Covetous Glance steals
         // 4+ positives; Guard the Contempt mark (Haymaker); Weak/Block blunt it.
-        private static void ApplyLaterActNotes(List<ScoredAction> candidates, EnemyFocus focus, ActorInstance performer)
+        private static void ApplyLaterActNotes(List<ScoredAction> candidates, EnemyFocus focus, TargetInfo performer)
         {
             if (candidates == null || focus == null)
                 return;
@@ -2282,7 +2455,7 @@ namespace Dd2Autobattler.Combat
                     bodyP3 = true;
             }
 
-            var performerBody = GameSnapshot.Describe(performer);
+            var performerBody = performer;
             var performerRank = performerBody != null ? performerBody.Rank : 0;
             var performerCombo = performerBody != null && performerBody.Combo;
 
@@ -2341,10 +2514,9 @@ namespace Dd2Autobattler.Combat
                     else if (heal > 0f)
                         c.Score += heal;
                 }
-                if (bodyP2 && c.EnemyTarget && c.Target != null && c.Target.Actor != null)
+                if (bodyP2 && c.EnemyTarget && c.Target != null && c.Target.Guid != 0)
                 {
-                    string classId = null;
-                    try { classId = c.Target.Actor.ActorDataClass != null ? c.Target.Actor.ActorDataClass.GetKey() : null; } catch { }
+                    var classId = c.Target.ClassId;
                     var onBody = IdHasClass(classId, "boss_body_phase2");
                     var blunt = HaymakerBluntBonus(true, onBody,
                         TokenPrices.HasId(c.Tokens != null ? c.Tokens.Apply : null, "weak"),
@@ -2488,7 +2660,7 @@ namespace Dd2Autobattler.Combat
         {
             if (c == null || c.Target == null || focus == null)
                 return false;
-            if (c.Target.Actor != null && focus.IsMustKillFirst(c.Target.Actor.ActorGuid)
+            if (c.Target.Guid != 0 && focus.IsMustKillFirst(c.Target.Guid)
                 && IdHasClass(c.Target.ClassId, "cultist_altar"))
                 return true;
             return IdHasClass(c.Target.ClassId, "cultist_altar") && focus.HasLivingAltarMustKill();
@@ -2597,14 +2769,14 @@ namespace Dd2Autobattler.Combat
             return TokenPrices.HasId(c.Tokens.Remove, key) || TokenPrices.HasId(c.Tokens.Consume, key);
         }
 
-        private static void ApplyRankWalks(List<ScoredAction> candidates, ActorInstance performer, BattleTeams teams, EnemyFocus focus, int livingEnemies, uint performerGuid, PartyKit party)
+        private static void ApplyRankWalks(List<ScoredAction> candidates, TargetInfo performer, TurnSnapshot snap, EnemyFocus focus, int livingEnemies, uint performerGuid, PartyKit party, MemoryState memory)
         {
             if (candidates == null || performer == null)
                 return;
-            if (CombatMemory.ReachWalkedThisRound(performerGuid))
+            if (memory.ReachWalked(performerGuid))
                 return;
 
-            var body = GameSnapshot.Describe(performer);
+            var body = performer;
             var rank = body != null ? body.Rank : 0;
             var marked = body != null && body.CallOfTheDeep;
             var killsHand = HasKillOnMustKill(candidates, focus);
@@ -2618,9 +2790,9 @@ namespace Dd2Autobattler.Combat
 
             if (ShouldFallWalk(
                     focus != null && focus.ExemplarUp,
-                    FallIsLive(teams),
+                    FallIsLive(snap),
                     RankIsBack(rank),
-                    HasTauntLaunchFromBack(performer),
+                    HasTauntLaunchFromBack(performer, snap),
                     HasComboStripLegal(candidates),
                     focus != null && focus.HasLivingAltarMustKill()))
             {
@@ -2629,30 +2801,29 @@ namespace Dd2Autobattler.Combat
                     return;
             }
 
-            if (CombatMemory.PartyReachWalkedThisRound())
+            if (memory.PartyReachWalked())
                 return;
 
-            var reachTarget = ReachWalkTarget(candidates, performer, teams, focus, livingEnemies, performerGuid, party);
+            var crisis = PartyHasDeathsDoor(snap) || AllyInCrisis(snap);
+            var reachTarget = ReachWalkTarget(candidates, performer, snap, focus, livingEnemies, performerGuid, party, memory);
             if (reachTarget != null)
-            {
-                var crisis = PartyHasDeathsDoor(teams) || AllyInCrisis(teams);
-                ApplyReachReposition(candidates, performer, reachTarget, party, crisis);
-            }
+                ApplyReachReposition(candidates, performer, reachTarget, party, crisis, snap);
+            // Librarian: a hero who cannot hit him walks when that puts more of
+            // the party on him (Categorize; LibrarianPlay).
+            LibrarianPlay.ApplyPartyReachWalk(candidates, performer, snap, crisis);
         }
 
-        private static void ApplyWalkBack(List<ScoredAction> candidates, ActorInstance performer, string reason)
+        private static void ApplyWalkBack(List<ScoredAction> candidates, TargetInfo performer, string reason)
         {
             if (candidates == null || performer == null)
                 return;
-            var current = 0;
-            try { current = performer.TeamPosition; } catch { return; }
+            var current = performer.Rank;
             for (var i = 0; i < candidates.Count; i++)
             {
                 var c = candidates[i];
-                if (c.Kind != SkillKind.Move || c.Target == null || c.Target.Actor == null)
+                if (c.Kind != SkillKind.Move || c.Target == null || c.Target.Guid == 0)
                     continue;
-                var dest = 0;
-                try { dest = c.Target.Actor.TeamPosition; } catch { continue; }
+                var dest = c.Target.Rank;
                 if (dest <= current)
                     continue;
                 c.ReachReposition = true;
@@ -2660,6 +2831,18 @@ namespace Dd2Autobattler.Combat
                 c.NoteReason = reason;
                 c.Score = dest >= 3 ? 195f : dest >= 2 ? 188f : 170f;
             }
+        }
+
+        private static bool LibrarianReachWalkLegal(List<ScoredAction> candidates)
+        {
+            if (candidates == null)
+                return false;
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                if (candidates[i].ReachReposition && candidates[i].NoteReason == "librarian_reach")
+                    return true;
+            }
+            return false;
         }
 
         private static bool HasRankWalk(List<ScoredAction> candidates)
@@ -2683,23 +2866,23 @@ namespace Dd2Autobattler.Combat
                 var c = candidates[i];
                 if (c.Kind != SkillKind.Attack || !c.EnemyTarget || c.Target == null || c.Target.Corpse)
                     continue;
-                if (c.Target.Actor == null || c.Preview == null || !c.Preview.Kills)
+                if (c.Target.Guid == 0 || c.Preview == null || !c.Preview.Kills)
                     continue;
-                if (focus.IsMustKillFirst(c.Target.Actor.ActorGuid))
+                if (focus.IsMustKillFirst(c.Target.Guid))
                     return true;
             }
             return false;
         }
 
-        private static bool FallIsLive(BattleTeams teams)
+        private static bool FallIsLive(TurnSnapshot snap)
         {
-            if (teams == null)
+            if (snap == null)
                 return false;
-            foreach (var hero in GameSnapshot.TeamActors(teams, BattleTeams.HERO_TEAM_INDEX))
+            foreach (var hero in snap.Heroes)
             {
-                if (hero == null || !hero.IsLiving || GameSnapshot.IsCorpse(hero))
+                if (hero == null || !hero.Living || hero.Corpse)
                     continue;
-                var info = GameSnapshot.Describe(hero);
+                var info = hero;
                 if (info.Combo && info.Rank <= 2)
                     return true;
             }
@@ -2719,34 +2902,28 @@ namespace Dd2Autobattler.Combat
             return false;
         }
 
-        private static bool HasTauntLaunchFromBack(ActorInstance performer)
+        private static bool HasTauntLaunchFromBack(TargetInfo performer, TurnSnapshot snap)
         {
-            if (performer == null)
+            if (performer == null || snap == null)
                 return false;
-            IReadOnlyList<string> skillIds = null;
-            try { skillIds = performer.GetEquippedCombatSkillIds(); } catch { }
+            var skillIds = performer.SkillIds;
             if (skillIds == null)
                 return false;
-            var size = 1;
-            try { size = performer.Size; } catch { }
             for (var i = 0; i < skillIds.Count; i++)
             {
                 var id = skillIds[i];
                 if (IsHarvestHungerGuard(id))
                     continue;
-                var def = GetSkill(id);
+                var def = snap.Skill(id);
                 if (def == null)
                     continue;
-                try { if (def.IsItemSkill || def.IsMoveSkill) continue; } catch { }
-                var role = PartyKit.DescribeSkill(def);
+                if (def.IsItemSkill || def.IsMove)
+                    continue;
+                var role = def.Role;
                 if (role == null || !role.AppliesTaunt)
                     continue;
-                try
-                {
-                    if (def.GetHasLaunchRank(3, size))
-                        return true;
-                }
-                catch { }
+                if (def.Launches(3))
+                    return true;
             }
             return false;
         }
@@ -2761,7 +2938,7 @@ namespace Dd2Autobattler.Combat
             for (var i = 0; i < hits.Count; i++)
             {
                 var guid = hits[i];
-                if (guid == 0 || (c.Target != null && c.Target.Actor != null && guid == c.Target.Actor.ActorGuid))
+                if (guid == 0 || (c.Target != null && c.Target.Guid != 0 && guid == c.Target.Guid))
                     continue;
                 if (focus.IsMustKillFirst(guid) || focus.IsPriority(guid))
                     return true;
@@ -2771,10 +2948,9 @@ namespace Dd2Autobattler.Combat
 
         private static bool IsSighLungTarget(ScoredAction c)
         {
-            if (c == null || !c.EnemyTarget || c.Target == null || c.Target.Actor == null)
+            if (c == null || !c.EnemyTarget || c.Target == null || c.Target.Guid == 0)
                 return false;
-            string classId = null;
-            try { classId = c.Target.Actor.ActorDataClass != null ? c.Target.Actor.ActorDataClass.GetKey() : null; } catch { }
+            var classId = c.Target.ClassId;
             return IdHasClass(classId, "lungs_front") || IdHasClass(classId, "lungs_back");
         }
 
@@ -2782,6 +2958,160 @@ namespace Dd2Autobattler.Combat
         {
             return !string.IsNullOrEmpty(id) && !string.IsNullOrEmpty(key)
                    && id.IndexOf(key, StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        // CSV overstress `meltdown` (80%): meltdown_health drops HP to 10%,
+        // stress to 1. One more stress point from 9 is that. Shackles of Denial:
+        // every lock's Crippling Doubt is stress_damage_1 + 25% one more on two
+        // heroes (Overwhelming Anguish: 3), so 8 is one Doubt away.
+        internal static bool MeltdownImminent(TargetInfo target, EnemyFocus focus)
+        {
+            if (target == null || !target.Living || target.Corpse)
+                return false;
+            if (target.Stress >= 9f)
+                return true;
+            return focus != null && focus.DenialLocks && target.Stress >= 8f;
+        }
+
+        // CSV shared_lost_soul_chirurgeon trinkets: chirurgeon_appalling_apron_01
+        // turn_start hot_heal_small_if_dmgdot, _02 turn_end remove_all_bleed/blight/burn.
+        // A DoT on him ticks once, then turns into a HoT that lifts him off Death's
+        // Door (deaths_door_exit_effects re-adds the armor). Log surgeon_gaunt_102a:
+        // two Poison Darts, HoT 2-4, he left Death's Door twice. When a hit on him
+        // with no DoT does at least as much direct damage, it ranks above the DoT.
+        private static void ApplyChirurgeonDotWaste(List<ScoredAction> candidates, EnemyFocus focus, TurnSnapshot snap)
+        {
+            if (candidates == null || focus == null || focus.ChirurgeonGuid == 0)
+                return;
+            ScoredAction direct = null;
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                var c = candidates[i];
+                if (!IsChirurgeonHit(c, focus) || AppliesDamageDot(c, snap))
+                    continue;
+                if (direct == null || c.Score > direct.Score)
+                    direct = c;
+            }
+            if (direct == null)
+                return;
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                var c = candidates[i];
+                if (!IsChirurgeonHit(c, focus) || c.Preview.Kills || !AppliesDamageDot(c, snap))
+                    continue;
+                if (direct.Preview.Damage + 0.05f < c.Preview.Damage || c.Score < direct.Score)
+                    continue;
+                c.Score = direct.Score - 1f;
+            }
+        }
+
+        private static bool IsChirurgeonHit(ScoredAction c, EnemyFocus focus)
+        {
+            return c != null && !c.IsItem && c.EnemyTarget && c.Kind == SkillKind.Attack
+                   && c.TargetGuid == focus.ChirurgeonGuid
+                   && c.Preview != null && c.Preview.Damage > 0f;
+        }
+
+        // He leaves Death's Door on any heal (his own Leucotomy round, an Apron HoT)
+        // and gets the armor back. Log surgeon_gaunt_102a r13: Artemisia on a
+        // 17% Grave Robber over a legal kill on him at 0 HP; his Bone Saw then put
+        // the Plague Doctor on Death's Door. Kill him unless the heal is urgent.
+        internal static bool ChirurgeonKillBeatsHeal(ScoredAction attack, ScoredAction heal, EnemyFocus focus)
+        {
+            if (attack == null || heal == null || focus == null || focus.ChirurgeonGuid == 0)
+                return false;
+            if (attack.TargetGuid != focus.ChirurgeonGuid || attack.Preview == null || !attack.Preview.Kills)
+                return false;
+            return !TargetNeedsUrgentHeal(heal.Target);
+        }
+
+        // A sure kill on the must-kill beats a heal that is not urgent (no Death's
+        // Door, no DoT death, above 15% HP). Logged fight
+        // lost_battalion_mash_316: Bishop (must_kill, Serve Once More) at 1 HP from
+        // round 2; r5 Grave Robber at 10/35 took Artemisia (+12) over a 100% Poison
+        // Dart kill on him. He lived to round 12, raised the Arbalist twice and kept
+        // Smiting; the party wiped.
+        internal const float MustKillFinishHitMin = 0.9f;
+
+        internal static bool MustKillFinishBeatsHeal(ScoredAction attack, ScoredAction heal, EnemyFocus focus)
+        {
+            if (attack == null || heal == null || focus == null || !focus.HasMustKillFirst)
+                return false;
+            if (attack.IsItem || attack.Kind != SkillKind.Attack || !attack.EnemyTarget || attack.Target == null)
+                return false;
+            var p = attack.Preview;
+            if (p == null || !p.Kills || p.HitChance < MustKillFinishHitMin)
+                return false;
+            var t = attack.Target;
+            if (t.Corpse || t.Healthless || t.DeathArmor || attack.Stealthed || !focus.IsMustKillFirst(t.Guid))
+                return false;
+            return !TargetNeedsUrgentHeal(heal.Target);
+        }
+
+        private static bool AppliesDamageDot(ScoredAction c, TurnSnapshot snap)
+        {
+            var p = c.Preview;
+            if (p != null && p.ApplyBleed + p.ApplyBlight + p.ApplyBurn > 0.05f)
+                return true;
+            var def = snap != null ? snap.Skill(c.SkillId) : null;
+            var role = def != null ? def.Role : null;
+            return role != null && (role.Bleed || role.Blight || role.Burn);
+        }
+
+        // Highest-stress ally a legal skill stress-heal reaches (items keep their own policy).
+        private static ScoredAction BestMeltdownGuard(List<ScoredAction> candidates, EnemyFocus focus)
+        {
+            ScoredAction best = null;
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                var c = candidates[i];
+                if (c.IsItem || c.EnemyTarget || c.Kind != SkillKind.Support || !LooksLikeStressSupport(c.SkillId))
+                    continue;
+                if (!MeltdownImminent(c.Target, focus))
+                    continue;
+                if (best == null || c.Target.Stress > best.Target.Stress
+                    || (c.Target.Stress == best.Target.Stress && c.Score > best.Score))
+                    best = c;
+            }
+            return best;
+        }
+
+        internal static bool IsMeltdownGuardClick(ScoredAction c, EnemyFocus focus)
+        {
+            return c != null && !c.IsItem && !c.EnemyTarget && c.Kind == SkillKind.Support
+                   && LooksLikeStressSupport(c.SkillId) && MeltdownImminent(c.Target, focus);
+        }
+
+        internal static bool PassOverstresses(string skillId, TargetInfo performer)
+        {
+            return performer != null
+                   && string.Equals(skillId, "pass_stress", StringComparison.OrdinalIgnoreCase)
+                   && performer.Stress + 2f >= 10f;
+        }
+
+        // CSV pass_heal: performer_effects heal_20pct, stress_damage_2 (legal
+        // under 25% HP, cooldown 3). At 8+ stress the +2 is Overstress at 10:
+        // overstress_data_export meltdown (m_Chance 0.8) is meltdown_health
+        // (m_HealthDamageDownToPercent 0.1) plus meltdown_db_resist_debuff
+        // (death resist -0.15 until the next inn) and a 40% meltdown quirk;
+        // resolute (0.2) heals 67%. Off Death's Door the Rest heals 20% and the
+        // Meltdown then drops the hero to 10% of max HP, below where they began
+        // unless they were already under 10%. In the logs Rest was the last
+        // stress hit of 39 of 175
+        // Overstresses, more than any enemy skill; 23 were off Death's Door
+        // (17 Meltdowns, e.g. MAA 11/55 -> 4, GR 7/29 -> 3, PD 6/30 -> 3; 5
+        // resolute). On Death's Door the Rest still lifts the hero off it
+        // (Meltdown lands at 10%), so it stays a heal there.
+        internal const float RestIntoMeltdownPenalty = 300f;
+        internal const float RestStress = 2f;
+
+        internal static bool RestIntoMeltdown(string skillId, TargetInfo performer)
+        {
+            if (performer == null || !IsPassHeal(skillId) || performer.DeathsDoor)
+                return false;
+            if (performer.Stress + RestStress < 10f)
+                return false;
+            return performer.HpPct >= 0.10f;
         }
 
         private static bool LooksLikeStressSupport(string skillId)
@@ -2796,9 +3126,9 @@ namespace Dd2Autobattler.Combat
                    || skillId.IndexOf("stress_heal", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
-        private static void ApplyHarvestHungerGuard(List<ScoredAction> candidates, ActorInstance performer, BattleTeams teams, EnemyFocus focus)
+        private static void ApplyHarvestHungerGuard(List<ScoredAction> candidates, TargetInfo performer, TurnSnapshot snap, EnemyFocus focus)
         {
-            if (candidates == null || performer == null || teams == null || focus == null)
+            if (candidates == null || performer == null || snap == null || focus == null)
                 return;
             var tableUp = false;
             for (var i = 0; i < focus.Enemies.Count; i++)
@@ -2813,15 +3143,15 @@ namespace Dd2Autobattler.Combat
             if (!tableUp)
                 return;
 
-            var selfHungry = GameSnapshot.CountToken(performer, "harvest_hunger") > 0;
+            var selfHungry = performer.CountToken("harvest_hunger") > 0;
             var allyHungry = false;
-            foreach (var hero in GameSnapshot.TeamActors(teams, BattleTeams.HERO_TEAM_INDEX))
+            foreach (var hero in snap.Heroes)
             {
-                if (hero == null || hero.ActorGuid == performer.ActorGuid)
+                if (hero == null || hero.Guid == performer.Guid)
                     continue;
-                if (!hero.IsLiving || GameSnapshot.IsCorpse(hero))
+                if (!hero.Living || hero.Corpse)
                     continue;
-                if (GameSnapshot.CountToken(hero, "harvest_hunger") > 0)
+                if (hero.CountToken("harvest_hunger") > 0)
                 {
                     allyHungry = true;
                     break;
@@ -2837,7 +3167,7 @@ namespace Dd2Autobattler.Combat
                 {
                     c.Score -= 50f;
                     // Blind hunger eats are forced legally but must not beat Solemnity.
-                    if (GameSnapshot.Describe(performer).Blind)
+                    if (performer.Blind)
                         c.Score -= 40f;
                 }
                 else if (allyHungry)
@@ -2847,31 +3177,31 @@ namespace Dd2Autobattler.Combat
 
         private const float CoverHpPct = 0.45f;
 
-        private static bool AllyHasRiposte(BattleTeams teams, uint performerGuid)
+        private static bool AllyHasRiposte(TurnSnapshot snap, uint performerGuid)
         {
-            if (teams == null)
+            if (snap == null)
                 return false;
-            foreach (var hero in GameSnapshot.TeamActors(teams, BattleTeams.HERO_TEAM_INDEX))
+            foreach (var hero in snap.Heroes)
             {
-                if (hero == null || !hero.IsLiving || GameSnapshot.IsCorpse(hero))
+                if (hero == null || !hero.Living || hero.Corpse)
                     continue;
-                if (hero.ActorGuid == performerGuid)
+                if (hero.Guid == performerGuid)
                     continue;
-                if (GameSnapshot.Describe(hero).Riposte)
+                if (hero.Riposte)
                     return true;
             }
             return false;
         }
 
-        private static bool AllyNeedsCover(BattleTeams teams)
+        private static bool AllyNeedsCover(TurnSnapshot snap)
         {
-            if (teams == null)
+            if (snap == null)
                 return false;
-            foreach (var hero in GameSnapshot.TeamActors(teams, BattleTeams.HERO_TEAM_INDEX))
+            foreach (var hero in snap.Heroes)
             {
-                if (hero == null || !hero.IsLiving || GameSnapshot.IsCorpse(hero))
+                if (hero == null || !hero.Living || hero.Corpse)
                     continue;
-                var body = GameSnapshot.Describe(hero);
+                var body = hero;
                 if (body.DeathsDoor)
                     return true;
                 if (body.HpPct <= CoverHpPct && !KitSafety.WantsToStayLow(body))
@@ -2880,15 +3210,15 @@ namespace Dd2Autobattler.Combat
             return false;
         }
 
-        private static bool AllyInCrisis(BattleTeams teams)
+        private static bool AllyInCrisis(TurnSnapshot snap)
         {
-            if (teams == null)
+            if (snap == null)
                 return false;
-            foreach (var hero in GameSnapshot.TeamActors(teams, BattleTeams.HERO_TEAM_INDEX))
+            foreach (var hero in snap.Heroes)
             {
-                if (hero == null || !hero.IsLiving || GameSnapshot.IsCorpse(hero))
+                if (hero == null || !hero.Living || hero.Corpse)
                     continue;
-                var body = GameSnapshot.Describe(hero);
+                var body = hero;
                 if (body.DeathsDoor)
                     return true;
                 if (body.HpPct <= 0.35f && !KitSafety.WantsToStayLow(body))
@@ -2897,21 +3227,21 @@ namespace Dd2Autobattler.Combat
             return false;
         }
 
-        private static bool PartyHasDeathsDoor(BattleTeams teams)
+        private static bool PartyHasDeathsDoor(TurnSnapshot snap)
         {
-            if (teams == null)
+            if (snap == null)
                 return false;
-            foreach (var hero in GameSnapshot.TeamActors(teams, BattleTeams.HERO_TEAM_INDEX))
+            foreach (var hero in snap.Heroes)
             {
-                if (hero == null || !hero.IsLiving || GameSnapshot.IsCorpse(hero))
+                if (hero == null || !hero.Living || hero.Corpse)
                     continue;
-                if (GameSnapshot.Describe(hero).DeathsDoor)
+                if (hero.DeathsDoor)
                     return true;
             }
             return false;
         }
 
-        private static bool IsPassHeal(string skillId)
+        internal static bool IsPassHeal(string skillId)
         {
             return !string.IsNullOrEmpty(skillId)
                    && skillId.IndexOf("pass_heal", StringComparison.OrdinalIgnoreCase) >= 0;
@@ -2932,6 +3262,8 @@ namespace Dd2Autobattler.Combat
                 return false;
             if (!RestoresHp(preview))
                 return false;
+            if (RestIntoMeltdown(skillId, target))
+                return false;
             if (TargetNeedsUrgentHeal(target))
                 return true;
             return target.HpPct <= 0.35f && !KitSafety.WantsToStayLow(target);
@@ -2939,12 +3271,12 @@ namespace Dd2Autobattler.Combat
 
         // Skill heal spent (BM limit 3). Food/bandage/antivenom that still heal must
         // fire on Death's Door. Do not buff (Ounce of Prevention) while someone is dying.
-        private static void ApplyCrisisStabilize(List<ScoredAction> candidates, BattleTeams teams)
+        private static void ApplyCrisisStabilize(List<ScoredAction> candidates, TurnSnapshot snap, EnemyFocus focus = null)
         {
-            if (candidates == null || teams == null)
+            if (candidates == null || snap == null)
                 return;
-            var door = PartyHasDeathsDoor(teams);
-            var crisis = AllyInCrisis(teams);
+            var door = PartyHasDeathsDoor(snap);
+            var crisis = AllyInCrisis(snap);
             if (!door && !crisis)
                 return;
             var skillHeal = HasLegalCrisisHeal(candidates);
@@ -2952,10 +3284,17 @@ namespace Dd2Autobattler.Combat
             for (var i = 0; i < candidates.Count; i++)
             {
                 var c = candidates[i];
-                if (c.Kind == SkillKind.Support && !c.IsItem && (door || crisis))
+                // Bolster on a hero about to Meltdown is not a buff: Meltdown
+                // drops HP to 10%, which is the crisis we are stabilizing.
+                if (c.Kind == SkillKind.Support && !c.IsItem && (door || crisis)
+                    && !(!c.EnemyTarget && LooksLikeStressSupport(c.SkillId) && MeltdownImminent(c.Target, focus)))
                     c.Score -= 80f;
-                // Laudanum while Rest / BM is legal — stabilize HP first.
-                if (c.IsItem && c.Item != null && (door || crisis)
+                // Laudanum while Rest / BM is legal — stabilize HP first. Only for an item that
+                // spends the turn: every CSV combat item is m_IsFreeAction, so a free stress item
+                // goes first and the heal still follows in the same turn (logs: laudanum
+                // / spring water vetoed this way on 36 hero-turns at 8-9 stress, mostly while
+                // the holder Rested instead).
+                if (c.IsItem && !c.FreeAction && c.Item != null && (door || crisis)
                     && c.Item.Reason != null
                     && c.Item.Reason.IndexOf("stress", StringComparison.OrdinalIgnoreCase) >= 0
                     && (skillHeal || passHeal))
@@ -2990,6 +3329,38 @@ namespace Dd2Autobattler.Combat
             }
         }
 
+        // CSV pass_heal: heal_20pct, stress_damage_2. Rest at 8 stress overstresses (10: Meltdown 0.8,
+        // HP to 10%, death resist -0.15, or Resolute). A free stress item (laudanum stress_heal_1,
+        // m_IsFreeAction) on that hero first takes him to 7 and the Rest lands at 9. Item-use scoring
+        // only: the Rest itself is scored elsewhere.
+        internal static void ApplyStressBeforeRest(List<ScoredAction> candidates)
+        {
+            if (candidates == null)
+                return;
+            foreach (var rest in candidates)
+            {
+                if (rest.IsItem || rest.EnemyTarget || rest.Target == null || rest.Target.Corpse || !IsPassHeal(rest.SkillId))
+                    continue;
+                if (!RestoresHp(rest.Preview))
+                    continue;
+                var t = rest.Target;
+                if (t.Stress + RestStress < 10f || t.Stress - 1f + RestStress >= 10f)
+                    continue;
+                foreach (var c in candidates)
+                {
+                    if (!c.IsItem || !c.FreeAction || c.Item == null || c.EnemyTarget || c.Target == null || c.Target.Guid != t.Guid)
+                        continue;
+                    if (c.Item.Reason == null || c.Item.Reason.IndexOf("stress", StringComparison.OrdinalIgnoreCase) < 0)
+                        continue;
+                    c.Item.UseNow = true;
+                    c.Item.Crisis = true;
+                    c.Item.Score = Math.Max(c.Item.Score, 60f);
+                    c.Item.Reason = "item_stress_before_rest";
+                    c.Score = c.Item.Score;
+                }
+            }
+        }
+
         private static bool HasLegalPassHeal(List<ScoredAction> candidates)
         {
             if (candidates == null)
@@ -3000,6 +3371,8 @@ namespace Dd2Autobattler.Combat
                 if (c.IsItem)
                     continue;
                 if (!IsPassHeal(c.SkillId) || c.EnemyTarget || c.Target == null || c.Target.Corpse)
+                    continue;
+                if (RestIntoMeltdown(c.SkillId, c.Target))
                     continue;
                 if (RestoresHp(c.Preview))
                     return true;
@@ -3033,6 +3406,13 @@ namespace Dd2Autobattler.Combat
                 var c = candidates[i];
                 if (c.IsItem)
                     continue;
+                // Rest heals only the performer: it does not stop the healer
+                // walking back to a rank where the ally heal launches (a
+                // logged round: PD on rank index 1, off the Medicine
+                // launch ranks 3-4, Rested at 6/30 while the MAA sat on Death's
+                // Door; the swap onto index 2 was legal and scored -1000).
+                if (IsPassHeal(c.SkillId))
+                    continue;
                 if (c.Kind == SkillKind.Heal && !c.EnemyTarget && c.Target != null && !c.Target.Corpse
                     && RestoresHp(c.Preview))
                     return true;
@@ -3064,34 +3444,95 @@ namespace Dd2Autobattler.Combat
             }
         }
 
-        private static void ApplyHealReposition(List<ScoredAction> candidates, ActorInstance performer)
+        // Battlefield Medicine on the Plague Doctor herself while Rest heals her
+        // too. CSV pd_battlefield_medicine(_u): m_Limit 3 per fight, friendly,
+        // target ranks 1-4, heal 20% (_u 25%) under 50% HP, remove_all_dots.
+        // pass_heal: heal_20pct + stress_damage_2, under 25% HP, cooldown 3,
+        // no use limit. Logs: 74 of 346
+        // Medicine uses were on the PD herself; 48 of them had Rest on her
+        // legal and within 2 points (e.g. 293 vs 291 on Death's Door), and the
+        // charges then ran out in 29 of those fights. Replaying with Rest
+        // instead (stress <= 5, so Rest leaves her at 7 or less): 27 charges
+        // kept, 14 of them reach an ally on Death's Door / lethal DoT / <=20%
+        // after the real third charge was gone (one logged fight: PD
+        // Medicined herself over the Vestal on Death's Door, who died to her
+        // bleed). Not when her own DoT tick would put her back on 0 HP after
+        // the Rest (Medicine clears it), nor when the Rest overstresses.
+        internal const float RestOverMedicineMaxStress = 5f;
+        internal const float RestOverMedicineGap = 10f;
+
+        internal static void ApplyRestOverSelfMedicine(List<ScoredAction> candidates, TargetInfo performer)
         {
-            if (candidates == null || performer == null)
+            if (candidates == null || performer == null || performer.Guid == 0)
                 return;
-            var heals = BlockedHealSkills(performer);
-            if (heals.Count == 0)
+            if (performer.Stress > RestOverMedicineMaxStress)
                 return;
-            var size = 1;
-            try { size = performer.Size; } catch { }
+            ScoredAction rest = null;
             for (var i = 0; i < candidates.Count; i++)
             {
                 var c = candidates[i];
-                if (c.Kind != SkillKind.Move || c.Target == null || c.Target.Actor == null)
+                if (c == null || c.IsItem || c.EnemyTarget || !IsPassHeal(c.SkillId))
                     continue;
-                var dest = 0;
-                try { dest = c.Target.Actor.TeamPosition; } catch { continue; }
+                if (c.Target == null || c.Target.Guid != performer.Guid || !RestoresHp(c.Preview))
+                    continue;
+                if (RestIntoMeltdown(c.SkillId, performer))
+                    continue;
+                rest = c;
+                break;
+            }
+            if (rest == null)
+                return;
+            // Her DoT ticks before her next action; Medicine strips it, Rest does not.
+            var afterRest = Math.Max(0f, performer.Hp) + rest.Preview.Heal;
+            if (performer.NextDot > 0.05f && performer.NextDot + 0.05f >= afterRest)
+                return;
+            var docked = false;
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                var c = candidates[i];
+                if (c == null || c.IsItem || c.EnemyTarget || c.Kind != SkillKind.Heal)
+                    continue;
+                if (!IsUseLimitedAllyHeal(c.SkillId))
+                    continue;
+                if (c.Target == null || c.Target.Guid != performer.Guid)
+                    continue;
+                if (c.Score > rest.Score - RestOverMedicineGap)
+                {
+                    c.Score = rest.Score - RestOverMedicineGap;
+                    docked = true;
+                }
+            }
+            if (docked)
+                rest.NoteReason = "rest_keeps_medicine";
+        }
+
+        // CSV m_Limit heals that can target allies (not self-only like Artemisia).
+        internal static bool IsUseLimitedAllyHeal(string skillId)
+        {
+            return KitSafety.IdHas(skillId, "battlefield_medicine");
+        }
+
+        private static void ApplyHealReposition(List<ScoredAction> candidates, TargetInfo performer, TurnSnapshot snap)
+        {
+            if (candidates == null || performer == null)
+                return;
+            var heals = BlockedHealSkills(performer, snap);
+            if (heals.Count == 0)
+                return;
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                var c = candidates[i];
+                if (c.Kind != SkillKind.Move || c.Target == null || c.Target.Guid == 0)
+                    continue;
+                var dest = c.Target.Rank;
                 var helps = false;
                 for (var h = 0; h < heals.Count; h++)
                 {
-                    try
+                    if (heals[h].Launches(dest))
                     {
-                        if (heals[h].GetHasLaunchRank(dest, size))
-                        {
-                            helps = true;
-                            break;
-                        }
+                        helps = true;
+                        break;
                     }
-                    catch { }
                 }
                 if (!helps)
                     continue;
@@ -3102,7 +3543,7 @@ namespace Dd2Autobattler.Combat
 
         // Last living enemy behind corpses, or a must-kill (Librarian) this
         // hero cannot damage from the current rank. 0-damage Combo marks do not count.
-        private static bool HasDamagingHitOn(List<ScoredAction> candidates, uint guid)
+        internal static bool HasDamagingHitOn(List<ScoredAction> candidates, uint guid)
         {
             if (candidates == null)
                 return false;
@@ -3113,9 +3554,9 @@ namespace Dd2Autobattler.Combat
                     continue;
                 if (c.Kind != SkillKind.Attack || !c.EnemyTarget || c.Target == null || c.Target.Corpse)
                     continue;
-                if (c.Target.Actor == null || !c.Target.Actor.IsLiving)
+                if (c.Target.Guid == 0 || !c.Target.Living)
                     continue;
-                if (guid != 0 && c.Target.Actor.ActorGuid != guid)
+                if (guid != 0 && c.Target.Guid != guid)
                     continue;
                 if (c.Preview != null && c.Preview.Damage > 0f)
                     return true;
@@ -3125,7 +3566,766 @@ namespace Dd2Autobattler.Combat
             return false;
         }
 
-        private static bool HasDamagingMustKillHit(List<ScoredAction> candidates, EnemyFocus focus)
+        // Chirurgeon wave (logged fight surgeon_gaunt_104a): MAA and
+        // Jester could not reach him and passed five turns while the Urchin
+        // and Yeoman killed the party. A deferred add that is only deferred
+        // for priority beats an idle turn when this hero has no damaging
+        // click on the must-kill.
+        internal static ScoredAction OpenAddOverIdle(ScoredAction picked, List<ScoredAction> candidates, EnemyFocus focus)
+        {
+            if (picked == null || candidates == null || focus == null)
+                return picked;
+            var cultist = focus.CultistOpenOverIdle;
+            if (!IsIdlePick(picked) && !(cultist && IsCultistFillerPick(picked)))
+                return picked;
+            // Altar of Denial Stealth: a click on the stealthed Altar is not a hit.
+            if (HasDamagingMustKillHit(candidates, focus, cultist))
+                return picked;
+            ScoredAction best = null;
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                var c = candidates[i];
+                if (c.IsItem || c.Kind != SkillKind.Attack || !c.EnemyTarget || c.Target == null)
+                    continue;
+                if (c.Target.Corpse || c.Target.Healthless || !c.Target.Living || c.Target.Riposte || c.Stealthed)
+                    continue;
+                // Cultists: a DoT open (Noxious Blast blight) is a hit too.
+                if (c.Preview == null || !(c.Preview.Damage > 0f || (cultist && StalkClickHurts(c.Preview))))
+                    continue;
+                // Cultists: a Herald is never deferred, only add-scored; he is
+                // as open as a deferred Evangelist / Deacon.
+                if (!focus.IsOpenWhenUnreached(c.Target.Guid)
+                    && !(cultist && !focus.IsDeferred(c.Target.Guid) && !focus.IsMustKillFirst(c.Target.Guid)))
+                    continue;
+                if (best == null || c.Score > best.Score)
+                    best = c;
+            }
+            if (best == null)
+                return picked;
+            if (string.IsNullOrEmpty(best.NoteReason))
+                best.NoteReason = "open_add";
+            return best;
+        }
+
+        // Config [Combat] LastEnemyRecovery (default on). Plain field so the
+        // decider stays pure; Plugin syncs it from the config.
+        internal static bool LastEnemyRecovery = true;
+
+        // Stress points weighed against HP when two recovery clicks compete.
+        internal const float RecoverStressHp = 4f;
+
+        // End-of-fight recovery, smallest safe version (notes/recovery.md).
+        // One safe enemy left and this hero's pick is idle (pass, a support the
+        // scorer rates as a loss, or a 0-damage click on the enemy): take a heal,
+        // DoT removal or stress heal instead. Never replaces a damaging hit or a
+        // kill, so the fight does not last a round longer. In the logs the
+        // MAA passed (pass_stress, +2 stress to himself) or
+        // guarded at -35 while Bolster on a 5+ stress ally was legal.
+        internal static ScoredAction RecoverOverIdle(ScoredAction picked, List<ScoredAction> candidates, EnemyFocus focus, TurnSnapshot snap, TargetInfo performer, int livingEnemies, int killableEnemies, bool enabled)
+        {
+            if (!enabled || picked == null || candidates == null || snap == null)
+                return picked;
+            if (livingEnemies != 1 || killableEnemies != 1)
+                return picked;
+            if (!IsRecoveryIdle(picked))
+                return picked;
+            var last = LastLivingEnemy(snap);
+            if (!IsSafeLastEnemy(last, focus)
+                && !(IsMountainCultistLastEnemy(last, focus) && IsMountainRecoveryIdle(picked)))
+                return picked;
+            // Death's Door belongs to the crisis gates (heal_deaths_door, items).
+            if (PartyHasDeathsDoor(snap))
+                return picked;
+            // A guard covers a low ally; a pass (pass_stress: +2 stress to the
+            // passer, CSV pass_data) covers nobody, so a stress heal beats it.
+            var holdStress = AllyInCrisis(snap) && picked.Kind != SkillKind.Pass;
+            var best = BestRecovery(candidates, performer, holdStress);
+            if (best == null || best == picked)
+                return picked;
+            if (string.IsNullOrEmpty(best.NoteReason))
+                best.NoteReason = "recover";
+            return best;
+        }
+
+        // Idle for recovery: a pass that is not pass_heal, a support the scorer
+        // rates below 0 (IsIdlePick), or a 0-damage click on an enemy (Tracking
+        // Shot / Blinding Gas). Cited picks (meltdown_guard, blind_artillery,
+        // fall_taunt ...) carry a NoteReason and are left alone.
+        internal static bool IsRecoveryIdle(ScoredAction picked)
+        {
+            if (picked == null || picked.IsItem || !string.IsNullOrEmpty(picked.NoteReason))
+                return false;
+            if (picked.HealReposition || picked.ReachReposition || picked.MustRankWalk)
+                return false;
+            if (picked.Kind == SkillKind.Pass)
+                return !IsPassHeal(picked.SkillId);
+            if (picked.Kind == SkillKind.Support)
+                return picked.Score < 0f;
+            if (picked.Kind == SkillKind.Attack && picked.EnemyTarget)
+                return picked.Preview != null && picked.Preview.Damage <= 0f && !picked.Preview.Kills;
+            return false;
+        }
+
+        private static TargetInfo LastLivingEnemy(TurnSnapshot snap)
+        {
+            TargetInfo found = null;
+            foreach (var e in snap.Enemies)
+            {
+                if (e == null || !e.Living || e.Corpse)
+                    continue;
+                if (found != null)
+                    return null;
+                found = e;
+            }
+            return found;
+        }
+
+        // Not a boss / summoner / reviver / must-kill / commander, no scripted
+        // boss mode up, and not an ignited fanatic (logs: whipper_ignited 32,
+        // blind_shaman_ignited 41 damage a round; a guard or blind matters there).
+        internal static bool IsSafeLastEnemy(TargetInfo enemy, EnemyFocus focus)
+        {
+            if (enemy == null || !enemy.Living || enemy.Corpse || enemy.Healthless)
+                return false;
+            if (KitSafety.IdHas(enemy.ClassId, "ignited"))
+                return false;
+            if (focus == null)
+                return true;
+            if (focus.DenialLocks || focus.ExemplarUp || focus.LeviathanHandUp || focus.ReachPhase2 || focus.ReachPhase3
+                || focus.BurstBeforeEvolve || focus.ChirurgeonGuid != 0 || focus.HasMustKillFirst)
+                return false;
+            for (var i = 0; i < focus.Enemies.Count; i++)
+            {
+                var t = focus.Enemies[i];
+                if (t == null || t.Guid != enemy.Guid)
+                    continue;
+                if (t.Boss || t.Summons || t.Resurrects || t.MustKillFirst || t.Commander)
+                    return false;
+            }
+            return true;
+        }
+
+        // Best legal recovery click by value: HP the preview restores, DoTs a
+        // Battlefield Medicine strips, stress a Bolster-type skill heals. CSV
+        // (hero_maa / effect / condition exports): Bolster heals the target only
+        // at stress >= 5 (target_at_stress_heal_threshold) and the MAA himself
+        // only at >= 50% stress (performer_at_stress_heal_threshold); maa_bolster_u
+        // heals 2. holdStress: no stress heals (an ally at 35% HP or lower keeps
+        // the guard the idle pick gave).
+        internal static ScoredAction BestRecovery(List<ScoredAction> candidates, TargetInfo performer, bool holdStress)
+        {
+            ScoredAction best = null;
+            var bestValue = 0f;
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                var c = candidates[i];
+                var value = RecoveryValue(c, performer, holdStress);
+                if (value <= 0f)
+                    continue;
+                if (best == null || value > bestValue || (value == bestValue && c.Score > best.Score))
+                {
+                    best = c;
+                    bestValue = value;
+                }
+            }
+            return best;
+        }
+
+        internal static float RecoveryValue(ScoredAction c, TargetInfo performer, bool holdStress)
+        {
+            if (c == null || c.IsItem || c.EnemyTarget || c.Kind == SkillKind.Pass || c.Kind == SkillKind.Move)
+                return 0f;
+            var t = c.Target;
+            if (t == null || !t.Living || t.Corpse)
+                return 0f;
+            var value = 0f;
+            if (c.Kind == SkillKind.Heal && RestoresHp(c.Preview) && !KitSafety.WantsToStayLow(t))
+                value += Math.Min(c.Preview.Heal, t.HpMax > 0f ? Math.Max(0f, t.HpMax - t.Hp) : c.Preview.Heal);
+            // CSV pd_battlefield_medicine: target_apply_limit_effects remove_all_dots.
+            if (KitSafety.IdHas(c.SkillId, "battlefield_medicine") && t.BleedDot + t.BlightDot + t.BurnDot + t.NextDot > 0.05f)
+                value += 2f * Math.Max(1f, t.NextDot);
+            if (!holdStress && c.Kind == SkillKind.Support && LooksLikeStressSupport(c.SkillId))
+            {
+                var per = c.SkillId.EndsWith("_u", StringComparison.OrdinalIgnoreCase) ? 2f : 1f;
+                var stress = 0f;
+                if (t.Stress >= 5f)
+                    stress += Math.Min(per, t.Stress);
+                if (KitSafety.IdHas(c.SkillId, "bolster") && performer != null && performer.Guid != t.Guid && performer.Stress >= 5f)
+                    stress += Math.Min(per, performer.Stress);
+                value += stress * RecoverStressHp;
+            }
+            return value;
+        }
+
+        // The plain pass is never free: CSV pass_data pass_stress is
+        // performer_effects stress_damage_2 (m_StressDamage 2), no condition,
+        // no cooldown. In the logs the starter party passed ~9
+        // times a run (scored -50) while a guard / Bolster / Ounce (-54 to
+        // -145), a mark, a chip on a deferred add or a hit on a clogging
+        // corpse cost nothing. When the pick is that pass, take the first
+        // free click by tier, best score within a tier:
+        //   1 guard on an ally at 35% HP or less (or Death's Door)
+        //   2 a damaging / DoT hit on a living enemy
+        //   3 a hit that destroys a corpse in front of a living enemy now
+        //     (corpse class: health_max, m_DeathRound 3; Team removes the dead
+        //     actor and closes the ranks behind it)
+        //   4 a support: stress heal, guard, buff
+        //   5 a 0-damage mark (Blind / Combo), a hit on a target dying to DoT
+        //   6 a chip on a corpse in front of a living enemy
+        // Never: moves or attacks that move the performer (formation), items,
+        // limited-use skills (m_Limit: Battlefield Medicine, Artemisia ...),
+        // cursed skills (skill_modifier curse riders: Vulnerable, Weak, Blind,
+        // stress_damage_1), Riposte / stealthed / healthless (Taproot) targets,
+        // Librarian stacks, a lung kill without inflate, a kill on a deferred
+        // boss part (Denial locks), a self-taunt while the performer is low.
+        // If nothing is left the pass stands.
+        internal static ScoredAction FreeOverPass(ScoredAction picked, List<ScoredAction> candidates, EnemyFocus focus, TurnSnapshot snap, TargetInfo performer, int livingEnemies)
+        {
+            if (picked == null || candidates == null || !IsStressPass(picked))
+                return picked;
+            var allyLow = snap != null && AllyInCrisis(snap);
+            var livingRanks = LivingEnemyRanks(snap);
+            ScoredAction best = null;
+            var bestTier = int.MaxValue;
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                var c = candidates[i];
+                if (c == picked)
+                    continue;
+                var tier = FreeTier(c, focus, snap, performer, livingEnemies, allyLow, livingRanks);
+                if (tier <= 0)
+                    continue;
+                if (best == null || tier < bestTier || (tier == bestTier && c.Score > best.Score))
+                {
+                    best = c;
+                    bestTier = tier;
+                }
+            }
+            if (best == null)
+                return picked;
+            best.NoteReason = FreeTierReasons[bestTier];
+            return best;
+        }
+
+        // Guard a hero on Death's Door (or at <=25% HP) instead of a non-kill swing.
+        // CSV maa_defender: target_effects add_2_guard, performer_effects add_2_block
+        // (_u: add_3_guard, add_2_block_plus), cooldown 1. Token guard
+        // (token_data_export): consumed per redirected attack, lasts 3 turns,
+        // removed when the guardian dies. Logs: 33 enemy hits on a guarded hero
+        // landed on the MAA instead (single-target and AoE). On Death's Door every
+        // hit rolls deathblow (hero resistance death 0.6, -0.1 per survived roll,
+        // deathblow_chance_shaping_heroes), so a redirected hit is a death roll
+        // not taken. ApplyCrisisStabilize docks every support -80 in a crisis,
+        // which left Defender at -66 under every swing: logged non-lair
+        // fights had 30 turns with a
+        // healthy MAA, Defender legal on an ally at <=25% or on Death's Door, and
+        // a swing picked; that ally then took 21 hits, 6 Death's Door entries and
+        // 2 deaths before the MAA's next turn (spitting_distance r10:
+        // Highwayman 9/39 died to two carrion bites while MAA at 29/60 crushed).
+        // The guardian must not be in crisis himself; kills, heals, items, cited
+        // boss gates, Taunt (it already pulls the hits) and rank walks stand.
+        internal const float CoverGuardAllyHpPct = 0.25f;
+        internal const float CoverGuardSelfHpPct = 0.35f;
+
+        private static readonly HashSet<string> CoverGuardGates = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "attack", "attack_over_idle", "any_over_negative_attack", "any", "setup", "open_add"
+        };
+
+        private static readonly HashSet<string> CoverGuardNotes = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "peel", "open_add", "recover"
+        };
+
+        internal static ScoredAction CoverGuardOverSwing(ScoredAction picked, List<ScoredAction> candidates, TurnSnapshot snap, TargetInfo performer, string gate)
+        {
+            if (picked == null || candidates == null || snap == null || performer == null)
+                return picked;
+            if (!CoverGuardMayReplace(picked, gate))
+                return picked;
+            if (!CanCoverAlly(performer))
+                return picked;
+            ScoredAction best = null;
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                var c = candidates[i];
+                if (c == null || c.IsItem || c.EnemyTarget || c.Cursed || c.Kind != SkillKind.Support)
+                    continue;
+                if (!AppliesGuardTo(c))
+                    continue;
+                var t = c.Target;
+                if (t == null || t.Guid == 0 || t.Guid == performer.Guid || !t.Living || t.Corpse)
+                    continue;
+                if (!NeedsCoverGuard(t))
+                    continue;
+                if (best == null || CoverBefore(t, best.Target))
+                    best = c;
+            }
+            if (best == null)
+                return picked;
+            best.NoteReason = "cover_guard";
+            return best;
+        }
+
+        // ---------- cultist_mountain_* (notes/cited-bosses.md, Cultists) ----------
+        //
+        // The no-retreat Deacon fight right before the mountain boss, no inn in
+        // between: what matters is the stress (then HP) the party walks in with.
+        // Logs (11 fights): 5 arrivals with a
+        // hero at 9 stress; the Deacon dealt 103 of the 121 logged enemy stress
+        // (Weight of Worlds 50, Sundering Steel 48, Exultation 5) and was the last
+        // enemy alive in every fight. Kill order stays minions first (wiki; CSV
+        // minion Worship heals him 30% and feeds Exultation).
+        //
+        // Taunt. CSV token taunt: m_ConsumeTypes forced_target; maa_retribution
+        // add_2_taunt_nr, so it drags the next two single-target hits onto the
+        // tank. The single-target stress in this fight is Sundering Steel
+        // (stress_damage_2), Exultation (4 + 50% 1), Blood Commune (75% 1),
+        // Enfeebling Miasma (25% 1), all target_ranks 1,2, and Clarion Call
+        // (stress_damage_2, target_ranks 1-4). Weight of Worlds is multi-hit on
+        // every rank (no taunt effect). So Taunt moves stress, it does not cut it:
+        // 29 single-target hits (22 stress) landed on a taunting MAA, who arrived
+        // at 9 twice (once from Sundering Steel 8 + Exultation 5 while
+        // taunted). Riposte returns ~5.5 damage a Retribution (MAA ripostes, 10
+        // single-target returns for 31), about a Crush, so blocking it does not
+        // slow the kill. A taunt is only worth it when it shields a hero the
+        // redirected hits would otherwise reach who is at least
+        // MountainTauntStressMargin stress above the tank (two taunted hits are
+        // ~3 stress: Sundering Steel 2, Exultation 4+).
+        internal const float MountainTauntStressMargin = 3f;
+        internal const float MountainTauntPenalty = 60f;
+
+        internal static void ApplyMountainCultistTaunt(List<ScoredAction> candidates, TurnSnapshot snap, TargetInfo performer, EnemyFocus focus)
+        {
+            if (candidates == null || focus == null || !focus.MountainCultist)
+                return;
+            if (MountainTauntShields(snap, performer, focus))
+                return;
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                var c = candidates[i];
+                if (c == null || c.IsItem || c.EnemyTarget || !KitSafety.IsSelfTaunt(c.SkillId))
+                    continue;
+                c.TauntBlocked = true;
+                c.Score -= MountainTauntPenalty;
+            }
+        }
+
+        // True when a hero the redirected single-target hits could reach is at
+        // least MountainTauntStressMargin above the taunter: ranks 1-2 (game
+        // ranks 0-1) always, any rank while a Herald (Clarion Call 1-4) lives.
+        internal static bool MountainTauntShields(TurnSnapshot snap, TargetInfo performer, EnemyFocus focus)
+        {
+            if (snap == null || performer == null)
+                return false;
+            var heraldUp = false;
+            if (snap.Enemies != null)
+            {
+                foreach (var e in snap.Enemies)
+                {
+                    if (e != null && e.Living && !e.Corpse && KitSafety.IdHas(e.ClassId, "cultist_herald"))
+                        heraldUp = true;
+                }
+            }
+            var covered = -1f;
+            foreach (var h in snap.Heroes)
+            {
+                if (h == null || !h.Living || h.Corpse || h.Guid == performer.Guid)
+                    continue;
+                if (!heraldUp && (h.Rank < 0 || h.Rank > 1))
+                    continue;
+                if (h.Stress > covered)
+                    covered = h.Stress;
+            }
+            return covered >= 0f && covered >= performer.Stress + MountainTauntStressMargin;
+        }
+
+        // Bolster. CSV maa_bolster: target stress_heal_1_target_at_threshold (at
+        // stress >= 5, target_at_stress_heal_threshold) and performer
+        // stress_heal_1_performer_at_threshold (MAA at >= 5); _u heals 2 each;
+        // cooldown 1. Heroes arriving at the boss at 8-9 melted by round 3
+        // (Denial note). Logs: 35 MAA turns here had Bolster legal and healing
+        // 1+ (23 on a hero at 7+) and took a swing; meltdown_guard only fires at
+        // 9 when Bolster already outscores the swing (one logged fight: PD sat at 9 for
+        // seven MAA turns). One MAA swing is ~4 damage here, about a fifth of a
+        // round of the Deacon (~3 party stress a round): a 2-point Bolster, or 1
+        // point off a 7+ hero, is the better arrival.
+        internal const float MountainBolsterTargetStress = 7f;
+        internal const float MountainBolsterMinHeal = 2f;
+
+        private static readonly HashSet<string> MountainBolsterGates = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "attack", "attack_over_idle", "any_over_negative_attack", "any", "setup", "open_add"
+        };
+
+        internal static ScoredAction MountainBolsterOverSwing(ScoredAction picked, List<ScoredAction> candidates, TurnSnapshot snap, TargetInfo performer, EnemyFocus focus, string gate, int killableEnemies)
+        {
+            if (picked == null || candidates == null || snap == null || performer == null || focus == null || !focus.MountainCultist)
+                return picked;
+            if (gate == null || !MountainBolsterGates.Contains(gate))
+                return picked;
+            if (!MountainBolsterMayReplace(picked, killableEnemies, focus))
+                return picked;
+            // Death's Door / a hero at 25% or less: the crisis and cover gates own it.
+            foreach (var h in snap.Heroes)
+            {
+                if (h == null || !h.Living || h.Corpse)
+                    continue;
+                if (h.DeathsDoor)
+                    return picked;
+                if (h.Guid != performer.Guid && h.HpPct > 0f && h.HpPct <= CoverGuardAllyHpPct && !KitSafety.WantsToStayLow(h))
+                    return picked;
+            }
+            ScoredAction best = null;
+            var bestHeal = 0f;
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                var c = candidates[i];
+                if (c == null || c.IsItem || c.EnemyTarget || c.Cursed || c.Kind != SkillKind.Support)
+                    continue;
+                if (!KitSafety.IdHas(c.SkillId, "bolster"))
+                    continue;
+                var t = c.Target;
+                if (t == null || !t.Living || t.Corpse)
+                    continue;
+                var heal = BolsterStressHealed(c.SkillId, t, performer);
+                if (heal < MountainBolsterMinHeal && !(heal > 0f && t.Stress >= MountainBolsterTargetStress))
+                    continue;
+                if (best == null || heal > bestHeal
+                    || (heal == bestHeal && (t.Stress > best.Target.Stress || (t.Stress == best.Target.Stress && c.Score > best.Score))))
+                {
+                    best = c;
+                    bestHeal = heal;
+                }
+            }
+            if (best == null)
+                return picked;
+            best.NoteReason = "mountain_bolster";
+            return best;
+        }
+
+        // Stress Bolster removes this click (CSV thresholds above).
+        internal static float BolsterStressHealed(string skillId, TargetInfo target, TargetInfo performer)
+        {
+            if (target == null)
+                return 0f;
+            var per = !string.IsNullOrEmpty(skillId) && skillId.EndsWith("_u", StringComparison.OrdinalIgnoreCase) ? 2f : 1f;
+            var heal = 0f;
+            if (target.Stress >= 5f)
+                heal += Math.Min(per, target.Stress);
+            if (performer != null && performer.Guid != target.Guid && performer.Stress >= 5f)
+                heal += Math.Min(per, performer.Stress);
+            return heal;
+        }
+
+        // A non-kill swing, a stress pass or a filler support; not a kill, a
+        // last-bar finish or a damaging Altar hit (ShouldOpenUtility), not a heal,
+        // guard, item, walk or an allowed taunt.
+        private static bool MountainBolsterMayReplace(ScoredAction picked, int killableEnemies, EnemyFocus focus)
+        {
+            if (!string.IsNullOrEmpty(picked.NoteReason) && picked.NoteReason != "peel" && picked.NoteReason != "open_add")
+                return false;
+            if (picked.IsItem || picked.HealReposition || picked.ReachReposition || picked.MustRankWalk)
+                return false;
+            if (picked.Kind == SkillKind.Attack && picked.EnemyTarget)
+                return ShouldOpenUtility(picked.Preview, picked.Target, killableEnemies, focus);
+            if (picked.Kind == SkillKind.Pass)
+                return IsStressPass(picked);
+            if (picked.Kind == SkillKind.Support && !picked.EnemyTarget)
+                return picked.Score < 0f && !AppliesGuardTo(picked) && !KitSafety.IsSelfTaunt(picked.SkillId)
+                       && !LooksLikeStressSupport(picked.SkillId);
+            return false;
+        }
+
+        // Last-enemy recovery (RecoverOverIdle) normally skips a boss / must-kill
+        // (a guard or a Blind matters against a big hitter). Here the Deacon is
+        // the last enemy in 9 of 11 logged fights (a must-kill Cherub in the
+        // others), so the rule never fired. A pass or a filler support costs the
+        // same round either way: it becomes recovery. A 0-damage Blind / mark on
+        // the enemy, a guard, a DoT and every damaging hit stand.
+        internal static bool IsMountainCultistLastEnemy(TargetInfo enemy, EnemyFocus focus)
+        {
+            return focus != null && focus.MountainCultist && enemy != null && enemy.Living && !enemy.Corpse && !enemy.Healthless;
+        }
+
+        internal static bool IsMountainRecoveryIdle(ScoredAction picked)
+        {
+            if (!IsRecoveryIdle(picked))
+                return false;
+            if (picked.Kind == SkillKind.Pass)
+                return true;
+            return picked.Kind == SkillKind.Support && !picked.EnemyTarget && !AppliesGuardTo(picked);
+        }
+
+        internal static bool NeedsCoverGuard(TargetInfo t)
+        {
+            if (t == null || !t.Living || t.Corpse)
+                return false;
+            // Already guarded: Defender would only refresh the tokens.
+            if (HasTokenId(t, "guard"))
+                return false;
+            if (t.DeathsDoor)
+                return true;
+            return t.HpPct > 0f && t.HpPct <= CoverGuardAllyHpPct && !KitSafety.WantsToStayLow(t);
+        }
+
+        internal static bool CanCoverAlly(TargetInfo performer)
+        {
+            if (performer == null || performer.DeathsDoor || performer.DiesToDot)
+                return false;
+            if (performer.Hp > 0f && performer.NextDot + 0.05f >= performer.Hp)
+                return false;
+            return performer.HpPct > CoverGuardSelfHpPct;
+        }
+
+        private static bool CoverBefore(TargetInfo a, TargetInfo b)
+        {
+            if (b == null)
+                return true;
+            if (a.DeathsDoor != b.DeathsDoor)
+                return a.DeathsDoor;
+            return a.HpPct < b.HpPct;
+        }
+
+        private static bool HasTokenId(TargetInfo t, string id)
+        {
+            if (t == null || t.Tokens == null)
+                return false;
+            for (var i = 0; i < t.Tokens.Count; i++)
+            {
+                if (string.Equals(t.Tokens[i], id, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+            return false;
+        }
+
+        private static bool CoverGuardMayReplace(ScoredAction picked, string gate)
+        {
+            if (gate == null || !CoverGuardGates.Contains(gate))
+                return false;
+            if (!string.IsNullOrEmpty(picked.NoteReason) && !CoverGuardNotes.Contains(picked.NoteReason))
+                return false;
+            if (picked.IsItem || picked.HealReposition || picked.ReachReposition || picked.MustRankWalk)
+                return false;
+            if (picked.Kind == SkillKind.Heal || picked.Kind == SkillKind.Move || IsPassHeal(picked.SkillId))
+                return false;
+            if (!picked.EnemyTarget && AppliesGuardTo(picked))
+                return false;
+            if (KitSafety.IsSelfTaunt(picked.SkillId) || IsHarvestHungerGuard(picked.SkillId) || IsForcedHarvestEat(picked.SkillId))
+                return false;
+            if (RestoresHp(picked.Preview) && !picked.EnemyTarget)
+                return false;
+            if (picked.EnemyTarget && picked.Preview != null && picked.Preview.Kills)
+                return false;
+            return true;
+        }
+
+        private static readonly string[] FreeTierReasons =
+        {
+            null, "over_pass_guard", "over_pass_hit", "over_pass_corpse", "over_pass_support", "over_pass_mark", "over_pass_corpse_chip"
+        };
+
+        // pass_stress (and any non-heal pass that costs stress); a Rest that
+        // restores HP is a heal, not this.
+        internal static bool IsStressPass(ScoredAction c)
+        {
+            return c != null && !c.IsItem && c.Kind == SkillKind.Pass
+                   && string.Equals(c.SkillId, "pass_stress", StringComparison.OrdinalIgnoreCase);
+        }
+
+        // 0 = not free. See FreeOverPass for the tiers.
+        internal static int FreeTier(ScoredAction c, EnemyFocus focus, TurnSnapshot snap, TargetInfo performer, int livingEnemies, bool allyLow, int[] livingRanks)
+        {
+            // Rest (pass_heal) costs the same 2 stress.
+            if (c == null || c.IsItem || c.Cursed || c.Kind == SkillKind.Move || c.Kind == SkillKind.Pass || IsPassHeal(c.SkillId))
+                return 0;
+            if (c.HealReposition || c.ReachReposition || c.MustRankWalk)
+                return 0;
+            if (HasUseLimit(c.SkillId) || MovesPerformer(c.SkillId, performer))
+                return 0;
+            var t = c.Target;
+            if (t == null)
+                return 0;
+            if (!c.EnemyTarget)
+            {
+                if (t.Corpse || !t.Living)
+                    return 0;
+                if (c.Kind != SkillKind.Support && c.Kind != SkillKind.Heal)
+                    return 0;
+                // Taunt pulls the hits onto a performer who is already low.
+                if (KitSafety.IsSelfTaunt(c.SkillId) && performer != null
+                    && (performer.DeathsDoor || performer.HpPct <= 0.35f))
+                    return 0;
+                // Guard redirects the ally's hits onto the guardian: on Death's
+                // Door each one is a deathblow roll for him instead.
+                if (AppliesGuardTo(c) && performer != null && performer.DeathsDoor)
+                    return 0;
+                if (allyLow && AppliesGuardTo(c) && performer != null && t.Guid != performer.Guid
+                    && (t.DeathsDoor || (t.HpPct <= 0.35f && !KitSafety.WantsToStayLow(t))))
+                    return 1;
+                return 4;
+            }
+            if (c.Kind != SkillKind.Attack || c.Stealthed || t.Stealth || t.Healthless)
+                return 0;
+            var p = c.Preview;
+            if (p == null)
+                return 0;
+            if (t.Corpse)
+            {
+                if (!CorpseBlocks(t.Rank, livingRanks) || p.Damage <= 0f || HitsLibrarianStackAny(c, focus))
+                    return 0;
+                return c.ClearsCorpse || p.Damage + 0.05f >= t.Hp ? 3 : 6;
+            }
+            if (!t.Living)
+                return 0;
+            if (t.Riposte && !p.Kills)
+                return 0;
+            // The preview's Riposte return on the performer (a guardian's Riposte
+            // too: the click target itself has none). Not over a +2 stress pass
+            // on Death's Door or when it drops him onto it (the Riposte death in
+            // the SelfHitOnDeathsDoorPenalty note).
+            if (SelfHitPenalty(p, performer) < 0f)
+                return 0;
+            if (HitsLibrarianStackAny(c, focus))
+                return 0;
+            if (p.Kills && IsSighLungTarget(c) && !t.LungInflate)
+                return 0;
+            if (p.Kills && focus != null && focus.IsDeferred(t.Guid) && IsBossPart(focus, t.Guid))
+                return 0;
+            if (t.DiesToDot && livingEnemies > 1)
+                return 5;
+            if (p.Damage > 0f || StalkClickHurts(p))
+                return 2;
+            return 5;
+        }
+
+        private static bool IsBossPart(EnemyFocus focus, uint guid)
+        {
+            for (var i = 0; i < focus.Enemies.Count; i++)
+            {
+                var e = focus.Enemies[i];
+                if (e != null && e.Guid == guid)
+                    return e.Boss;
+            }
+            return false;
+        }
+
+        private static bool HitsLibrarianStackAny(ScoredAction c, EnemyFocus focus)
+        {
+            if (focus == null || c.Target == null)
+                return false;
+            var click = c.Target.Guid != 0 && focus.IsLibrarianStack(c.Target.Guid);
+            return click || HitsLibrarianStack(c, focus, false);
+        }
+
+        private static bool AppliesGuardTo(ScoredAction c)
+        {
+            if (c.Preview != null && TokenPrices.HasId(c.Preview.ApplyTarget, "guard"))
+                return true;
+            if (c.Tokens != null && TokenPrices.HasId(c.Tokens.Apply, "guard"))
+                return true;
+            return KitSafety.IdHas(c.SkillId, "maa_defender");
+        }
+
+        // A corpse with a living enemy behind it: destroying it moves that
+        // enemy up a rank.
+        internal static bool CorpseBlocks(int corpseRank, int[] livingRanks)
+        {
+            if (livingRanks == null)
+                return false;
+            for (var i = 0; i < livingRanks.Length; i++)
+            {
+                if (livingRanks[i] > corpseRank)
+                    return true;
+            }
+            return false;
+        }
+
+        private static int[] LivingEnemyRanks(TurnSnapshot snap)
+        {
+            var ranks = new List<int>();
+            if (snap != null)
+            {
+                foreach (var e in snap.Enemies)
+                {
+                    if (e != null && e.Living && !e.Corpse)
+                        ranks.Add(e.Rank);
+                }
+            }
+            return ranks.ToArray();
+        }
+
+        // CSV hero_*: skills with m_Limit (uses per fight).
+        private static readonly string[] UseLimitedSkills =
+        {
+            "battlefield_medicine", "artemisia", "absinthe", "dead_of_night", "exsanguinate", "sepsis",
+            "deathless", "adrenaline_rush", "encore", "finale_p2", "lep_revenge", "lep_ruin", "lep_solemnity",
+            "lep_withstand", "cause_of_death_p1", "cauterize"
+        };
+
+        internal static bool HasUseLimit(string skillId)
+        {
+            for (var i = 0; i < UseLimitedSkills.Length; i++)
+            {
+                if (KitSafety.IdHas(skillId, UseLimitedSkills[i]))
+                    return true;
+            }
+            return false;
+        }
+
+        // CSV performer_effects move_forward_* / move_backward_* (starter
+        // kits plus Grave Robber): the click walks the performer out of
+        // formation unless it is already at that end.
+        private static readonly string[] ForwardMovers = { "maa_rampart", "maa_hold_the_line", "hwm_duelists_advance", "gr_lunge" };
+        private static readonly string[] BackwardMovers = { "hwm_point_blank_shot", "maa_strategic_withdrawal", "gr_shadow_fade", "gr_pirouette" };
+
+        internal static bool MovesPerformer(string skillId, TargetInfo performer)
+        {
+            var rank = performer != null ? performer.Rank : -1;
+            for (var i = 0; i < ForwardMovers.Length; i++)
+            {
+                if (KitSafety.IdHas(skillId, ForwardMovers[i]))
+                    return rank != 0;
+            }
+            for (var i = 0; i < BackwardMovers.Length; i++)
+            {
+                if (KitSafety.IdHas(skillId, BackwardMovers[i]))
+                    return rank < 3;
+            }
+            return false;
+        }
+
+        // Pass, or a support / self click the scorer itself rates as a loss.
+        // Cultist guardian fights: Tracking Shot / Blinding Gas (0 damage) or a
+        // base-score support (Take Aim, Ounce of Prevention at +2) is filler
+        // next to a real hit on the Deacon / an Evangelist. Not items, not
+        // heals, not a support the scorer already rates (Bolster on 7+ stress).
+        internal const float CultistFillerSupportMax = 10f;
+
+        internal static bool IsCultistFillerPick(ScoredAction picked)
+        {
+            if (picked == null || picked.IsItem)
+                return false;
+            if (picked.Kind == SkillKind.Support)
+                return picked.Score < CultistFillerSupportMax && !RestoresHp(picked.Preview);
+            // Artemisia / a heal with 0 HP restore this click (scored -20).
+            if (picked.Kind == SkillKind.Heal && !picked.EnemyTarget)
+                return !RestoresHp(picked.Preview);
+            if (picked.Kind == SkillKind.Attack && picked.EnemyTarget)
+                return !StalkClickHurts(picked.Preview);
+            return false;
+        }
+
+        internal static bool IsIdlePick(ScoredAction picked)
+        {
+            if (picked == null)
+                return false;
+            if (picked.Kind == SkillKind.Pass)
+                return true;
+            return picked.Kind == SkillKind.Support && picked.Score < 0f;
+        }
+
+        private static bool HasDamagingMustKillHit(List<ScoredAction> candidates, EnemyFocus focus, bool skipStealthed = false)
         {
             if (candidates == null || focus == null)
                 return false;
@@ -3134,11 +4334,13 @@ namespace Dd2Autobattler.Combat
                 var c = candidates[i];
                 if (c.IsItem && c.FreeAction)
                     continue;
+                if (skipStealthed && c.Stealthed)
+                    continue;
                 if (c.Kind != SkillKind.Attack || !c.EnemyTarget || c.Target == null || c.Target.Corpse)
                     continue;
-                if (c.Target.Actor == null || !c.Target.Actor.IsLiving)
+                if (c.Target.Guid == 0 || !c.Target.Living)
                     continue;
-                if (!focus.IsMustKillFirst(c.Target.Actor.ActorGuid))
+                if (!focus.IsMustKillFirst(c.Target.Guid))
                     continue;
                 if (c.Preview != null && c.Preview.Damage > 0f)
                     return true;
@@ -3170,19 +4372,19 @@ namespace Dd2Autobattler.Combat
             return dmg < 1f && preview != null && TokenPrices.HasId(preview.ApplyTarget, "combo");
         }
 
-        private static ActorInstance ReachWalkTarget(List<ScoredAction> candidates, ActorInstance performer, BattleTeams teams, EnemyFocus focus, int livingEnemies, uint performerGuid, PartyKit party)
+        private static TargetInfo ReachWalkTarget(List<ScoredAction> candidates, TargetInfo performer, TurnSnapshot snap, EnemyFocus focus, int livingEnemies, uint performerGuid, PartyKit party, MemoryState memory)
         {
-            if (CombatMemory.ReachWalkedThisRound(performerGuid))
+            if (memory.ReachWalked(performerGuid))
                 return null;
 
             if (livingEnemies <= 1 && !HasDamagingHitOn(candidates, 0))
             {
                 var last = FindLastLivingEnemy(candidates);
-                if (last == null || last.Actor == null)
+                if (last == null || last.Guid == 0)
                     return null;
-                if (AllyAlreadyReaches(party, performerGuid, last.Actor))
+                if (AllyAlreadyReaches(party, performerGuid, last))
                     return null;
-                return last.Actor;
+                return last;
             }
 
             if (focus == null || !focus.HasMustKillFirst || HasDamagingMustKillHit(candidates, focus))
@@ -3197,72 +4399,69 @@ namespace Dd2Autobattler.Combat
                 // the General. Walking ping-pongs the last two heroes forever.
                 if (e.ClassId != null && e.ClassId.IndexOf("taproot", StringComparison.OrdinalIgnoreCase) >= 0)
                     continue;
-                var actor = GetActor(teams, e.Guid);
-                if (actor == null || !actor.IsLiving)
+                var actor = snap.Find(e.Guid);
+                if (actor == null || !actor.Living)
                     continue;
-                try { if (GameSnapshot.IsCorpse(actor)) continue; } catch { }
+                if (actor.Corpse)
+                    continue;
                 // Same ping-pong on Altar: MAA walks onto Dismas's Pistol rank,
-                // then Dismas walks back next round.
-                if (AllyAlreadyReaches(party, performerGuid, actor))
+                // then Dismas walks back next round. Librarian: the move filter
+                // below only lets a swap through when the partner keeps his
+                // reach (no ping-pong), so an ally's reach does not stop it.
+                if (AllyAlreadyReaches(party, performerGuid, actor) && !PreserveAllyReach(actor.ClassId))
                     continue;
-                if (BlockedReachSkills(performer, actor).Count > 0)
+                if (BlockedReachSkills(performer, actor, snap).Count > 0)
                     return actor;
             }
             return null;
         }
 
-        private static bool AllyAlreadyReaches(PartyKit party, uint performerGuid, ActorInstance enemy)
+        private static bool AllyAlreadyReaches(PartyKit party, uint performerGuid, TargetInfo enemy)
         {
             if (party == null || enemy == null)
                 return false;
-            var rank = 0;
-            try { rank = enemy.TeamPosition; }
-            catch { return false; }
-            return party.AllyHitsEnemyRank(performerGuid, rank);
+            return party.AllyHitsEnemyRank(performerGuid, enemy.Rank);
         }
 
-        private static void ApplyReachReposition(List<ScoredAction> candidates, ActorInstance performer, ActorInstance enemy, PartyKit party, bool partyCrisis)
+        private static void ApplyReachReposition(List<ScoredAction> candidates, TargetInfo performer, TargetInfo enemy, PartyKit party, bool partyCrisis, TurnSnapshot snap)
         {
             if (candidates == null || performer == null || enemy == null)
                 return;
-            var skills = BlockedReachSkills(performer, enemy);
+            var skills = BlockedReachSkills(performer, enemy, snap);
             if (skills.Count == 0)
                 return;
-            var size = 1;
-            try { size = performer.Size; } catch { }
-            var enemyRank = 0;
-            var enemySize = 1;
-            try { enemyRank = enemy.TeamPosition; } catch { return; }
-            try { enemySize = enemy.Size; } catch { }
-            string enemyClass = null;
-            try { enemyClass = enemy.ActorDataClass != null ? enemy.ActorDataClass.GetKey() : null; } catch { }
+            var enemyRank = enemy.Rank;
+            var enemySize = enemy.Size;
+            var enemyClass = enemy.ClassId;
 
             for (var i = 0; i < candidates.Count; i++)
             {
                 var c = candidates[i];
-                if (c.Kind != SkillKind.Move || c.Target == null || c.Target.Actor == null)
+                if (c.Kind != SkillKind.Move || c.Target == null || c.Target.Guid == 0)
                     continue;
                 if (EnemyFocus.IsTangleWasteSkill(c.SkillId))
                     continue;
-                var dest = 0;
-                try { dest = c.Target.Actor.TeamPosition; } catch { continue; }
-                // wiki Librarian: do not swap the ally who already punches him.
-                if (party != null && party.HitsEnemyRank(c.Target.Actor.ActorGuid, enemyRank)
-                    && PreserveAllyReach(enemyClass))
-                    continue;
+                var dest = c.Target.Rank;
+                // wiki Librarian: do not move an ally who already punches him off
+                // his reach. A move slides everyone between the two ranks one
+                // step (logs: MAA rank 4 -> 2 gave HWM / MAA / GR / PD); a move
+                // that leaves every such ally in reach is fine (Categorize sorts
+                // by class name: GR / HWM / MAA / PD leaves GR on rank 1 and MAA
+                // on rank 3 while the Pistol still lands).
+                if (PreserveAllyReach(enemyClass))
+                {
+                    if (!LibrarianWalkKeepsReach(snap, performer, dest, enemy))
+                        continue;
+                }
                 var helps = false;
                 for (var s = 0; s < skills.Count; s++)
                 {
-                    try
+                    if (skills[s].Launches(dest)
+                        && skills[s].Targets(dest, enemyRank, enemySize))
                     {
-                        if (skills[s].GetHasLaunchRank(dest, size)
-                            && skills[s].GetHasTargetRank(dest, size, enemyRank, enemySize))
-                        {
-                            helps = true;
-                            break;
-                        }
+                        helps = true;
+                        break;
                     }
-                    catch { }
                 }
                 if (!helps)
                     continue;
@@ -3272,51 +4471,107 @@ namespace Dd2Autobattler.Combat
             }
         }
 
-        private static List<ActorDataSkill> BlockedReachSkills(ActorInstance performer, ActorInstance enemy)
+        // The move puts the performer on dest and slides every hero between the
+        // two ranks one step toward his old rank. False when an ally who has a
+        // damaging attack on the enemy now would lose it on his new rank, or
+        // when the ranks are not one hero per rank (cannot model: keep the old
+        // never-move-a-reacher rule).
+        internal static bool LibrarianWalkKeepsReach(TurnSnapshot snap, TargetInfo performer, int dest, TargetInfo enemy)
         {
-            var blocked = new List<ActorDataSkill>();
-            IReadOnlyList<string> skillIds = null;
-            try { skillIds = performer.GetEquippedCombatSkillIds(); } catch { }
-            if (skillIds == null || enemy == null)
+            if (snap == null || performer == null || enemy == null || snap.Heroes == null)
+                return false;
+            var from = performer.Rank;
+            if (dest == from || from < 0 || dest < 0)
+                return false;
+            var lo = Math.Min(from, dest);
+            var hi = Math.Max(from, dest);
+            var step = dest > from ? -1 : 1;
+            var seen = new HashSet<int>();
+            for (var i = 0; i < snap.Heroes.Count; i++)
+            {
+                var h = snap.Heroes[i];
+                if (h == null || h.Rank < 0)
+                    continue;
+                if (h.Size > 1 || !seen.Add(h.Rank))
+                    return false;
+            }
+            for (var r = lo; r <= hi; r++)
+            {
+                if (!seen.Contains(r))
+                    return false;
+            }
+            for (var i = 0; i < snap.Heroes.Count; i++)
+            {
+                var h = snap.Heroes[i];
+                if (h == null || h.Guid == performer.Guid || h.Rank < lo || h.Rank > hi)
+                    continue;
+                if (!h.Living || h.Corpse)
+                    continue;
+                var newRank = h.Rank + step;
+                if (HeroHitsFrom(snap, h, h.Rank, enemy) && !HeroHitsFrom(snap, h, newRank, enemy))
+                    return false;
+            }
+            return true;
+        }
+
+        // Would this hero still have a damaging attack on the enemy's rank from
+        // fromRank (CSV launch + target ranks, equipped skills)? Unknown masks
+        // read as "no", so the old never-swap rule stands when we cannot tell.
+        internal static bool HeroHitsFrom(TurnSnapshot snap, TargetInfo hero, int fromRank, TargetInfo enemy)
+        {
+            if (snap == null || hero == null || enemy == null || hero.SkillIds == null)
+                return false;
+            for (var i = 0; i < hero.SkillIds.Count; i++)
+            {
+                var id = hero.SkillIds[i];
+                var def = snap.Skill(id);
+                if (def == null || def.IsItemSkill || def.IsMove || def.IsFriendly)
+                    continue;
+                if (LooksLikeHeal(id, def, null) || IsPassHeal(id) || !ReachWalkSkill(id))
+                    continue;
+                if (def.Role != null && !def.Role.Attacks)
+                    continue;
+                if (def.Launches(fromRank) && def.Targets(fromRank, enemy.Rank, enemy.Size))
+                    return true;
+            }
+            return false;
+        }
+
+        // Performer skills only (UnderSkillLimit is the performer's).
+        private static List<SkillSnap> BlockedReachSkills(TargetInfo performer, TargetInfo enemy, TurnSnapshot snap)
+        {
+            var blocked = new List<SkillSnap>();
+            var skillIds = performer != null ? performer.SkillIds : null;
+            if (skillIds == null || enemy == null || snap == null)
                 return blocked;
-            var size = 1;
-            try { size = performer.Size; } catch { }
-            var enemyRank = 0;
-            var enemySize = 1;
-            try { enemyRank = enemy.TeamPosition; } catch { return blocked; }
-            try { enemySize = enemy.Size; } catch { }
+            var enemyRank = enemy.Rank;
+            var enemySize = enemy.Size;
 
             for (var i = 0; i < skillIds.Count; i++)
             {
                 var id = skillIds[i];
-                var def = GetSkill(id);
+                var def = snap.Skill(id);
                 if (def == null)
                     continue;
-                try { if (def.IsItemSkill || def.IsMoveSkill) continue; } catch { }
-                try { if (def.m_IsFriendly) continue; } catch { }
+                if (def.IsItemSkill || def.IsMove)
+                    continue;
+                if (def.IsFriendly)
+                    continue;
                 if (LooksLikeHeal(id, def, null) || IsPassHeal(id))
                     continue;
                 if (!ReachWalkSkill(id))
                     continue;
-                try
-                {
-                    if (!performer.GetIsUnderSkillLimit(def))
-                        continue;
-                }
-                catch { }
+                if (!snap.UnderSkillLimit(id))
+                    continue;
                 var hitsThem = false;
                 for (var dest = 0; dest < 4; dest++)
                 {
-                    try
+                    if (def.Launches(dest)
+                        && def.Targets(dest, enemyRank, enemySize))
                     {
-                        if (def.GetHasLaunchRank(dest, size)
-                            && def.GetHasTargetRank(dest, size, enemyRank, enemySize))
-                        {
-                            hitsThem = true;
-                            break;
-                        }
+                        hitsThem = true;
+                        break;
                     }
-                    catch { }
                 }
                 if (!hitsThem)
                     continue;
@@ -3325,60 +4580,33 @@ namespace Dd2Autobattler.Combat
             return blocked;
         }
 
-        private static List<ActorDataSkill> BlockedHealSkills(ActorInstance performer)
+        private static List<SkillSnap> BlockedHealSkills(TargetInfo performer, TurnSnapshot snap)
         {
-            var blocked = new List<ActorDataSkill>();
-            IReadOnlyList<string> skillIds = null;
-            try { skillIds = performer.GetEquippedCombatSkillIds(); } catch { }
-            if (skillIds == null)
+            var blocked = new List<SkillSnap>();
+            var skillIds = performer != null ? performer.SkillIds : null;
+            if (skillIds == null || snap == null)
                 return blocked;
-            var rank = 0;
-            try { rank = performer.TeamPosition; } catch { }
-            var size = 1;
-            try { size = performer.Size; } catch { }
+            var rank = performer.Rank;
 
             for (var i = 0; i < skillIds.Count; i++)
             {
                 var id = skillIds[i];
-                var def = GetSkill(id);
+                var def = snap.Skill(id);
                 if (def == null)
                     continue;
-                try { if (def.IsItemSkill || def.IsMoveSkill) continue; } catch { }
+                if (def.IsItemSkill || def.IsMove)
+                    continue;
                 if (IsPassHeal(id))
                     continue;
                 if (!IsAllyHealSkill(id, def))
                     continue;
-                try
-                {
-                    if (!performer.GetIsUnderSkillLimit(def))
-                        continue;
-                }
-                catch { }
-                var fromHere = false;
-                try { fromHere = def.GetHasLaunchRank(rank, size); } catch { }
-                if (fromHere)
+                if (!snap.UnderSkillLimit(id))
+                    continue;
+                if (def.Launches(rank))
                     continue;
                 blocked.Add(def);
             }
             return blocked;
-        }
-
-        private static bool IsCursedSkill(ActorInstance performer, string skillId)
-        {
-            if (performer == null || string.IsNullOrEmpty(skillId))
-                return false;
-            try
-            {
-                var inst = performer.GetCombatSkillInstance(skillId);
-                if (inst == null)
-                    return false;
-                var mod = inst.GetActiveSkillModifier(performer.ActorGuid);
-                return mod != null && mod.GetIsForceEquip();
-            }
-            catch
-            {
-                return false;
-            }
         }
 
         private static JArray ToArray(List<string> values)
@@ -3460,7 +4688,7 @@ namespace Dd2Autobattler.Combat
             return null;
         }
 
-        private static void LogTurn(ActorControllerBase controller, ActorInstance performer, List<JObject> candidates, ChosenAction chosen, string reason, PartyKit party, EnemyFocus focus, bool commit)
+        private static void LogTurn(ActorControllerBase controller, ActorInstance performer, TurnSnapshot snap, List<JObject> candidates, ChosenAction chosen, string reason, PartyKit party, EnemyFocus focus, bool commit, Search.SearchResult search = null)
         {
             JArray heroes = new JArray();
             JArray enemies = new JArray();
@@ -3515,8 +4743,24 @@ namespace Dd2Autobattler.Combat
                 };
             }
 
+            // Schema 2: "round" always; "snap" (the full decider input, see
+            // TurnSnapshot) rides with "legal" under LogPreviews so the turn
+            // can be re-decided offline.
+            // Search.Mode Compare / On: the lookahead's pick, value and line.
+            if (search != null)
+                record["search"] = search.ToJson();
+
+            record["schema"] = TurnSnapshot.CurrentSchema;
+            record["round"] = snap != null ? snap.Round : 0;
             if (!Plugin.LogPreviews.Value)
+            {
                 record.Remove("legal");
+            }
+            else if (snap != null)
+            {
+                try { record["snap"] = SnapshotJson.Write(snap); }
+                catch (Exception ex) { DecisionLog.Warn("Snapshot log failed: " + ex.Message); }
+            }
 
             DecisionLog.Turn(record, summary, runnerLine);
         }

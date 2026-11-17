@@ -20,12 +20,14 @@ namespace Dd2Autobattler.Combat
         public float DamageLow;
         public float DamageHigh;
         public float Heal;
+        [System.ComponentModel.DefaultValue(1f)]
         public float HitChance = 1f;
         public bool Kills;
         public bool HealsDeathsDoor;
         public bool DamageValid;
         public bool HealValid;
         public string Error;
+        [Newtonsoft.Json.JsonIgnore]
         public JObject Raw;
         public readonly List<string> ConsumeTarget = new List<string>();
         public readonly List<string> ConsumePerformer = new List<string>();
@@ -44,9 +46,134 @@ namespace Dd2Autobattler.Combat
         public float ResistStun;
         public float ResistDebuff;
         public float ResistMove;
+        // DoT per tick on ONE target (the clicked one; the largest hit when the
+        // click target has no preview item of its own). Never a sum over the
+        // targets of a multi-target skill: IL SkillCalculation.HandleQuerySkillPreview
+        // lists one SkillPreview per ActorResult (one per actor hit), and the CSV
+        // fallback walk (AddSkillTokenAdds) reads the skill's effects once.
         public float ApplyBleed;
         public float ApplyBlight;
         public float ApplyBurn;
+        // True when every PreviewHit carries its own DoT and resists (live
+        // reader from this field on). False in older logs: there the top-level
+        // ApplyX / ResistX stand for every hit, as they always did.
+        public bool DotPerHit;
+        // Duration of the DoT this skill applies, in the target's turns
+        // (CSV dots_data_export m_DurationAmount: 3, some _4_turns / _5_turns).
+        // 0 = unknown (older logs): read as 3.
+        public float DotTurns;
+        // Not logged: set by the live reader so later CSV / trinket DoT adds
+        // reach every target but the performer.
+        [Newtonsoft.Json.JsonIgnore]
+        internal uint PerformerGuid;
+
+        // Deep copy: the decider mutates Damage / Kills / ApplyBleed on its copy.
+        public PreviewScore Clone()
+        {
+            var c = new PreviewScore
+            {
+                Ok = Ok,
+                Damage = Damage,
+                DamageLow = DamageLow,
+                DamageHigh = DamageHigh,
+                Heal = Heal,
+                HitChance = HitChance,
+                Kills = Kills,
+                HealsDeathsDoor = HealsDeathsDoor,
+                DamageValid = DamageValid,
+                HealValid = HealValid,
+                Error = Error,
+                Raw = Raw != null ? (JObject)Raw.DeepClone() : null,
+                Blocked = Blocked,
+                GuardGuid = GuardGuid,
+                ResistOk = ResistOk,
+                ResistBleed = ResistBleed,
+                ResistBlight = ResistBlight,
+                ResistBurn = ResistBurn,
+                ResistStun = ResistStun,
+                ResistDebuff = ResistDebuff,
+                ResistMove = ResistMove,
+                ApplyBleed = ApplyBleed,
+                ApplyBlight = ApplyBlight,
+                ApplyBurn = ApplyBurn,
+                DotPerHit = DotPerHit,
+                DotTurns = DotTurns,
+                PerformerGuid = PerformerGuid
+            };
+            c.ConsumeTarget.AddRange(ConsumeTarget);
+            c.ConsumePerformer.AddRange(ConsumePerformer);
+            c.ApplyTarget.AddRange(ApplyTarget);
+            c.ApplyPerformer.AddRange(ApplyPerformer);
+            c.RemoveTarget.AddRange(RemoveTarget);
+            c.RemovePerformer.AddRange(RemovePerformer);
+            c.HitGuids.AddRange(HitGuids);
+            for (var i = 0; i < Hits.Count; i++)
+            {
+                var h = Hits[i];
+                c.Hits.Add(h == null ? null : h.Clone());
+            }
+            return c;
+        }
+
+        // The hit entry for one actor, or null.
+        public PreviewHit HitFor(uint guid)
+        {
+            if (guid == 0 || Hits == null)
+                return null;
+            for (var i = 0; i < Hits.Count; i++)
+            {
+                if (Hits[i] != null && Hits[i].Guid == guid)
+                    return Hits[i];
+            }
+            return null;
+        }
+
+        // DoT per tick this click puts on `guid`, before resist. Per hit when
+        // the preview carries it; otherwise (older logs, or no hit entry) the
+        // top-level per-target value.
+        public float DotOn(uint guid, string kind)
+        {
+            var h = DotPerHit ? HitFor(guid) : null;
+            if (h != null)
+                return h.Dot(kind);
+            if (kind == "bleed")
+                return ApplyBleed;
+            if (kind == "blight")
+                return ApplyBlight;
+            if (kind == "burn")
+                return ApplyBurn;
+            return 0f;
+        }
+
+        // Land chance of `key` on `guid`, from that target's own resists when
+        // the preview carries them (else the top-level, clicked-target ones).
+        public float LandOn(uint guid, string key)
+        {
+            var h = DotPerHit ? HitFor(guid) : null;
+            if (h == null || !h.ResistOk)
+                return Land(key);
+            if (key.IndexOf("bleed", StringComparison.OrdinalIgnoreCase) >= 0)
+                return LandFromResist(h.ResistBleed);
+            if (key.IndexOf("blight", StringComparison.OrdinalIgnoreCase) >= 0)
+                return LandFromResist(h.ResistBlight);
+            if (key.IndexOf("burn", StringComparison.OrdinalIgnoreCase) >= 0)
+                return LandFromResist(h.ResistBurn);
+            return Land(key);
+        }
+
+        // Expected DoT per tick that lands on `guid` (all kinds, after resist).
+        public float DotLandedOn(uint guid)
+        {
+            return Math.Max(0f, DotOn(guid, "bleed")) * LandOn(guid, "bleed")
+                   + Math.Max(0f, DotOn(guid, "blight")) * LandOn(guid, "blight")
+                   + Math.Max(0f, DotOn(guid, "burn")) * LandOn(guid, "burn");
+        }
+
+        // CSV dots_data_export m_DurationAmount of the applied DoT (3 when unknown).
+        public float Turns()
+        {
+            return DotTurns >= 1f ? DotTurns : 3f;
+        }
 
         // 1 = always lands. Unknown preview resists fail open (1).
         public float Land(string key)
@@ -118,6 +245,41 @@ namespace Dd2Autobattler.Combat
         public uint Guid;
         public float Damage;
         public bool Kills;
+        // This target's own DoT per tick and resists (PreviewScore.DotPerHit).
+        public float Bleed;
+        public float Blight;
+        public float Burn;
+        public bool ResistOk;
+        public float ResistBleed;
+        public float ResistBlight;
+        public float ResistBurn;
+
+        public float Dot(string kind)
+        {
+            if (kind == "bleed")
+                return Bleed;
+            if (kind == "blight")
+                return Blight;
+            if (kind == "burn")
+                return Burn;
+            return 0f;
+        }
+
+        [Newtonsoft.Json.JsonIgnore]
+        public float DotSum
+        {
+            get { return Bleed + Blight + Burn; }
+        }
+
+        public PreviewHit Clone()
+        {
+            return new PreviewHit
+            {
+                Guid = Guid, Damage = Damage, Kills = Kills,
+                Bleed = Bleed, Blight = Blight, Burn = Burn,
+                ResistOk = ResistOk, ResistBleed = ResistBleed, ResistBlight = ResistBlight, ResistBurn = ResistBurn
+            };
+        }
     }
 
     public static class SkillPreviewReader
@@ -137,6 +299,7 @@ namespace Dd2Autobattler.Combat
                 }
 
                 result.Ok = true;
+                result.PerformerGuid = performerGuid;
                 var previews = query.m_SkillPreviews;
                 if (previews == null)
                     return result;
@@ -144,6 +307,7 @@ namespace Dd2Autobattler.Combat
                 foreach (var item in previews)
                     ReadPreview(item, result);
                 AddHitGuid(result, targetGuid);
+                FinishPerTarget(result, targetGuid);
 
                 if (!_loggedShape && previews.Count > 0)
                 {
@@ -223,7 +387,7 @@ namespace Dd2Autobattler.Combat
             var kills = AsBool(GetMember(item, "IsKill")) || AsBool(GetMember(item, "IsDamageKill"));
             result.Kills |= kills;
             result.HealsDeathsDoor |= result.Heal > 0f && AsBool(GetMember(item, "TargetIsAtDeathsDoor"));
-            AddHit(result, hitGuid, (damageValid || mid > 0f) ? mid * hit : 0f, kills);
+            var hitEntry = AddHit(result, hitGuid, (damageValid || mid > 0f) ? mid * hit : 0f, kills);
 
             AddStrings(GetMember(item, "m_TargetAttemptedTokenConsumeIds"), result.ConsumeTarget);
             AddStrings(GetMember(item, "m_PerformerAttemptedTokenConsumeIds"), result.ConsumePerformer);
@@ -231,12 +395,79 @@ namespace Dd2Autobattler.Combat
             AddStrings(GetMember(item, "m_PerformerTokenRemoveIds"), result.RemovePerformer);
             AddTokenAddsFromEffects(GetMember(item, "m_TargetConditionValidEffectIds"), result.ApplyTarget);
             AddTokenAddsFromEffects(GetMember(item, "m_PerformerConditionValidEffectIds"), result.ApplyPerformer);
-            AddDotsFromEffectIds(GetMember(item, "m_TargetConditionValidEffectIds"), result);
-            ReadResists(GetMember(item, "m_TargetResistanceStatValues"),
-                GetMember(item, "m_PerformerResistanceIgnoreStatValues"), result);
+            // Each SkillPreview is one actor's result (IL SkillPreview.Init: its
+            // m_TargetConditionValidEffectIds / m_TargetResistanceStatValues are
+            // that actor's). Keep DoT and resists on the hit; summing them into
+            // the click would count a multi-target DoT once per target, on every
+            // target. Only effects with a visible condition are listed there
+            // (Init adds an id when an Any/All condition IsVisible); plain
+            // target_effects DoTs come from the CSV walk in AddSkillTokenAdds.
+            var local = new PreviewScore();
+            AddDotsFromEffectIds(GetMember(item, "m_TargetConditionValidEffectIds"), local);
+            var targetResists = GetMember(item, "m_TargetResistanceStatValues");
+            var ignoreResists = GetMember(item, "m_PerformerResistanceIgnoreStatValues");
+            ReadResists(targetResists, ignoreResists, result);
+            ReadResists(targetResists, ignoreResists, local);
+            if (local.DotTurns > result.DotTurns)
+                result.DotTurns = local.DotTurns;
+            if (hitEntry != null)
+            {
+                hitEntry.Bleed += local.ApplyBleed;
+                hitEntry.Blight += local.ApplyBlight;
+                hitEntry.Burn += local.ApplyBurn;
+                if (local.ResistOk)
+                {
+                    hitEntry.ResistOk = true;
+                    hitEntry.ResistBleed = local.ResistBleed;
+                    hitEntry.ResistBlight = local.ResistBlight;
+                    hitEntry.ResistBurn = local.ResistBurn;
+                }
+            }
+            else
+            {
+                result.ApplyBleed += local.ApplyBleed;
+                result.ApplyBlight += local.ApplyBlight;
+                result.ApplyBurn += local.ApplyBurn;
+            }
 
             if (result.Raw == null)
                 result.Raw = new JObject();
+        }
+
+        // After every preview item: the top-level DoT is the clicked target's
+        // (the largest hit's when the click itself has none, e.g. a guard
+        // redirect), and its DoT resists are the clicked target's too.
+        internal static void FinishPerTarget(PreviewScore result, uint targetGuid)
+        {
+            if (result == null)
+                return;
+            result.DotPerHit = true;
+            var clicked = result.HitFor(targetGuid);
+            var src = clicked != null && clicked.DotSum > 0f ? clicked : null;
+            if (src == null)
+            {
+                for (var i = 0; i < result.Hits.Count; i++)
+                {
+                    var h = result.Hits[i];
+                    if (h == null || h.Guid == result.PerformerGuid || h.DotSum <= 0f)
+                        continue;
+                    if (src == null || h.DotSum > src.DotSum)
+                        src = h;
+                }
+            }
+            if (src != null)
+            {
+                result.ApplyBleed += src.Bleed;
+                result.ApplyBlight += src.Blight;
+                result.ApplyBurn += src.Burn;
+            }
+            if (clicked != null && clicked.ResistOk)
+            {
+                result.ResistOk = true;
+                result.ResistBleed = clicked.ResistBleed;
+                result.ResistBlight = clicked.ResistBlight;
+                result.ResistBurn = clicked.ResistBurn;
+            }
         }
 
         private static void ReadResists(object targetDict, object ignoreDict, PreviewScore result)
@@ -372,7 +603,12 @@ namespace Dd2Autobattler.Combat
         {
             if (group == null || result == null)
                 return;
-            if (IsPerformerGroup(GetMember(group, "m_EffectType")))
+            var type = GetMember(group, "m_EffectType");
+            // CSV gr_poison_dart: on_not_crit_as_performer_to_target_effects
+            // skill_dot_small_blight (the crit group is the same blight for 5
+            // turns). The name reads PERFORMER, but it lands on the target.
+            var notCritToTarget = type != null && string.Equals(type.ToString(), "ON_NOT_CRIT_AS_PERFORMER_TO_TARGET", StringComparison.OrdinalIgnoreCase);
+            if (!notCritToTarget && IsPerformerGroup(type))
                 return;
             var sources = GetMember(group, "m_SourceEffects") ?? GetMember(group, "SourceEffects");
             if (!(sources is IEnumerable items))
@@ -483,13 +719,16 @@ namespace Dd2Autobattler.Combat
             }
         }
 
-        internal static void ApplyComboBleedDouble(string skillId, bool targetCombo, PreviewScore result)
+        internal static void ApplyComboBleedDouble(string skillId, bool targetCombo, PreviewScore result, uint targetGuid = 0)
         {
             if (result == null || !targetCombo || result.ApplyBleed < 1f)
                 return;
             if (!KitSafety.IdHas(skillId, "open_vein"))
                 return;
             result.ApplyBleed *= 2f;
+            var h = result.DotPerHit ? result.HitFor(targetGuid) : null;
+            if (h != null)
+                h.Bleed *= 2f;
         }
 
         private static void AddDotsFromEffectIds(object effectIds, PreviewScore result)
@@ -514,15 +753,21 @@ namespace Dd2Autobattler.Combat
             if (string.IsNullOrEmpty(dotId))
                 return;
             var mag = 0;
+            var turns = 0;
             try
             {
                 var dotDef = GetDotDef(dotId);
                 if (dotDef != null)
+                {
                     mag = DotDescription.GetDotMagnitude(dotDef);
+                    try { turns = dotDef.DurationAmount; } catch { }
+                }
             }
             catch { }
             if (mag <= 0)
                 return;
+            if (turns > result.DotTurns)
+                result.DotTurns = turns;
             AddDotKind(result, dotId, mag);
         }
 
@@ -541,16 +786,38 @@ namespace Dd2Autobattler.Combat
             }
         }
 
+        // A per-target DoT (CSV target effect, skill-locked trinket stat): it
+        // lands on every target of the skill, so with per-hit previews it goes
+        // on every hit but the performer as well as on the click.
         private static void AddDotKind(PreviewScore result, string id, float mag)
         {
             if (result == null || mag < 1f || string.IsNullOrEmpty(id))
                 return;
-            if (id.IndexOf("bleed", StringComparison.OrdinalIgnoreCase) >= 0)
+            var kind = id.IndexOf("bleed", StringComparison.OrdinalIgnoreCase) >= 0 ? 0
+                : id.IndexOf("blight", StringComparison.OrdinalIgnoreCase) >= 0 ? 1
+                : id.IndexOf("burn", StringComparison.OrdinalIgnoreCase) >= 0 ? 2 : -1;
+            if (kind < 0)
+                return;
+            if (kind == 0)
                 result.ApplyBleed += mag;
-            else if (id.IndexOf("blight", StringComparison.OrdinalIgnoreCase) >= 0)
+            else if (kind == 1)
                 result.ApplyBlight += mag;
-            else if (id.IndexOf("burn", StringComparison.OrdinalIgnoreCase) >= 0)
+            else
                 result.ApplyBurn += mag;
+            if (!result.DotPerHit)
+                return;
+            for (var i = 0; i < result.Hits.Count; i++)
+            {
+                var h = result.Hits[i];
+                if (h == null || h.Guid == 0 || h.Guid == result.PerformerGuid)
+                    continue;
+                if (kind == 0)
+                    h.Bleed += mag;
+                else if (kind == 1)
+                    h.Blight += mag;
+                else
+                    h.Burn += mag;
+            }
         }
 
         private static void AddDotDealtFromStats(object def, PreviewScore result)
@@ -739,10 +1006,10 @@ namespace Dd2Autobattler.Combat
             try { return Convert.ToUInt32(value); } catch { return 0; }
         }
 
-        private static void AddHit(PreviewScore result, uint guid, float damage, bool kills)
+        private static PreviewHit AddHit(PreviewScore result, uint guid, float damage, bool kills)
         {
             if (result == null || guid == 0)
-                return;
+                return null;
             AddHitGuid(result, guid);
             for (var i = 0; i < result.Hits.Count; i++)
             {
@@ -750,9 +1017,11 @@ namespace Dd2Autobattler.Combat
                     continue;
                 result.Hits[i].Damage += damage;
                 result.Hits[i].Kills |= kills;
-                return;
+                return result.Hits[i];
             }
-            result.Hits.Add(new PreviewHit { Guid = guid, Damage = damage, Kills = kills });
+            var h = new PreviewHit { Guid = guid, Damage = damage, Kills = kills };
+            result.Hits.Add(h);
+            return h;
         }
 
         private static void AddHitGuid(PreviewScore result, uint guid)

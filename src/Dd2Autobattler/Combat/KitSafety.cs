@@ -19,6 +19,8 @@ namespace Dd2Autobattler.Combat
         public bool TargetAttacks;
         public bool TargetHeals;
         public PartyKit Party;
+        // Board, for the other targets a multi-target DoT hits. Null: the click only.
+        public TurnSnapshot Snap;
     }
 
     internal static class KitSafety
@@ -75,7 +77,8 @@ namespace Dd2Autobattler.Combat
             Add(BeastFormDelta(skillId, performer.BeastMode), "form_mismatch");
             Add(ConvictionDelta(skillId, performer.Conviction, target, ctx.EnemyTarget), "conviction");
             Add(ExtraActionDelta(skillId, target, ctx.EnemyTarget, ctx.TargetAttacks, ctx.TargetHeals), "extra_action");
-            Add(DotHostDelta(skillId, target, ctx.EnemyTarget, kills, ctx.LivingEnemies, preview), "dot_host");
+            Add(DotHostDelta(skillId, target, ctx.EnemyTarget, kills, ctx.LivingEnemies, preview, ctx.Snap), "dot_host");
+            Add(VapoursDelta(skillId, ctx.EnemyTarget, target, performer, ctx.Party), "vapours_hitter");
             Add(HearthlightDelta(skillId, target, ctx.AnyEnemyStealth), "hearthlight");
             Add(FirestarterDelta(skillId, ctx.EnemyTarget, ctx.TargetAttacks), "firestarter");
             Add(HealthlessMarkDelta(skillId, target, ctx.EnemyTarget, preview), "taproot_mark");
@@ -302,20 +305,114 @@ namespace Dd2Autobattler.Combat
             return 0f;
         }
 
+        // ---- DoT value ----
+        //
+        // CSV dots_data_export: a skill DoT ticks m_DurationAmount of the
+        // target's turns (3; the *_4_turns / *_5_turns ids 4-5). IL
+        // DotContainer.Add builds a new DotInstance per application and
+        // ActorContainer.Add appends it (no cap, no refresh);
+        // DotContainer.OnDecrementDuration applies every instance each tick.
+        // So a second DoT of the same kind adds its full value (logs: a Denial
+        // Health lock ticking 8 = 3 + 5).
+        //
+        // Small targets keep the old pay: 1.5 ticks (1 on the last enemy),
+        // docked when stacking. A target with LongDotHp or more left after
+        // this click's direct hit lives through the ticks: pay
+        // min(duration, HP left / PartyRoundDamage) ticks, capped at the HP the
+        // DoTs already on it will not take, and no stacking dock unless those
+        // already cover what is left.
+        internal const float LongDotHp = 30f;
+        // Lock HP the starter party removed a round on Denial: 8.4-13
+        // (notes/cited-bosses.md, Shackles of Denial).
+        internal const float PartyRoundDamage = 12f;
+        // Ticks left on a DoT that is already on the target (unknown: about 2 of 3).
+        internal const float ExistingDotTicks = 2f;
+
         // Opening a DoT on a clean target is setup. Stacking the same DoT
-        // when it does not kill is a worse click than a new host.
-        internal static float DotHostDelta(string skillId, TargetInfo target, bool enemyTarget, bool kills, int livingEnemies, PreviewScore preview = null)
+        // when it does not kill is a worse click than a new host (small
+        // targets). Every enemy a multi-target DoT hits pays its own DoT with
+        // its own resist (per-hit previews; older logs: the click only).
+        internal static float DotHostDelta(string skillId, TargetInfo target, bool enemyTarget, bool kills, int livingEnemies, PreviewScore preview = null, TurnSnapshot snap = null)
         {
-            if (!enemyTarget || target == null || target.Corpse || kills)
+            if (!enemyTarget || target == null || target.Corpse)
                 return 0f;
             var score = 0f;
-            score += DotKindDelta(preview != null ? preview.ApplyBleed : 0f, target.BleedDot,
-                preview != null ? preview.Land("bleed") : 1f, livingEnemies, AppliesBleed(skillId));
-            score += DotKindDelta(preview != null ? preview.ApplyBlight : 0f, target.BlightDot,
-                preview != null ? preview.Land("blight") : 1f, livingEnemies, AppliesBlight(skillId));
-            score += DotKindDelta(preview != null ? preview.ApplyBurn : 0f, target.BurnDot,
-                preview != null ? preview.Land("burn") : 1f, livingEnemies, AppliesBurn(skillId));
+            if (!kills)
+            {
+                var clickedHit = preview != null && preview.DotPerHit ? preview.HitFor(target.Guid) : null;
+                var direct = clickedHit != null ? clickedHit.Damage : preview != null ? preview.Damage : 0f;
+                score += DotOnOne(skillId, target, preview, livingEnemies, direct, true);
+            }
+            if (preview == null || !preview.DotPerHit || snap == null || preview.Hits == null)
+                return score;
+            for (var i = 0; i < preview.Hits.Count; i++)
+            {
+                var h = preview.Hits[i];
+                if (h == null || h.Guid == target.Guid || h.Kills || h.DotSum < 1f || !snap.IsEnemy(h.Guid))
+                    continue;
+                var body = snap.Find(h.Guid);
+                if (body == null || !body.Living || body.Corpse || body.Healthless)
+                    continue;
+                if (h.Damage > 0f && h.Damage + 0.05f >= body.Hp)
+                    continue;
+                // A splash never vetoes the click: an immune or resisting
+                // second target just adds nothing.
+                score += Math.Max(0f, DotOnOne(skillId, body, preview, livingEnemies, h.Damage, false));
+            }
             return score;
+        }
+
+        private static float DotOnOne(string skillId, TargetInfo body, PreviewScore preview, int livingEnemies, float direct, bool named)
+        {
+            var guid = body.Guid;
+            var bleed = preview != null ? preview.DotOn(guid, "bleed") : 0f;
+            var blight = preview != null ? preview.DotOn(guid, "blight") : 0f;
+            var burn = preview != null ? preview.DotOn(guid, "burn") : 0f;
+            var landBleed = preview != null ? preview.LandOn(guid, "bleed") : 1f;
+            var landBlight = preview != null ? preview.LandOn(guid, "blight") : 1f;
+            var landBurn = preview != null ? preview.LandOn(guid, "burn") : 1f;
+            var hpLeft = Math.Max(0f, body.Hp - Math.Max(0f, direct));
+            if (body.Healthless || hpLeft < LongDotHp)
+            {
+                return DotKindDelta(bleed, body.BleedDot, landBleed, livingEnemies, named && AppliesBleed(skillId))
+                       + DotKindDelta(blight, body.BlightDot, landBlight, livingEnemies, named && AppliesBlight(skillId))
+                       + DotKindDelta(burn, body.BurnDot, landBurn, livingEnemies, named && AppliesBurn(skillId));
+            }
+            var turns = preview != null ? preview.Turns() : 3f;
+            var ticks = LongDotTicks(hpLeft, turns);
+            var existing = Math.Max(Math.Max(0f, body.NextDot), body.BleedDot + body.BlightDot + body.BurnDot);
+            var room = hpLeft - existing * Math.Min(ExistingDotTicks, turns);
+            var score = 0f;
+            score += LongDotPay(bleed, landBleed, ticks, ref room);
+            score += LongDotPay(blight, landBlight, ticks, ref room);
+            score += LongDotPay(burn, landBurn, ticks, ref room);
+            return score;
+        }
+
+        // Ticks a fresh DoT lands on a target with `hpLeft` after this click:
+        // its duration, unless the party kills it sooner.
+        internal static float LongDotTicks(float hpLeft, float turns)
+        {
+            if (turns < 1f)
+                turns = 3f;
+            return Math.Max(1.5f, Math.Min(turns, hpLeft / PartyRoundDamage));
+        }
+
+        // `room`: HP the DoTs already on the target (and the kinds paid before
+        // this one) will not take.
+        internal static float LongDotPay(float amount, float land, float ticks, ref float room)
+        {
+            if (amount < 1f)
+                return 0f;
+            if (land <= 0.05f)
+                return -90f;
+            if (land <= 0.35f)
+                return -12f;
+            if (room <= 0.5f)
+                return -8f * land;
+            var value = Math.Min(amount * land * ticks, room);
+            room -= value;
+            return value;
         }
 
         internal static float DotKindDelta(float amount, float alreadyOn, float land, int livingEnemies, bool named)
@@ -327,6 +424,31 @@ namespace Dd2Autobattler.Combat
             if (alreadyOn > 1f)
                 return -10f;
             return livingEnemies >= 2 ? PreviewScore.DotOpenPay(land) : 0f;
+        }
+
+        // CSV pd_emboldening_vapours: target_effects add_2_strength. Token
+        // strength: consume_buffs damage_buff = health_damage_dealt_percent 0.5
+        // on the next damaging skill (2 tokens, 2 hits). Skill DoTs carry
+        // m_IgnoreFriendlyDealtModifications (dots_data_export), so Strength
+        // never raises a tick: it is worth a direct hitter's swing, not the
+        // Plague Doctor's own blight / burn kit. On herself it scores under
+        // the same Vapours on any living attacking ally.
+        internal const float VapoursSelfDock = 6f;
+
+        internal static float VapoursDelta(string skillId, bool enemyTarget, TargetInfo target, TargetInfo performer, PartyKit party)
+        {
+            if (enemyTarget || target == null || performer == null || party == null || !IdHas(skillId, "emboldening_vapours"))
+                return 0f;
+            if (target.Guid != performer.Guid)
+                return 0f;
+            for (var i = 0; i < party.Heroes.Count; i++)
+            {
+                var h = party.Heroes[i];
+                if (h == null || h.Guid == performer.Guid || !h.Living || !h.Attacks)
+                    continue;
+                return -VapoursSelfDock;
+            }
+            return 0f;
         }
 
         // run_hearthlight: team stealth strip. Pay it if anyone is stealthed.
@@ -425,6 +547,7 @@ namespace Dd2Autobattler.Combat
         internal static bool AppliesBlight(string skillId)
         {
             return IdHas(skillId, "noxious")
+                   || IdHas(skillId, "plague_grenade")
                    || IdHas(skillId, "rain_of_sorrows")
                    || IdHas(skillId, "acid_rain")
                    || IdHas(skillId, "abm_spit");
@@ -433,6 +556,7 @@ namespace Dd2Autobattler.Combat
         internal static bool AppliesBurn(string skillId)
         {
             return IdHas(skillId, "firefly")
+                   || IdHas(skillId, "magnesium_rain")
                    || IdHas(skillId, "searing")
                    || IdHas(skillId, "dragonfly")
                    || IdHas(skillId, "controlled_burn")

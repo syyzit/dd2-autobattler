@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using Assets.Code.Actor;
 using Assets.Code.Effect;
 using Assets.Code.Skill;
@@ -18,40 +19,37 @@ namespace Dd2Autobattler.Combat
     {
         public const float UseThreshold = 18f;
 
-        public static bool IsCombatItem(ActorDataSkill def, string skillId, ActorInstance performer)
+        // HP share at or under which an item that heals or cleanses is worth its free action
+        // (TurnDecider.IsCrisisHealClick uses the same 35% line for skill heals).
+        public const float LowHpPct = 0.35f;
+
+        // def.IsItemSkill / tag combat_item, or the actor holds it as an item
+        // (TargetInfo.HeldItems = HasCombatSkillItemWithId).
+        public static bool IsCombatItem(SkillSnap def, string skillId, TargetInfo performer)
         {
-            if (def != null)
-            {
-                try
-                {
-                    if (def.IsItemSkill)
-                        return true;
-                }
-                catch { }
-                if (HasTag(def, "combat_item"))
-                    return true;
-            }
-
-            if (!string.IsNullOrEmpty(skillId))
-            {
-                try
-                {
-                    if (performer != null && performer.HasCombatSkillItemWithId(skillId))
-                        return true;
-                }
-                catch { }
-            }
-
+            if (def != null && def.IsItemDef)
+                return true;
+            if (!string.IsNullOrEmpty(skillId) && performer != null && performer.HoldsItem(skillId))
+                return true;
             return false;
         }
 
-        public static bool IsFreeAction(ActorDataSkill def)
+        // Game read for the adapter: HasCombatSkillItemWithId.
+        public static bool HoldsCombatItemLive(ActorInstance actor, string skillId)
         {
-            try { return def != null && def.m_IsFreeAction; }
+            if (actor == null || string.IsNullOrEmpty(skillId))
+                return false;
+            try { return actor.HasCombatSkillItemWithId(skillId); }
             catch { return false; }
         }
 
-        public static int RemainingQty(ActorInstance performer, string skillId)
+        public static bool IsFreeAction(SkillSnap def)
+        {
+            return def != null && def.IsFree;
+        }
+
+        // Game read for the adapter: GetItemCountFromSkillId.
+        public static int RemainingQtyLive(ActorInstance performer, string skillId)
         {
             if (performer == null || string.IsNullOrEmpty(skillId))
                 return 0;
@@ -59,7 +57,7 @@ namespace Dd2Autobattler.Combat
             catch { return 0; }
         }
 
-        public static ItemEval Evaluate(string skillId, ActorDataSkill def, SkillKind kind, bool enemyTarget, PreviewScore preview, TargetInfo target, TokenEval tokens, int livingEnemies, int qty)
+        public static ItemEval Evaluate(string skillId, SkillSnap def, SkillKind kind, bool enemyTarget, PreviewScore preview, TargetInfo target, TokenEval tokens, int livingEnemies, int qty)
         {
             var eval = new ItemEval();
             if (target == null)
@@ -85,9 +83,11 @@ namespace Dd2Autobattler.Combat
             var fightClosing = livingEnemies <= 1 && !enemyTarget;
             var role = ClassifyItem(skillId, def, kind, preview, enemyTarget);
             // Antivenom/bandage are cleanses first, but they still heal. On Death's Door
-            // that heal is the point - do not treat them as a wasted cleanse.
+            // that heal is the point - do not treat them as a wasted cleanse. Same at 35% HP or
+            // less (the crisis line the skill heals use): spring water (heal 5, stress 3) on a
+            // 34% hero scored as a wasted stress item (a logged Denial turn: -31).
             if (!enemyTarget && preview.Heal > 0f
-                && (target.DeathsDoor || target.HpPct <= 0.30f)
+                && (target.DeathsDoor || target.HpPct <= LowHpPct)
                 && role != ItemRole.Heal)
                 role = ItemRole.Heal;
 
@@ -153,7 +153,7 @@ namespace Dd2Autobattler.Combat
 
         // CSV conditions/tags first so a new salve/rag/leech does not need a name.
         // Enemy items stay Attack even if they also mention a DoT (witchbane).
-        private static ItemRole ClassifyItem(string skillId, ActorDataSkill def, SkillKind kind, PreviewScore preview, bool enemyTarget)
+        private static ItemRole ClassifyItem(string skillId, SkillSnap def, SkillKind kind, PreviewScore preview, bool enemyTarget)
         {
             if (ClearsCorpse(skillId, def))
                 return ItemRole.CorpseClear;
@@ -210,7 +210,7 @@ namespace Dd2Autobattler.Combat
             eval.Reason = "item_heal_waste";
         }
 
-        private static void ScoreCleanse(ItemEval eval, string skillId, ActorDataSkill def, TargetInfo target)
+        private static void ScoreCleanse(ItemEval eval, string skillId, SkillSnap def, TargetInfo target)
         {
             var amount = MatchingDot(skillId, def, target);
             if (amount <= 0f && target.NextDot <= 0f)
@@ -236,6 +236,16 @@ namespace Dd2Autobattler.Combat
                 return;
             }
 
+            // Free action: a DoT on a hero at 35% HP or less walks him toward Death's Door
+            // every turn. In the logs herbs / bandages scored 14 on such heroes and stayed
+            // in the slot.
+            if (tick > 0f && target.HpPct <= LowHpPct)
+            {
+                eval.Score = 32f;
+                eval.Reason = "item_cleanse_low";
+                return;
+            }
+
             if (tick > 0f && target.HpPct <= 0.55f)
             {
                 eval.Score = 20f;
@@ -252,6 +262,15 @@ namespace Dd2Autobattler.Combat
             if (target.Stress >= 9f)
             {
                 eval.Score = 55f;
+                eval.Reason = "item_stress";
+                eval.Crisis = true;
+                return;
+            }
+
+            // At 8 one enemy stress hit (2+) overstresses; laudanum is a free action.
+            if (target.Stress >= 8f)
+            {
+                eval.Score = 40f;
                 eval.Reason = "item_stress";
                 eval.Crisis = true;
                 return;
@@ -332,13 +351,13 @@ namespace Dd2Autobattler.Combat
 
         // Lye (condition), Purge / Daemon's Pull / etc. (effect id), plus id fallback
         // for unit tests without a loaded ActorDataSkill.
-        internal static bool ClearsCorpse(string skillId, ActorDataSkill def)
+        internal static bool ClearsCorpse(string skillId, SkillSnap def)
         {
             if (LooksLike(skillId, def, "pouch_of_lye", "lye"))
                 return true;
             if (HasCondition(def, "target_is_corpse_hidden"))
                 return true;
-            if (HasClearCorpseEffect(def))
+            if (def != null && def.ClearCorpseEffect)
                 return true;
             if (!string.IsNullOrEmpty(skillId)
                 && skillId.IndexOf("lep_purge", StringComparison.OrdinalIgnoreCase) >= 0)
@@ -346,7 +365,8 @@ namespace Dd2Autobattler.Combat
             return false;
         }
 
-        private static bool HasClearCorpseEffect(ActorDataSkill def)
+        // Game read for the adapter (SkillSnap.ClearCorpseEffect).
+        internal static bool HasClearCorpseEffect(ActorDataSkill def)
         {
             if (def == null)
                 return false;
@@ -409,14 +429,14 @@ namespace Dd2Autobattler.Combat
             eval.Crisis = true;
         }
 
-        private static bool HasDotCleanseCondition(ActorDataSkill def)
+        private static bool HasDotCleanseCondition(SkillSnap def)
         {
             return HasCondition(def, "target_has_blight_dot")
                    || HasCondition(def, "target_has_bleed_dot")
                    || HasCondition(def, "target_has_burn_dot");
         }
 
-        private static bool HasStripCondition(ActorDataSkill def)
+        private static bool HasStripCondition(SkillSnap def)
         {
             return HasCondition(def, "target_has_blind")
                    || HasCondition(def, "target_has_stun")
@@ -463,7 +483,7 @@ namespace Dd2Autobattler.Combat
             eval.Reason = token >= 6f ? "item_buff" : "item_buff_small";
         }
 
-        private static float MatchingDot(string skillId, ActorDataSkill def, TargetInfo target)
+        private static float MatchingDot(string skillId, SkillSnap def, TargetInfo target)
         {
             var blight = LooksLike(skillId, def, "antivenom", "blight")
                          || HasCondition(def, "target_has_blight_dot");
@@ -480,7 +500,7 @@ namespace Dd2Autobattler.Combat
             return amount;
         }
 
-        private static bool LooksLike(string skillId, ActorDataSkill def, params string[] keys)
+        private static bool LooksLike(string skillId, SkillSnap def, params string[] keys)
         {
             for (var i = 0; i < keys.Length; i++)
             {
@@ -495,32 +515,42 @@ namespace Dd2Autobattler.Combat
             return false;
         }
 
-        private static bool HasTag(ActorDataSkill def, string key)
+        private static bool HasTag(SkillSnap def, string key)
         {
-            if (def == null || string.IsNullOrEmpty(key))
-                return false;
+            return def != null && def.HasTag(key);
+        }
+
+        private static bool HasCondition(SkillSnap def, string key)
+        {
+            return def != null && def.HasCondition(key);
+        }
+
+        // Game read for the adapter (SkillSnap.Conditions).
+        internal static List<string> ConditionIdsLive(ActorDataSkill def)
+        {
+            var list = new List<string>();
+            if (def == null)
+                return list;
+            AddStrings(GetMember(def, "m_AllConditionIds"), list);
+            AddStrings(GetMember(def, "m_AnyConditionIds"), list);
+            return list;
+        }
+
+        private static void AddStrings(object listObj, List<string> dest)
+        {
+            var list = listObj as IEnumerable;
+            if (list == null)
+                return;
             try
             {
-                var tags = def.m_Tags;
-                if (tags == null)
-                    return false;
-                for (var i = 0; i < tags.Count; i++)
+                foreach (var item in list)
                 {
-                    var tag = tags[i];
-                    if (!string.IsNullOrEmpty(tag) && tag.IndexOf(key, StringComparison.OrdinalIgnoreCase) >= 0)
-                        return true;
+                    var s = item as string;
+                    if (!string.IsNullOrEmpty(s))
+                        dest.Add(s);
                 }
             }
             catch { }
-            return false;
-        }
-
-        private static bool HasCondition(ActorDataSkill def, string key)
-        {
-            if (def == null || string.IsNullOrEmpty(key))
-                return false;
-            return ListContains(GetMember(def, "m_AllConditionIds"), key)
-                   || ListContains(GetMember(def, "m_AnyConditionIds"), key);
         }
 
         private static object GetMember(object obj, string name)
@@ -536,22 +566,5 @@ namespace Dd2Autobattler.Combat
             return field != null ? field.GetValue(obj) : null;
         }
 
-        private static bool ListContains(object listObj, string key)
-        {
-            var list = listObj as IEnumerable;
-            if (list == null)
-                return false;
-            try
-            {
-                foreach (var item in list)
-                {
-                    var s = item as string;
-                    if (!string.IsNullOrEmpty(s) && s.IndexOf(key, StringComparison.OrdinalIgnoreCase) >= 0)
-                        return true;
-                }
-            }
-            catch { }
-            return false;
-        }
     }
 }

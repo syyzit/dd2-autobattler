@@ -1,0 +1,811 @@
+{
+  "name": "harvest_table_focus",
+  "note": "wiki Harvest Child: focus the table, meats are deferred.",
+  "source": "20260827-101927#7/t1 farm_dungeon_3 Audrey (logged gr_flashing_daggers_p3_u->2178 169.9 focus_harvest)",
+  "expect": {
+    "Skill": "gr_flashing_daggers_p3_u",
+    "Target": 2178
+  },
+  "forbid": [],
+  "snap": {
+    "Schema": 1,
+    "PerformerGuid": 2139,
+    "Performer": {
+      "Guid": 2139,
+      "Name": "Audrey",
+      "Living": true,
+      "Size": 1,
+      "HpMax": 33.0,
+      "Hp": 27.0,
+      "HpPct": 0.8181818,
+      "Stress": 2.0,
+      "BlockCount": 1,
+      "PositiveTokens": 1,
+      "Rank": 2,
+      "ClassId": "grave_robber",
+      "Tokens": [
+        "block"
+      ],
+      "SkillIds": [
+        "~legacy_kit/2139",
+        "gr_pick_to_the_face",
+        "gr_thrown_dagger_p3_u",
+        "gr_flashing_daggers_p3_u",
+        "gr_poison_dart_p3",
+        "gr_absinthe_p3_u",
+        "gr_move",
+        "pass_stress",
+        "bear_trap"
+      ]
+    },
+    "Heroes": [
+      {
+        "Guid": 2144,
+        "Name": "Barristan",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 55.0,
+        "Hp": 37.0,
+        "HpPct": 0.6727273,
+        "Stress": 5.0,
+        "ClassId": "man_at_arms",
+        "Tokens": [],
+        "SkillIds": [
+          "~legacy_kit/2144"
+        ]
+      },
+      {
+        "Guid": 2141,
+        "Name": "Dismas",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 42.0,
+        "Hp": 29.0,
+        "HpPct": 0.6904762,
+        "Stress": 3.0,
+        "BlockCount": 1,
+        "PositiveTokens": 1,
+        "Rank": 1,
+        "ClassId": "highwayman",
+        "Tokens": [
+          "block"
+        ],
+        "SkillIds": [
+          "~legacy_kit/2141"
+        ]
+      },
+      {
+        "Guid": 2139,
+        "Name": "Audrey",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 33.0,
+        "Hp": 27.0,
+        "HpPct": 0.8181818,
+        "Stress": 2.0,
+        "BlockCount": 1,
+        "PositiveTokens": 1,
+        "Rank": 2,
+        "ClassId": "grave_robber",
+        "Tokens": [
+          "block"
+        ],
+        "SkillIds": [
+          "~legacy_kit/2139",
+          "gr_pick_to_the_face",
+          "gr_thrown_dagger_p3_u",
+          "gr_flashing_daggers_p3_u",
+          "gr_poison_dart_p3",
+          "gr_absinthe_p3_u",
+          "gr_move",
+          "pass_stress",
+          "bear_trap"
+        ]
+      },
+      {
+        "Guid": 2067,
+        "Name": "Paracelsus",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 36.0,
+        "Hp": 36.0,
+        "HpPct": 1.0,
+        "Stress": 3.0,
+        "Rank": 3,
+        "ClassId": "plague_doctor",
+        "Tokens": [],
+        "SkillIds": [
+          "~legacy_kit/2067"
+        ]
+      }
+    ],
+    "Enemies": [
+      {
+        "Guid": 2176,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 1,
+        "HpMax": 47.0,
+        "Hp": 47.0,
+        "HpPct": 1.0,
+        "ClassId": "plague_eater_harvest_fetid_meat",
+        "Tokens": []
+      },
+      {
+        "Guid": 2177,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 1,
+        "HpMax": 51.0,
+        "Hp": 51.0,
+        "HpPct": 1.0,
+        "Rank": 1,
+        "ClassId": "plague_eater_harvest_putrid_meat",
+        "Tokens": []
+      },
+      {
+        "Guid": 2178,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 2,
+        "HpMax": 120.0,
+        "Hp": 120.0,
+        "HpPct": 1.0,
+        "DeathArmor": true,
+        "Rank": 2,
+        "ClassId": "plague_eater_harvest_table",
+        "Tokens": [
+          "deaths_door_armor",
+          "deaths_door_armor"
+        ]
+      }
+    ],
+    "Legal": [
+      {
+        "Skill": "gr_pick_to_the_face",
+        "Target": 2176,
+        "Preview": {
+          "Ok": true,
+          "Damage": 5.725,
+          "DamageLow": 4.0,
+          "DamageHigh": 7.0,
+          "DamageValid": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2176,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.1,
+          "ResistBlight": 0.6,
+          "ResistBurn": 0.1,
+          "ResistStun": 0.1,
+          "ApplyBleed": 3.0
+        }
+      },
+      {
+        "Skill": "gr_pick_to_the_face",
+        "Target": 2177,
+        "Preview": {
+          "Ok": true,
+          "Damage": 5.5,
+          "DamageLow": 4.0,
+          "DamageHigh": 7.0,
+          "DamageValid": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2177,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.1,
+          "ResistBlight": 0.6,
+          "ResistBurn": 0.1,
+          "ResistStun": 0.1,
+          "ApplyBleed": 3.0
+        }
+      },
+      {
+        "Skill": "gr_thrown_dagger_p3_u",
+        "Target": 2177,
+        "Preview": {
+          "Ok": true,
+          "Damage": 7.15,
+          "DamageLow": 4.0,
+          "DamageHigh": 7.0,
+          "DamageValid": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [
+            "weak"
+          ],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2177
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.1,
+          "ResistBlight": 0.6,
+          "ResistBurn": 0.1,
+          "ResistStun": 0.1,
+          "ApplyBleed": 3.0
+        }
+      },
+      {
+        "Skill": "gr_thrown_dagger_p3_u",
+        "Target": 2178,
+        "Preview": {
+          "Ok": true,
+          "Damage": 5.5,
+          "DamageLow": 4.0,
+          "DamageHigh": 7.0,
+          "DamageValid": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [
+            "weak"
+          ],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2178
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.1,
+          "ResistBlight": 0.6,
+          "ResistBurn": 0.1,
+          "ResistStun": 0.3,
+          "ApplyBleed": 3.0
+        }
+      },
+      {
+        "Skill": "gr_flashing_daggers_p3_u",
+        "Target": 2177,
+        "Preview": {
+          "Ok": true,
+          "Damage": 7.1,
+          "DamageLow": 6.0,
+          "DamageHigh": 8.0,
+          "DamageValid": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2177,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.1,
+          "ResistBlight": 0.6,
+          "ResistBurn": 0.1,
+          "ResistStun": 0.3,
+          "ApplyBleed": 6.0,
+          "ApplyBlight": 3.0
+        }
+      },
+      {
+        "Skill": "gr_flashing_daggers_p3_u",
+        "Target": 2178,
+        "Preview": {
+          "Ok": true,
+          "Damage": 7.1,
+          "DamageLow": 6.0,
+          "DamageHigh": 8.0,
+          "DamageValid": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2178,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.1,
+          "ResistBlight": 0.6,
+          "ResistBurn": 0.1,
+          "ResistStun": 0.3,
+          "ApplyBleed": 6.0,
+          "ApplyBlight": 3.0
+        }
+      },
+      {
+        "Skill": "gr_poison_dart_p3",
+        "Target": 2176,
+        "Preview": {
+          "Ok": true,
+          "Damage": 3.0,
+          "DamageLow": 2.0,
+          "DamageHigh": 4.0,
+          "DamageValid": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2176
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.1,
+          "ResistBlight": 0.6,
+          "ResistBurn": 0.1,
+          "ResistStun": 0.1,
+          "ApplyBleed": 3.0,
+          "ApplyBlight": 3.0
+        }
+      },
+      {
+        "Skill": "gr_poison_dart_p3",
+        "Target": 2177,
+        "Preview": {
+          "Ok": true,
+          "Damage": 3.0,
+          "DamageLow": 2.0,
+          "DamageHigh": 4.0,
+          "DamageValid": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2177
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.1,
+          "ResistBlight": 0.6,
+          "ResistBurn": 0.1,
+          "ResistStun": 0.1,
+          "ApplyBleed": 3.0,
+          "ApplyBlight": 3.0
+        }
+      },
+      {
+        "Skill": "gr_poison_dart_p3",
+        "Target": 2178,
+        "Preview": {
+          "Ok": true,
+          "Damage": 3.0,
+          "DamageLow": 2.0,
+          "DamageHigh": 4.0,
+          "DamageValid": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2178
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.1,
+          "ResistBlight": 0.6,
+          "ResistBurn": 0.1,
+          "ResistStun": 0.3,
+          "ApplyBleed": 3.0,
+          "ApplyBlight": 3.0
+        }
+      },
+      {
+        "Skill": "gr_absinthe_p3_u",
+        "Target": 2139,
+        "Preview": {
+          "Ok": true,
+          "HealValid": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2139
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "gr_move",
+        "Target": 2144,
+        "Preview": {
+          "Error": "preview_invalid",
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2144
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "gr_move",
+        "Target": 2141,
+        "Preview": {
+          "Error": "preview_invalid",
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2141
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "gr_move",
+        "Target": 2067,
+        "Preview": {
+          "Error": "preview_invalid",
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2067
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "pass_stress",
+        "Target": 2139,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2139
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "bear_trap",
+        "Target": 2176,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [
+            "immobilize"
+          ],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2176
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.1,
+          "ResistBlight": 0.6,
+          "ResistBurn": 0.1,
+          "ResistStun": 0.1,
+          "ApplyBleed": 6.0
+        }
+      },
+      {
+        "Skill": "bear_trap",
+        "Target": 2177,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [
+            "immobilize"
+          ],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2177
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.1,
+          "ResistBlight": 0.6,
+          "ResistBurn": 0.1,
+          "ResistStun": 0.1,
+          "ApplyBleed": 6.0
+        }
+      },
+      {
+        "Skill": "bear_trap",
+        "Target": 2178,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [
+            "immobilize"
+          ],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2178
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.1,
+          "ResistBlight": 0.6,
+          "ResistBurn": 0.1,
+          "ResistStun": 0.3,
+          "ApplyBleed": 6.0
+        }
+      }
+    ],
+    "Skills": {
+      "gr_pick_to_the_face": {
+        "Id": "gr_pick_to_the_face",
+        "Tags": [
+          "melee",
+          "gr_pick_to_the_face"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "gr_thrown_dagger_p3_u": {
+        "Id": "gr_thrown_dagger_p3_u",
+        "Tags": [
+          "ranged",
+          "gr_thrown_dagger"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "gr_flashing_daggers_p3_u": {
+        "Id": "gr_flashing_daggers_p3_u",
+        "Tags": [
+          "ranged",
+          "gr_flashing_daggers"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "gr_poison_dart_p3": {
+        "Id": "gr_poison_dart_p3",
+        "Tags": [
+          "ranged",
+          "gr_poison_dart"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "gr_absinthe_p3_u": {
+        "Id": "gr_absinthe_p3_u",
+        "Tags": [
+          "heal",
+          "gr_artemisia"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "gr_move": {
+        "Id": "gr_move",
+        "IsMove": true,
+        "Tags": [
+          "move"
+        ],
+        "Conditions": [],
+        "Role": {},
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "pass_stress": {
+        "Id": "pass_stress",
+        "Tags": [
+          "pass",
+          "stationary"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "bear_trap": {
+        "Id": "bear_trap",
+        "IsItemSkill": true,
+        "IsFree": true,
+        "Tags": [
+          "bear_trap",
+          "combat_item"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/2144": {
+        "Id": "~legacy_kit/2144",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Heals": true,
+          "Stuns": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 14.0,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/2141": {
+        "Id": "~legacy_kit/2141",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Stuns": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 14.0,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/2139": {
+        "Id": "~legacy_kit/2139",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Heals": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 14.0,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/2067": {
+        "Id": "~legacy_kit/2067",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Heals": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 14.0,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      }
+    },
+    "RemainingTurns": [],
+    "Memory": {
+      "Round": 1,
+      "ComboSpendersActed": [],
+      "CrisisHealsThisRound": [],
+      "ReachWalkedThisRound": []
+    },
+    "Threats": [
+      {
+        "Guid": 2176,
+        "Name": "2176",
+        "ClassId": "plague_eater_harvest_fetid_meat",
+        "Boss": true,
+        "Add": true,
+        "HpPct": 1.0,
+        "Size": 1
+      },
+      {
+        "Guid": 2177,
+        "Name": "2177",
+        "ClassId": "plague_eater_harvest_putrid_meat",
+        "Boss": true,
+        "Add": true,
+        "HpPct": 1.0,
+        "Size": 1
+      },
+      {
+        "Guid": 2178,
+        "Name": "2178",
+        "ClassId": "plague_eater_harvest_table",
+        "Boss": true,
+        "HpPct": 1.0,
+        "Size": 2
+      }
+    ],
+    "SummonedClasses": [],
+    "ItemQty": {
+      "bear_trap": 2
+    },
+    "CursedSkills": [],
+    "LimitedSkills": [],
+    "Degraded": [
+      "legacy_schema1",
+      "no_preview_hits",
+      "no_remove_target",
+      "no_equipped_skills",
+      "kit_from_names",
+      "no_turn_order",
+      "no_dot_split",
+      "no_debuff_move_resist",
+      "memory_inferred",
+      "skill_roles_ranks_missing"
+    ]
+  }
+}

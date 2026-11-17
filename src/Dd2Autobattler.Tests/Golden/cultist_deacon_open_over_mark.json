@@ -1,0 +1,1241 @@
+{
+  "name": "cultist_deacon_open_over_mark",
+  "note": "Deacon boss_4: HWY cannot damage the Altar (must-kill). Wicked Slice on the deferred Deacon beats a 0-damage Tracking Shot on the Altar.",
+  "source": "20261116-214752#24/t2 cultist_guardian_biome_1_boss_4 Dismas (logged hwm_tracking_shot->2953 0.0 focus_priority)",
+  "expect": {
+    "Skill": "hwm_wicked_slice_u",
+    "Target": 2951
+  },
+  "expect_search": null,
+  "forbid": [
+    {
+      "Skill": "hwm_tracking_shot",
+      "Target": 2953
+    }
+  ],
+  "snap": {
+    "Schema": 2,
+    "PerformerGuid": 2894,
+    "Performer": {
+      "Guid": 2894,
+      "Name": "Dismas",
+      "Living": true,
+      "Size": 1,
+      "HpMax": 42.0,
+      "Hp": 37.0,
+      "HpPct": 0.880952358,
+      "Stress": 6.0,
+      "ClassId": "highwayman",
+      "Tokens": [
+        "immobilize"
+      ],
+      "SkillIds": [
+        "hwm_wicked_slice_u",
+        "hwm_pistol_shot_u",
+        "hwm_duelists_advance",
+        "hwm_tracking_shot",
+        "hwm_take_aim"
+      ]
+    },
+    "Heroes": [
+      {
+        "Guid": 2894,
+        "Name": "Dismas",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 42.0,
+        "Hp": 37.0,
+        "HpPct": 0.880952358,
+        "Stress": 6.0,
+        "ClassId": "highwayman",
+        "Tokens": [
+          "immobilize"
+        ],
+        "SkillIds": [
+          "hwm_wicked_slice_u",
+          "hwm_pistol_shot_u",
+          "hwm_duelists_advance",
+          "hwm_tracking_shot",
+          "hwm_take_aim"
+        ]
+      },
+      {
+        "Guid": 2892,
+        "Name": "Audrey",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 35.0,
+        "Hp": 33.0,
+        "HpPct": 0.942857146,
+        "Stress": 8.0,
+        "Rank": 1,
+        "ClassId": "grave_robber",
+        "Tokens": [],
+        "SkillIds": [
+          "gr_pick_to_the_face_u",
+          "gr_thrown_dagger_u",
+          "gr_flashing_daggers",
+          "gr_poison_dart",
+          "gr_artemisia"
+        ]
+      },
+      {
+        "Guid": 2899,
+        "Name": "Paracelsus",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 30.0,
+        "Hp": 25.0,
+        "HpPct": 0.8333333,
+        "Stress": 8.0,
+        "Blind": true,
+        "Rank": 2,
+        "ClassId": "plague_doctor",
+        "Tokens": [
+          "blind"
+        ],
+        "SkillIds": [
+          "pd_noxious_blast_u",
+          "pd_blinding_gas",
+          "pd_incision",
+          "pd_battlefield_medicine_u",
+          "pd_ounce_of_prevention"
+        ]
+      }
+    ],
+    "Enemies": [
+      {
+        "Guid": 2951,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 2,
+        "HpMax": 41.0,
+        "Hp": 41.0,
+        "HpPct": 1.0,
+        "DeathArmor": true,
+        "ClassId": "cultist_deacon",
+        "Tokens": [
+          "deaths_door_armor",
+          "deaths_door_armor"
+        ],
+        "SkillIds": [
+          "deacon_exultation",
+          "deacon_sundering_steel",
+          "deacon_weight_of_worlds",
+          "deacon_flesh_from_bone",
+          "deacon_the_flesh_warps"
+        ]
+      },
+      {
+        "Guid": 2952,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 1,
+        "HpMax": 17.0,
+        "Hp": 17.0,
+        "HpPct": 1.0,
+        "Dodge": true,
+        "DodgeCount": 1,
+        "PositiveTokens": 1,
+        "Rank": 1,
+        "ClassId": "cultist_cherub",
+        "Tokens": [
+          "dodge",
+          "worship"
+        ],
+        "SkillIds": [
+          "cherub_enfeebling_miasma",
+          "cherub_sightless_miasma",
+          "cherub_horrific_miasma",
+          "cherub_brisk_bedevilment",
+          "cherub_worship"
+        ]
+      },
+      {
+        "Guid": 2953,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 1,
+        "HpMax": 20.0,
+        "Hp": 17.0,
+        "HpPct": 0.85,
+        "Rank": 2,
+        "ClassId": "cultist_altar",
+        "Tokens": [
+          "worship"
+        ],
+        "SkillIds": [
+          "altar_altar_of_denial",
+          "altar_altar_of_rage",
+          "altar_altar_of_obsession",
+          "altar_altar_of_ambition",
+          "altar_altar_of_cowardice",
+          "altar_azoic_end",
+          "altar_buff_1",
+          "altar_buff_2",
+          "altar_worship",
+          "altar_altar_of_denial_extended",
+          "altar_altar_of_rage_extended"
+        ]
+      }
+    ],
+    "Legal": [
+      {
+        "Skill": "hwm_wicked_slice_u",
+        "Target": 2951,
+        "Preview": {
+          "Ok": true,
+          "Damage": 8.8,
+          "DamageLow": 6.0,
+          "DamageHigh": 9.0,
+          "DamageValid": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2894,
+            2951
+          ],
+          "Hits": [
+            {
+              "Guid": 2894
+            },
+            {
+              "Guid": 2951,
+              "Damage": 8.8
+            }
+          ],
+          "ResistOk": true,
+          "ResistBleed": 0.2,
+          "ResistBlight": 0.2,
+          "ResistBurn": 0.2,
+          "ResistStun": 0.4,
+          "ResistDebuff": 0.4,
+          "ResistMove": 0.4
+        }
+      },
+      {
+        "Skill": "hwm_tracking_shot",
+        "Target": 2951,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [
+            "combo"
+          ],
+          "ApplyPerformer": [],
+          "RemoveTarget": [
+            "dodge",
+            "dodge_plus",
+            "stealth"
+          ],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2894,
+            2951
+          ],
+          "Hits": [
+            {
+              "Guid": 2894
+            },
+            {
+              "Guid": 2951
+            }
+          ],
+          "ResistOk": true,
+          "ResistBleed": 0.2,
+          "ResistBlight": 0.2,
+          "ResistBurn": 0.2,
+          "ResistStun": 0.4,
+          "ResistDebuff": 0.4,
+          "ResistMove": 0.4
+        }
+      },
+      {
+        "Skill": "hwm_tracking_shot",
+        "Target": 2952,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [
+            "combo"
+          ],
+          "ApplyPerformer": [],
+          "RemoveTarget": [
+            "dodge",
+            "dodge_plus",
+            "stealth"
+          ],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2894,
+            2952
+          ],
+          "Hits": [
+            {
+              "Guid": 2894
+            },
+            {
+              "Guid": 2952
+            }
+          ],
+          "ResistOk": true,
+          "ResistBleed": 0.2,
+          "ResistBlight": 0.2,
+          "ResistBurn": 0.2,
+          "ResistStun": 0.1,
+          "ResistDebuff": 0.4,
+          "ResistMove": 0.1
+        }
+      },
+      {
+        "Skill": "hwm_tracking_shot",
+        "Target": 2953,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [
+            "combo"
+          ],
+          "ApplyPerformer": [],
+          "RemoveTarget": [
+            "dodge",
+            "dodge_plus",
+            "stealth"
+          ],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2894,
+            2953
+          ],
+          "Hits": [
+            {
+              "Guid": 2894
+            },
+            {
+              "Guid": 2953
+            }
+          ],
+          "ResistOk": true,
+          "ResistBleed": 0.4,
+          "ResistBlight": 0.3,
+          "ResistBurn": 0.2,
+          "ResistStun": 0.1,
+          "ResistDebuff": 0.1,
+          "ResistMove": 0.1
+        }
+      },
+      {
+        "Skill": "hwm_take_aim",
+        "Target": 2894,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [
+            "crit"
+          ],
+          "RemoveTarget": [],
+          "RemovePerformer": [
+            "blind"
+          ],
+          "HitGuids": [
+            2894
+          ],
+          "Hits": [
+            {
+              "Guid": 2894
+            }
+          ]
+        }
+      },
+      {
+        "Skill": "pass_stress",
+        "Target": 2894,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2894
+          ],
+          "Hits": [
+            {
+              "Guid": 2894
+            }
+          ]
+        }
+      }
+    ],
+    "Skills": {
+      "hwm_wicked_slice_u": {
+        "Id": "hwm_wicked_slice_u",
+        "Tags": [
+          "melee",
+          "hwm_wicked_slice"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "LaunchMask": 7,
+        "TargetMasks": [
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "hwm_pistol_shot_u": {
+        "Id": "hwm_pistol_shot_u",
+        "Tags": [
+          "ranged",
+          "hwm_pistol_shot"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Stuns": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 16.0
+        },
+        "OwnerSize": 1,
+        "LaunchMask": 14,
+        "TargetMasks": [
+          14,
+          15,
+          15,
+          15,
+          14,
+          15,
+          15,
+          15,
+          14,
+          15,
+          15,
+          15,
+          14,
+          15,
+          15,
+          15
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "hwm_duelists_advance": {
+        "Id": "hwm_duelists_advance",
+        "Tags": [
+          "melee",
+          "hwm_duelists_advance"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "LaunchMask": 14,
+        "TargetMasks": [
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "hwm_tracking_shot": {
+        "Id": "hwm_tracking_shot",
+        "Tags": [
+          "ranged",
+          "hwm_tracking_shot"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "AppliesCombo": true
+        },
+        "OwnerSize": 1,
+        "LaunchMask": 15,
+        "TargetMasks": [
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "hwm_take_aim": {
+        "Id": "hwm_take_aim",
+        "IsFriendly": true,
+        "Tags": [
+          "hwm_take_aim"
+        ],
+        "Conditions": [],
+        "Role": {},
+        "OwnerSize": 1,
+        "LaunchMask": 15,
+        "TargetMasks": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "pass_stress": {
+        "Id": "pass_stress",
+        "IsFriendly": true,
+        "Tags": [
+          "pass",
+          "stationary"
+        ],
+        "Conditions": [],
+        "Role": {},
+        "OwnerSize": 1,
+        "LaunchMask": 15,
+        "TargetMasks": [
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "gr_pick_to_the_face_u": {
+        "Id": "gr_pick_to_the_face_u",
+        "Tags": [
+          "melee",
+          "gr_pick_to_the_face"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 6.0
+        },
+        "OwnerSize": 1,
+        "LaunchMask": 7,
+        "TargetMasks": [
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "gr_thrown_dagger_u": {
+        "Id": "gr_thrown_dagger_u",
+        "Tags": [
+          "ranged",
+          "gr_thrown_dagger"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 6.0
+        },
+        "OwnerSize": 1,
+        "LaunchMask": 14,
+        "TargetMasks": [
+          14,
+          15,
+          15,
+          15,
+          14,
+          15,
+          15,
+          15,
+          14,
+          15,
+          15,
+          15,
+          14,
+          15,
+          15,
+          15
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "gr_flashing_daggers": {
+        "Id": "gr_flashing_daggers",
+        "Tags": [
+          "ranged",
+          "gr_flashing_daggers"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "LaunchMask": 14,
+        "TargetMasks": [
+          6,
+          7,
+          7,
+          7,
+          6,
+          7,
+          7,
+          7,
+          6,
+          7,
+          7,
+          7,
+          6,
+          7,
+          7,
+          7
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "gr_poison_dart": {
+        "Id": "gr_poison_dart",
+        "Tags": [
+          "ranged",
+          "gr_poison_dart"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 6.0,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "LaunchMask": 14,
+        "TargetMasks": [
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "gr_artemisia": {
+        "Id": "gr_artemisia",
+        "IsFriendly": true,
+        "Tags": [
+          "heal",
+          "gr_artemisia"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Heals": true
+        },
+        "OwnerSize": 1,
+        "LaunchMask": 15,
+        "TargetMasks": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "pd_noxious_blast_u": {
+        "Id": "pd_noxious_blast_u",
+        "Tags": [
+          "ranged",
+          "pd_noxious_blast"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 6.0,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "LaunchMask": 14,
+        "TargetMasks": [
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "pd_blinding_gas": {
+        "Id": "pd_blinding_gas",
+        "Tags": [
+          "ranged",
+          "pd_blinding_gas"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "AppliesCombo": true
+        },
+        "OwnerSize": 1,
+        "LaunchMask": 12,
+        "TargetMasks": [
+          12,
+          14,
+          15,
+          15,
+          12,
+          14,
+          15,
+          15,
+          12,
+          14,
+          15,
+          15,
+          12,
+          14,
+          15,
+          15
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "pd_incision": {
+        "Id": "pd_incision",
+        "Tags": [
+          "melee",
+          "pd_incision"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 6.0,
+          "Bleed": true
+        },
+        "OwnerSize": 1,
+        "LaunchMask": 7,
+        "TargetMasks": [
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "pd_battlefield_medicine_u": {
+        "Id": "pd_battlefield_medicine_u",
+        "IsFriendly": true,
+        "Tags": [
+          "heal",
+          "pd_battlefield_medicine"
+        ],
+        "Conditions": [
+          "target_meets_heal_threshold_high_hidden",
+          "target_has_bleed_dot_hidden",
+          "target_has_blight_dot_hidden",
+          "target_has_burn_dot_hidden"
+        ],
+        "Role": {
+          "Heals": true
+        },
+        "OwnerSize": 1,
+        "LaunchMask": 12,
+        "TargetMasks": [
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "pd_ounce_of_prevention": {
+        "Id": "pd_ounce_of_prevention",
+        "IsFriendly": true,
+        "Tags": [
+          "pd_ounce_of_prevention"
+        ],
+        "Conditions": [
+          "target_is_not_corpse_hidden"
+        ],
+        "Role": {},
+        "OwnerSize": 1,
+        "LaunchMask": 14,
+        "TargetMasks": [
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15
+        ],
+        "TargetThrew": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    "RemainingTurns": [
+      2894,
+      2899
+    ],
+    "Memory": {
+      "Round": 1,
+      "ComboSpendersActed": [
+        2892
+      ],
+      "CrisisHealsThisRound": [],
+      "ReachWalkedThisRound": []
+    },
+    "Threats": [
+      {
+        "Guid": 2951,
+        "Name": "2951",
+        "ClassId": "cultist_deacon",
+        "Boss": true,
+        "Supports": true,
+        "HpPct": 1.0,
+        "Size": 2
+      },
+      {
+        "Guid": 2952,
+        "Name": "2952",
+        "ClassId": "cultist_cherub",
+        "Boss": true,
+        "Supports": true,
+        "Dodge": true,
+        "HpPct": 1.0,
+        "Worship": 1,
+        "Size": 1
+      },
+      {
+        "Guid": 2953,
+        "Name": "2953",
+        "ClassId": "cultist_altar",
+        "Supports": true,
+        "HpPct": 0.85,
+        "Worship": 1,
+        "Size": 1
+      }
+    ],
+    "SummonedClasses": [],
+    "ItemQty": {},
+    "CursedSkills": [],
+    "LimitedSkills": [],
+    "Degraded": []
+  }
+}

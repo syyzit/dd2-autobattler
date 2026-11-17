@@ -192,7 +192,8 @@ namespace Dd2Autobattler.Tests
             Assert.True(TurnDecider.LastKillableFinish(chip, new TargetInfo { Hp = 0f, DeathsDoor = true }, 1));
 
             var armor = new PreviewScore { Ok = true, Damage = 5f, Kills = false };
-            Assert.True(TurnDecider.LastKillableFinish(armor, new TargetInfo { Hp = 0f, DeathArmor = true }, 1));
+            Assert.False(TurnDecider.LastKillableFinish(armor, new TargetInfo { Hp = 0f, DeathArmor = true }, 1));
+            Assert.True(TurnDecider.LastKillableFinish(armor, new TargetInfo { Hp = 0f }, 1));
 
             var tap = new TargetInfo { Healthless = true, ClassId = "lost_battalion_boss_taproot", Hp = 99f };
             Assert.False(TurnDecider.LastKillableFinish(new PreviewScore { Ok = true, Damage = 0f, HitChance = 1f }, tap, 1));

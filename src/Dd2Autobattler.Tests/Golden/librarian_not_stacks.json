@@ -1,0 +1,716 @@
+{
+  "name": "librarian_not_stacks",
+  "note": "wiki Librarian: never punch the book stacks; mark the Librarian instead.",
+  "source": "20260827-083746#12/t1 city_dungeon_3_a Dismas (logged hwm_tracking_shot->2119 21.0 focus_librarian)",
+  "expect": {
+    "Skill": "hwm_tracking_shot",
+    "Target": 2119
+  },
+  "forbid": [
+    {
+      "Skill": "hwm_wicked_slice_p1",
+      "Target": 2116
+    },
+    {
+      "Skill": "hwm_wicked_slice_p1",
+      "Target": 2117
+    }
+  ],
+  "snap": {
+    "Schema": 1,
+    "PerformerGuid": 2062,
+    "Performer": {
+      "Guid": 2062,
+      "Name": "Dismas",
+      "Living": true,
+      "Size": 1,
+      "HpMax": 42.0,
+      "Hp": 29.0,
+      "HpPct": 0.6904762,
+      "Stress": 1.0,
+      "StrengthCount": 2,
+      "BlockCount": 3,
+      "PositiveTokens": 5,
+      "Taunt": true,
+      "ClassId": "highwayman",
+      "Tokens": [
+        "block_plus",
+        "block_plus",
+        "strength",
+        "strength",
+        "taunt",
+        "taunt",
+        "block"
+      ],
+      "SkillIds": [
+        "~legacy_kit/2062",
+        "hwm_wicked_slice_p1",
+        "hwm_tracking_shot",
+        "hwm_take_aim_p1",
+        "hwm_move",
+        "pass_stress",
+        "spring_water"
+      ]
+    },
+    "Heroes": [
+      {
+        "Guid": 2062,
+        "Name": "Dismas",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 42.0,
+        "Hp": 29.0,
+        "HpPct": 0.6904762,
+        "Stress": 1.0,
+        "StrengthCount": 2,
+        "BlockCount": 3,
+        "PositiveTokens": 5,
+        "Taunt": true,
+        "ClassId": "highwayman",
+        "Tokens": [
+          "block_plus",
+          "block_plus",
+          "strength",
+          "strength",
+          "taunt",
+          "taunt",
+          "block"
+        ],
+        "SkillIds": [
+          "~legacy_kit/2062",
+          "hwm_wicked_slice_p1",
+          "hwm_tracking_shot",
+          "hwm_take_aim_p1",
+          "hwm_move",
+          "pass_stress",
+          "spring_water"
+        ]
+      },
+      {
+        "Guid": 2065,
+        "Name": "Barristan",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 46.0,
+        "Hp": 29.0,
+        "HpPct": 0.6304348,
+        "BlockCount": 1,
+        "PositiveTokens": 1,
+        "Rank": 1,
+        "ClassId": "man_at_arms",
+        "Tokens": [
+          "block"
+        ],
+        "SkillIds": [
+          "~legacy_kit/2065"
+        ]
+      },
+      {
+        "Guid": 2060,
+        "Name": "Audrey",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 25.0,
+        "Hp": 25.0,
+        "HpPct": 1.0,
+        "Rank": 2,
+        "ClassId": "grave_robber",
+        "Tokens": [],
+        "SkillIds": [
+          "~legacy_kit/2060"
+        ]
+      },
+      {
+        "Guid": 2067,
+        "Name": "Paracelsus",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 36.0,
+        "Hp": 36.0,
+        "HpPct": 1.0,
+        "Rank": 3,
+        "ClassId": "plague_doctor",
+        "Tokens": [
+          "pyro_bomb"
+        ],
+        "SkillIds": [
+          "~legacy_kit/2067"
+        ]
+      }
+    ],
+    "Enemies": [
+      {
+        "Guid": 2116,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 1,
+        "HpMax": 15.0,
+        "Hp": 15.0,
+        "HpPct": 1.0,
+        "ClassId": "fanatic_librarian_stack_l",
+        "Tokens": []
+      },
+      {
+        "Guid": 2117,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 1,
+        "HpMax": 15.0,
+        "Hp": 15.0,
+        "HpPct": 1.0,
+        "Rank": 1,
+        "ClassId": "fanatic_librarian_stack_m",
+        "Tokens": []
+      },
+      {
+        "Guid": 2118,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 1,
+        "HpMax": 15.0,
+        "Hp": 15.0,
+        "HpPct": 1.0,
+        "Rank": 2,
+        "ClassId": "fanatic_librarian_stack_m",
+        "Tokens": []
+      },
+      {
+        "Guid": 2119,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 1,
+        "HpMax": 116.0,
+        "Hp": 116.0,
+        "HpPct": 1.0,
+        "DeathArmor": true,
+        "Rank": 3,
+        "ClassId": "fanatic_librarian",
+        "Tokens": [
+          "deaths_door_armor",
+          "deaths_door_armor",
+          "count"
+        ]
+      }
+    ],
+    "Legal": [
+      {
+        "Skill": "hwm_wicked_slice_p1",
+        "Target": 2116,
+        "Preview": {
+          "Ok": true,
+          "Damage": 10.35,
+          "DamageLow": 6.0,
+          "DamageHigh": 12.0,
+          "DamageValid": true,
+          "ConsumeTarget": [
+            "strength"
+          ],
+          "ConsumePerformer": [
+            "strength"
+          ],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2116,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 2.0,
+          "ResistBlight": 2.0,
+          "ResistBurn": 0.1,
+          "ResistStun": 2.0
+        }
+      },
+      {
+        "Skill": "hwm_wicked_slice_p1",
+        "Target": 2117,
+        "Preview": {
+          "Ok": true,
+          "Damage": 9.0,
+          "DamageLow": 6.0,
+          "DamageHigh": 12.0,
+          "DamageValid": true,
+          "ConsumeTarget": [
+            "strength"
+          ],
+          "ConsumePerformer": [
+            "strength"
+          ],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2117,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 2.0,
+          "ResistBlight": 2.0,
+          "ResistBurn": 0.1,
+          "ResistStun": 2.0
+        }
+      },
+      {
+        "Skill": "hwm_tracking_shot",
+        "Target": 2116,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [
+            "combo"
+          ],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2116
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 2.0,
+          "ResistBlight": 2.0,
+          "ResistBurn": 0.1,
+          "ResistStun": 2.0
+        }
+      },
+      {
+        "Skill": "hwm_tracking_shot",
+        "Target": 2117,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [
+            "combo"
+          ],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2117
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 2.0,
+          "ResistBlight": 2.0,
+          "ResistBurn": 0.1,
+          "ResistStun": 2.0
+        }
+      },
+      {
+        "Skill": "hwm_tracking_shot",
+        "Target": 2118,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [
+            "combo"
+          ],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2118
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 2.0,
+          "ResistBlight": 2.0,
+          "ResistBurn": 0.1,
+          "ResistStun": 2.0
+        }
+      },
+      {
+        "Skill": "hwm_tracking_shot",
+        "Target": 2119,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [
+            "combo"
+          ],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2119
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.5,
+          "ResistBlight": 0.3,
+          "ResistBurn": 1.0,
+          "ResistStun": 0.4
+        }
+      },
+      {
+        "Skill": "hwm_take_aim_p1",
+        "Target": 2062,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [
+            "speed",
+            "riposte"
+          ],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2062
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "hwm_move",
+        "Target": 2065,
+        "Preview": {
+          "Error": "preview_invalid",
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2065
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "hwm_move",
+        "Target": 2060,
+        "Preview": {
+          "Error": "preview_invalid",
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2060
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "pass_stress",
+        "Target": 2062,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2062
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "spring_water",
+        "Target": 2062,
+        "Preview": {
+          "Ok": true,
+          "Heal": 6.0,
+          "HealValid": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2062
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "spring_water",
+        "Target": 2065,
+        "Preview": {
+          "Ok": true,
+          "Heal": 6.0,
+          "HealValid": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2065
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "spring_water",
+        "Target": 2060,
+        "Preview": {
+          "Ok": true,
+          "Heal": 6.0,
+          "HealValid": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2060
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "spring_water",
+        "Target": 2067,
+        "Preview": {
+          "Ok": true,
+          "Heal": 6.0,
+          "HealValid": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2067
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      }
+    ],
+    "Skills": {
+      "hwm_wicked_slice_p1": {
+        "Id": "hwm_wicked_slice_p1",
+        "Tags": [
+          "melee",
+          "hwm_wicked_slice"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "hwm_tracking_shot": {
+        "Id": "hwm_tracking_shot",
+        "Tags": [
+          "ranged",
+          "hwm_tracking_shot"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "hwm_take_aim_p1": {
+        "Id": "hwm_take_aim_p1",
+        "IsFriendly": true,
+        "Tags": [
+          "hwm_take_aim"
+        ],
+        "Conditions": [],
+        "Role": {},
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "hwm_move": {
+        "Id": "hwm_move",
+        "IsMove": true,
+        "Tags": [
+          "move"
+        ],
+        "Conditions": [],
+        "Role": {},
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "pass_stress": {
+        "Id": "pass_stress",
+        "Tags": [
+          "pass",
+          "stationary"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "spring_water": {
+        "Id": "spring_water",
+        "IsItemSkill": true,
+        "IsFree": true,
+        "Tags": [
+          "heal",
+          "stress_heal",
+          "spring_water",
+          "combat_item"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/2062": {
+        "Id": "~legacy_kit/2062",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Stuns": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 16.0,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/2065": {
+        "Id": "~legacy_kit/2065",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Heals": true,
+          "Stuns": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 16.0,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/2060": {
+        "Id": "~legacy_kit/2060",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Heals": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 16.0,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/2067": {
+        "Id": "~legacy_kit/2067",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Heals": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 16.0,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      }
+    },
+    "RemainingTurns": [],
+    "Memory": {
+      "Round": 1,
+      "ComboSpendersActed": [],
+      "CrisisHealsThisRound": [],
+      "ReachWalkedThisRound": []
+    },
+    "Threats": [
+      {
+        "Guid": 2116,
+        "Name": "2116",
+        "ClassId": "fanatic_librarian_stack_l",
+        "Add": true,
+        "HpPct": 1.0,
+        "Size": 1
+      },
+      {
+        "Guid": 2117,
+        "Name": "2117",
+        "ClassId": "fanatic_librarian_stack_m",
+        "Add": true,
+        "HpPct": 1.0,
+        "Size": 1
+      },
+      {
+        "Guid": 2118,
+        "Name": "2118",
+        "ClassId": "fanatic_librarian_stack_m",
+        "Add": true,
+        "HpPct": 1.0,
+        "Size": 1
+      },
+      {
+        "Guid": 2119,
+        "Name": "2119",
+        "ClassId": "fanatic_librarian",
+        "Boss": true,
+        "Supports": true,
+        "HpPct": 1.0,
+        "Size": 1
+      }
+    ],
+    "SummonedClasses": [],
+    "ItemQty": {
+      "spring_water": 1
+    },
+    "CursedSkills": [],
+    "LimitedSkills": [],
+    "Degraded": [
+      "legacy_schema1",
+      "no_preview_hits",
+      "no_remove_target",
+      "no_equipped_skills",
+      "kit_from_names",
+      "no_turn_order",
+      "no_dot_split",
+      "no_debuff_move_resist",
+      "memory_inferred",
+      "skill_roles_ranks_missing"
+    ]
+  }
+}

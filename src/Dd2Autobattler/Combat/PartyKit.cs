@@ -67,18 +67,21 @@ namespace Dd2Autobattler.Combat
         public float BestComboSpend;
         public uint UniqueHealerGuid;
         public bool HealerThreatened;
+        // Round memory for "spender already acted"; null = live CombatMemory.
+        public MemoryState Memory;
 
-        public static PartyKit Scan(BattleTeams teams, uint performerGuid)
+        public static PartyKit Scan(TurnSnapshot snap)
         {
             var kit = new PartyKit();
-            if (teams == null)
+            if (snap == null)
                 return kit;
+            kit.Memory = snap.Memory;
 
-            foreach (var actor in GameSnapshot.TeamActors(teams, BattleTeams.HERO_TEAM_INDEX))
+            foreach (var actor in snap.Heroes)
             {
                 if (actor == null)
                     continue;
-                var hero = ReadHero(actor);
+                var hero = ReadHero(actor, snap);
                 kit.Heroes.Add(hero);
                 if (!hero.Living)
                     continue;
@@ -98,7 +101,7 @@ namespace Dd2Autobattler.Combat
                     kit.PartyHeals = true;
                     kit.HealerCount++;
                     kit.UniqueHealerGuid = hero.Guid;
-                    var body = GameSnapshot.Describe(actor);
+                    var body = actor;
                     if (body.DeathsDoor || body.HpPct <= 0.40f)
                         kit.HealerThreatened = true;
                 }
@@ -127,10 +130,15 @@ namespace Dd2Autobattler.Combat
                 var hero = Heroes[i];
                 if (!hero.Living || !hero.SpendsCombo || hero.Guid == performerGuid)
                     continue;
-                if (!CombatMemory.ComboSpenderActedThisRound(hero.Guid))
+                if (!ComboSpenderActed(hero.Guid))
                     return true;
             }
             return false;
+        }
+
+        internal bool ComboSpenderActed(uint guid)
+        {
+            return (Memory ?? CombatMemory.Live).ComboSpenderActed(guid);
         }
 
         public bool HeroSpendsCombo(uint guid)
@@ -178,9 +186,9 @@ namespace Dd2Autobattler.Combat
 
         public float ProtectBonus(TargetInfo target)
         {
-            if (target == null || target.Actor == null || target.Corpse)
+            if (target == null || target.Guid == 0 || target.Corpse)
                 return 0f;
-            var guid = target.Actor.ActorGuid;
+            var guid = target.Guid;
             var score = 0f;
             if (IsUniqueHealer(guid))
             {
@@ -268,36 +276,33 @@ namespace Dd2Autobattler.Combat
             return null;
         }
 
-        private static HeroKit ReadHero(ActorInstance actor)
+        private static HeroKit ReadHero(TargetInfo actor, TurnSnapshot snap)
         {
             var hero = new HeroKit
             {
-                Guid = actor.ActorGuid,
-                Name = string.IsNullOrEmpty(actor.ActorName) ? actor.ActorGuid.ToString() : actor.ActorName,
-                Rank = actor.TeamPosition,
-                Living = actor.IsLiving && !GameSnapshot.IsCorpse(actor)
+                Guid = actor.Guid,
+                Name = string.IsNullOrEmpty(actor.Name) ? actor.Guid.ToString() : actor.Name,
+                Rank = actor.Rank,
+                Living = actor.Living && !actor.Corpse
             };
-            try { hero.ClassId = actor.ActorDataClass != null ? actor.ActorDataClass.GetKey() : null; } catch { }
+            hero.ClassId = actor.ClassId;
             if (!hero.Living)
                 return hero;
 
-            IReadOnlyList<string> skillIds = null;
-            try { skillIds = actor.GetEquippedCombatSkillIds(); }
-            catch { }
-
+            var skillIds = actor.SkillIds;
             if (skillIds == null)
                 return hero;
 
             for (var i = 0; i < skillIds.Count; i++)
             {
                 var id = skillIds[i];
-                var def = GetSkill(id);
+                var def = snap.Skill(id);
                 if (def == null || ItemPolicy.IsCombatItem(def, id, actor))
                     continue;
                 if (IsUtilitySkill(def, id))
                     continue;
 
-                var intel = DescribeSkill(def);
+                var intel = def.Role ?? new SkillRole();
                 if (intel.Attacks)
                 {
                     hero.Attacks = true;
@@ -341,30 +346,37 @@ namespace Dd2Autobattler.Combat
             return hero;
         }
 
-        private static int ComboHitMask(ActorDataSkill def, ActorInstance actor)
+        // Enemy ranks (size 1 or 2) this skill hits from the hero's rank.
+        // Masks come from the skill snapshot (owner size). Same per-rank
+        // "queried" rule as the old try { size1 || size2 } loop: a rank whose
+        // query threw is skipped; all skipped = unknown.
+        private static int ComboHitMask(SkillSnap def, TargetInfo actor)
         {
-            if (def == null || actor == null)
+            if (def == null || actor == null || def.TargetMasks == null)
                 return PartySynergy.ComboRanksUnknown;
-            var size = 1;
-            var rank = 0;
-            try { size = actor.Size; } catch { }
-            try { rank = actor.TeamPosition; } catch { }
+            var rank = actor.Rank;
             var mask = 0;
             var queried = false;
             for (var enemyRank = 0; enemyRank < 4; enemyRank++)
             {
-                try
+                if (def.TargetThrows(rank, enemyRank, 1))
+                    continue;
+                if (def.Targets(rank, enemyRank, 1))
                 {
-                    if (def.GetHasTargetRank(rank, size, enemyRank, 1)
-                        || def.GetHasTargetRank(rank, size, enemyRank, 2))
-                        mask |= 1 << enemyRank;
+                    mask |= 1 << enemyRank;
                     queried = true;
+                    continue;
                 }
-                catch { }
+                if (def.TargetThrows(rank, enemyRank, 2))
+                    continue;
+                if (def.Targets(rank, enemyRank, 2))
+                    mask |= 1 << enemyRank;
+                queried = true;
             }
             return queried ? mask : PartySynergy.ComboRanksUnknown;
         }
 
+        // Game read (effect walk). Called by LiveTurnReader into SkillSnap.Role.
         public static SkillRole DescribeSkill(ActorDataSkill def)
         {
             var intel = new SkillRole();
@@ -563,14 +575,10 @@ namespace Dd2Autobattler.Combat
                    && id.IndexOf(key, StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
-        private static bool IsUtilitySkill(ActorDataSkill def, string skillId)
+        private static bool IsUtilitySkill(SkillSnap def, string skillId)
         {
-            try
-            {
-                if (def.IsMoveSkill)
-                    return true;
-            }
-            catch { }
+            if (def.IsMove)
+                return true;
             return !string.IsNullOrEmpty(skillId) &&
                    (skillId.IndexOf("_move", StringComparison.OrdinalIgnoreCase) >= 0
                     || skillId.StartsWith("pass_", StringComparison.OrdinalIgnoreCase));
@@ -589,21 +597,6 @@ namespace Dd2Autobattler.Combat
                 return direct;
             var id = inner as string ?? GetMember(src, "m_SourceId") as string;
             return GetEffect(id);
-        }
-
-        private static ActorDataSkill GetSkill(string skillId)
-        {
-            if (string.IsNullOrEmpty(skillId))
-                return null;
-            try
-            {
-                var lib = SingletonMonoBehaviour<Library<string, ActorDataSkill>>.Instance;
-                return lib != null ? lib.GetLibraryElement(skillId) : null;
-            }
-            catch
-            {
-                return null;
-            }
         }
 
         private static EffectDefinition GetEffect(string id)

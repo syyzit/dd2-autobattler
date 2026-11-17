@@ -1,0 +1,526 @@
+{
+  "name": "save_combo_for_spender",
+  "note": "Combo on the target and a spender still to act: do not burn it with a non-spender.",
+  "source": "20260827-101927#4/t18 cultist_guardian_biome_1_altar_2 Paracelsus (logged pd_noxious_blast_p2->2167 -7.2 save_combo)",
+  "expect": {
+    "Skill": "pd_noxious_blast_p2",
+    "Target": 2167
+  },
+  "forbid": [],
+  "snap": {
+    "Schema": 1,
+    "PerformerGuid": 2067,
+    "Performer": {
+      "Guid": 2067,
+      "Name": "Paracelsus",
+      "Living": true,
+      "Size": 1,
+      "HpMax": 30.0,
+      "Hp": 29.0,
+      "HpPct": 0.966666639,
+      "Stress": 5.0,
+      "Rank": 3,
+      "ClassId": "plague_doctor",
+      "Tokens": [],
+      "SkillIds": [
+        "~legacy_kit/2067",
+        "pd_noxious_blast_p2",
+        "pd_blinding_gas",
+        "pd_move",
+        "pass_stress",
+        "laudanum"
+      ]
+    },
+    "Heroes": [
+      {
+        "Guid": 2141,
+        "Name": "Dismas",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 35.0,
+        "Hp": 23.0,
+        "HpPct": 0.6571429,
+        "Stress": 3.0,
+        "ClassId": "highwayman",
+        "Tokens": [],
+        "SkillIds": [
+          "~legacy_kit/2141"
+        ]
+      },
+      {
+        "Guid": 2144,
+        "Name": "Barristan",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 46.0,
+        "Hp": 43.0,
+        "HpPct": 0.9347826,
+        "Stress": 3.0,
+        "Rank": 1,
+        "ClassId": "man_at_arms",
+        "Tokens": [],
+        "SkillIds": [
+          "~legacy_kit/2144"
+        ]
+      },
+      {
+        "Guid": 2139,
+        "Name": "Audrey",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 28.0,
+        "Hp": 20.0,
+        "HpPct": 0.714285731,
+        "Stress": 5.0,
+        "NextDot": 1.0,
+        "Rank": 2,
+        "ClassId": "grave_robber",
+        "Tokens": [],
+        "SkillIds": [
+          "~legacy_kit/2139"
+        ]
+      },
+      {
+        "Guid": 2067,
+        "Name": "Paracelsus",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 30.0,
+        "Hp": 29.0,
+        "HpPct": 0.966666639,
+        "Stress": 5.0,
+        "Rank": 3,
+        "ClassId": "plague_doctor",
+        "Tokens": [],
+        "SkillIds": [
+          "~legacy_kit/2067",
+          "pd_noxious_blast_p2",
+          "pd_blinding_gas",
+          "pd_move",
+          "pass_stress",
+          "laudanum"
+        ]
+      }
+    ],
+    "Enemies": [
+      {
+        "Guid": 2165,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 1,
+        "HpMax": 13.0,
+        "Hp": 13.0,
+        "HpPct": 1.0,
+        "Corpse": true,
+        "ClassId": "cultist_evangelist_corpse",
+        "Tokens": []
+      },
+      {
+        "Guid": 2167,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 1,
+        "HpMax": 14.0,
+        "Hp": 11.0,
+        "HpPct": 0.785714269,
+        "NextDot": 5.0,
+        "NextHot": 10.0,
+        "Combo": true,
+        "BlockCount": 1,
+        "PositiveTokens": 1,
+        "Rank": 1,
+        "ClassId": "cultist_cherub",
+        "Tokens": [
+          "combo",
+          "block"
+        ]
+      },
+      {
+        "Guid": 2168,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 1,
+        "HpMax": 20.0,
+        "Hp": 20.0,
+        "HpPct": 1.0,
+        "Combo": true,
+        "Blind": true,
+        "BlockCount": 1,
+        "PositiveTokens": 1,
+        "Rank": 2,
+        "ClassId": "cultist_altar",
+        "Tokens": [
+          "logic_b",
+          "block_plus",
+          "blind",
+          "combo"
+        ]
+      }
+    ],
+    "Legal": [
+      {
+        "Skill": "pd_noxious_blast_p2",
+        "Target": 2165,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2165,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.2,
+          "ResistBlight": 0.2,
+          "ResistBurn": 0.2,
+          "ResistStun": 0.4,
+          "ApplyBlight": 5.0
+        }
+      },
+      {
+        "Skill": "pd_noxious_blast_p2",
+        "Target": 2167,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2167,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.2,
+          "ResistBlight": 0.2,
+          "ResistBurn": 0.2,
+          "ResistStun": 0.1,
+          "ApplyBlight": 5.0
+        }
+      },
+      {
+        "Skill": "pd_blinding_gas",
+        "Target": 2168,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [
+            "blind"
+          ],
+          "ApplyPerformer": [
+            "combo"
+          ],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2168,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.4,
+          "ResistBlight": 0.3,
+          "ResistBurn": 0.2,
+          "ResistStun": 0.1
+        }
+      },
+      {
+        "Skill": "pd_move",
+        "Target": 2139,
+        "Preview": {
+          "Error": "preview_invalid",
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2139
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "pass_stress",
+        "Target": 2067,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2067
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "laudanum",
+        "Target": 2141,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2141
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "laudanum",
+        "Target": 2144,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2144
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "laudanum",
+        "Target": 2139,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2139
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "laudanum",
+        "Target": 2067,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2067
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      }
+    ],
+    "Skills": {
+      "pd_noxious_blast_p2": {
+        "Id": "pd_noxious_blast_p2",
+        "Tags": [
+          "ranged",
+          "pd_noxious_blast"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "pd_blinding_gas": {
+        "Id": "pd_blinding_gas",
+        "Tags": [
+          "ranged",
+          "pd_blinding_gas"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "pd_move": {
+        "Id": "pd_move",
+        "IsMove": true,
+        "Tags": [
+          "move"
+        ],
+        "Conditions": [],
+        "Role": {},
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "pass_stress": {
+        "Id": "pass_stress",
+        "Tags": [
+          "pass",
+          "stationary"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "laudanum": {
+        "Id": "laudanum",
+        "IsFriendly": true,
+        "IsItemSkill": true,
+        "IsFree": true,
+        "Tags": [
+          "stress_heal",
+          "laudanum",
+          "combat_item"
+        ],
+        "Conditions": [
+          "target_has_horror_hidden",
+          "target_has_stress_hidden"
+        ],
+        "Role": {},
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/2141": {
+        "Id": "~legacy_kit/2141",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Stuns": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 14.0,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/2144": {
+        "Id": "~legacy_kit/2144",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Heals": true,
+          "Stuns": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 14.0,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/2139": {
+        "Id": "~legacy_kit/2139",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Heals": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 14.0,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/2067": {
+        "Id": "~legacy_kit/2067",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Heals": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 14.0,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      }
+    },
+    "RemainingTurns": [],
+    "Memory": {
+      "LastEnemyGuid": 2167,
+      "Round": 5,
+      "ComboSpendersActed": [
+        2141
+      ],
+      "CrisisHealsThisRound": [],
+      "ReachWalkedThisRound": []
+    },
+    "Threats": [
+      {
+        "Guid": 2167,
+        "Name": "2167",
+        "ClassId": "cultist_cherub",
+        "Supports": true,
+        "HpPct": 0.785714269,
+        "Size": 1
+      },
+      {
+        "Guid": 2168,
+        "Name": "2168",
+        "ClassId": "cultist_altar",
+        "Supports": true,
+        "HpPct": 1.0,
+        "Size": 1
+      }
+    ],
+    "SummonedClasses": [],
+    "ItemQty": {
+      "laudanum": 2
+    },
+    "CursedSkills": [],
+    "LimitedSkills": [],
+    "Degraded": [
+      "legacy_schema1",
+      "no_preview_hits",
+      "no_remove_target",
+      "no_equipped_skills",
+      "kit_from_names",
+      "no_turn_order",
+      "no_dot_split",
+      "no_debuff_move_resist",
+      "memory_inferred",
+      "skill_roles_ranks_missing"
+    ]
+  }
+}

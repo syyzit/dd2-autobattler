@@ -1,0 +1,389 @@
+{
+  "name": "fester_clears_corpse",
+  "note": "Flagellant Fester (CSV clear_corpse) clears the clogging corpse.",
+  "source": "20260825-154018#2/t20 lost_battalion_mash_214 Damian (logged flg_fester->1643 28.0 clear_corpse)",
+  "expect": {
+    "Skill": "flg_fester",
+    "Target": 1643
+  },
+  "forbid": [],
+  "snap": {
+    "Schema": 1,
+    "PerformerGuid": 1624,
+    "Performer": {
+      "Guid": 1624,
+      "Name": "Damian",
+      "Living": true,
+      "Size": 1,
+      "HpMax": 55.0,
+      "Hp": 18.0,
+      "HpPct": 0.3272727,
+      "Stress": 5.0,
+      "Rank": 2,
+      "ClassId": "flagellant",
+      "Tokens": [],
+      "SkillIds": [
+        "~legacy_kit/1624",
+        "flg_fester",
+        "flg_move",
+        "pass_stress"
+      ]
+    },
+    "Heroes": [
+      {
+        "Guid": 1627,
+        "Name": "Dismas",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 42.0,
+        "Hp": 32.0,
+        "HpPct": 0.7619048,
+        "Riposte": true,
+        "PositiveTokens": 1,
+        "ClassId": "highwayman",
+        "Tokens": [
+          "riposte",
+          "riposte"
+        ],
+        "SkillIds": [
+          "~legacy_kit/1627"
+        ]
+      },
+      {
+        "Guid": 1629,
+        "Name": "Baldwin",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 52.0,
+        "Hp": 50.0,
+        "HpPct": 0.961538434,
+        "Rank": 1,
+        "ClassId": "leper",
+        "Tokens": [],
+        "SkillIds": [
+          "~legacy_kit/1629"
+        ]
+      },
+      {
+        "Guid": 1624,
+        "Name": "Damian",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 55.0,
+        "Hp": 18.0,
+        "HpPct": 0.3272727,
+        "Stress": 5.0,
+        "Rank": 2,
+        "ClassId": "flagellant",
+        "Tokens": [],
+        "SkillIds": [
+          "~legacy_kit/1624",
+          "flg_fester",
+          "flg_move",
+          "pass_stress"
+        ]
+      },
+      {
+        "Guid": 1632,
+        "Name": "Paracelsus",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 30.0,
+        "Hp": 30.0,
+        "HpPct": 1.0,
+        "Rank": 3,
+        "ClassId": "plague_doctor",
+        "Tokens": [],
+        "SkillIds": [
+          "~legacy_kit/1632"
+        ]
+      }
+    ],
+    "Enemies": [
+      {
+        "Guid": 1641,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 1,
+        "HpMax": 15.0,
+        "Hp": 1.0,
+        "HpPct": 0.06666667,
+        "NextDot": 6.0,
+        "DiesToDot": true,
+        "ClassId": "lost_battalion_arbalist",
+        "Tokens": []
+      },
+      {
+        "Guid": 1643,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 1,
+        "HpMax": 10.0,
+        "Hp": 10.0,
+        "HpPct": 1.0,
+        "Corpse": true,
+        "Rank": 1,
+        "ClassId": "lost_battalion_arbalist_corpse",
+        "Tokens": []
+      },
+      {
+        "Guid": 1642,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 1,
+        "HpMax": 17.0,
+        "Hp": 6.0,
+        "HpPct": 0.3529412,
+        "DeathArmor": true,
+        "Rank": 2,
+        "ClassId": "lost_battalion_foot_soldier",
+        "Tokens": [
+          "deaths_door_armor",
+          "logic_temporary"
+        ]
+      }
+    ],
+    "Legal": [
+      {
+        "Skill": "flg_fester",
+        "Target": 1643,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            1643
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.100000009,
+          "ResistBlight": 0.3,
+          "ResistBurn": 0.1,
+          "ResistStun": 0.1
+        }
+      },
+      {
+        "Skill": "flg_move",
+        "Target": 1627,
+        "Preview": {
+          "Error": "preview_invalid",
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            1627
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "flg_move",
+        "Target": 1629,
+        "Preview": {
+          "Error": "preview_invalid",
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            1629
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "flg_move",
+        "Target": 1632,
+        "Preview": {
+          "Error": "preview_invalid",
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            1632
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "pass_stress",
+        "Target": 1624,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            1624
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      }
+    ],
+    "Skills": {
+      "flg_fester": {
+        "Id": "flg_fester",
+        "ClearCorpseEffect": true,
+        "Tags": [
+          "ranged",
+          "flg_fester"
+        ],
+        "Conditions": [
+          "target_is_corpse"
+        ],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "flg_move": {
+        "Id": "flg_move",
+        "IsMove": true,
+        "Tags": [
+          "move"
+        ],
+        "Conditions": [],
+        "Role": {},
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "pass_stress": {
+        "Id": "pass_stress",
+        "Tags": [
+          "pass",
+          "stationary"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/1627": {
+        "Id": "~legacy_kit/1627",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/1629": {
+        "Id": "~legacy_kit/1629",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Heals": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 6.0,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/1624": {
+        "Id": "~legacy_kit/1624",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Heals": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 6.0,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/1632": {
+        "Id": "~legacy_kit/1632",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Heals": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 6.0,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      }
+    },
+    "RemainingTurns": [],
+    "Memory": {
+      "ItemActorGuid": 1627,
+      "ItemsUsedThisActorTurn": 1,
+      "Round": 5,
+      "ComboSpendersActed": [
+        1632
+      ],
+      "CrisisHealsThisRound": [],
+      "ReachWalkedThisRound": []
+    },
+    "Threats": [
+      {
+        "Guid": 1641,
+        "Name": "1641",
+        "ClassId": "lost_battalion_arbalist",
+        "DiesToDot": true,
+        "HpPct": 0.06666667,
+        "Size": 1
+      },
+      {
+        "Guid": 1642,
+        "Name": "1642",
+        "ClassId": "lost_battalion_foot_soldier",
+        "HpPct": 0.3529412,
+        "Size": 1
+      }
+    ],
+    "SummonedClasses": [],
+    "ItemQty": {},
+    "CursedSkills": [],
+    "LimitedSkills": [],
+    "Degraded": [
+      "legacy_schema1",
+      "no_preview_hits",
+      "no_remove_target",
+      "no_equipped_skills",
+      "kit_from_names",
+      "no_turn_order",
+      "no_dot_split",
+      "no_debuff_move_resist",
+      "memory_inferred",
+      "skill_roles_ranks_missing"
+    ]
+  }
+}

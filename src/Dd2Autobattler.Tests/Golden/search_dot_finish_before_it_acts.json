@@ -1,0 +1,564 @@
+{
+  "name": "search_dot_finish_before_it_acts",
+  "note": "Search: Iron Swan chips the gaunt (4 HP, blight 3/tick) into DoT range so it dies at its own turn start instead of acting; greedy Wicked Hack on the other gaunt is a near tie (25.0 vs 24.6). Turn order inferred from action_result (schema-1 log), hero kits from the fight's rows.",
+  "source": "20261116-144559#1/t7 valley_gaunts_5 Boudica (logged hel_wicked_hack->2232 25.0 preview_damage)",
+  "expect": {
+    "Skill": "hel_wicked_hack",
+    "Target": 2232
+  },
+  "expect_search": {
+    "Skill": "hel_iron_swan",
+    "Target": 2231
+  },
+  "forbid": [],
+  "snap": {
+    "Schema": 1,
+    "PerformerGuid": 2221,
+    "Performer": {
+      "Guid": 2221,
+      "Name": "Boudica",
+      "Living": true,
+      "Size": 1,
+      "HpMax": 39.0,
+      "Hp": 35.0,
+      "HpPct": 0.8974359,
+      "NextDot": 2.0,
+      "ClassId": "hellion",
+      "Winded": 2,
+      "Tokens": [
+        "hellion_winded",
+        "hellion_winded"
+      ],
+      "SkillIds": [
+        "~legacy_kit/2221",
+        "hel_wicked_hack",
+        "hel_iron_swan",
+        "hel_toe_to_toe",
+        "hel_move",
+        "pass_stress"
+      ]
+    },
+    "Heroes": [
+      {
+        "Guid": 2221,
+        "Name": "Boudica",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 39.0,
+        "Hp": 35.0,
+        "HpPct": 0.8974359,
+        "NextDot": 2.0,
+        "ClassId": "hellion",
+        "Winded": 2,
+        "Tokens": [
+          "hellion_winded",
+          "hellion_winded"
+        ],
+        "SkillIds": [
+          "~legacy_kit/2221",
+          "hel_wicked_hack",
+          "hel_iron_swan",
+          "hel_toe_to_toe",
+          "hel_move",
+          "pass_stress"
+        ]
+      },
+      {
+        "Guid": 2219,
+        "Name": "Damian",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 50.0,
+        "Hp": 33.0,
+        "HpPct": 0.66,
+        "NextDot": 4.0,
+        "Rank": 1,
+        "ClassId": "flagellant",
+        "Tokens": [],
+        "SkillIds": [
+          "flg_punish",
+          "flg_move",
+          "pass_stress",
+          "flg_redeem",
+          "flg_endure",
+          "flg_fester",
+          "flg_lash_gift",
+          "pass_heal"
+        ]
+      },
+      {
+        "Guid": 2224,
+        "Name": "Baldwin",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 52.0,
+        "Hp": 52.0,
+        "HpPct": 1.0,
+        "Blind": true,
+        "BlockCount": 3,
+        "PositiveTokens": 3,
+        "Rank": 2,
+        "Taunt": true,
+        "ClassId": "leper",
+        "Tokens": [
+          "blind",
+          "block",
+          "block",
+          "block",
+          "taunt",
+          "taunt"
+        ],
+        "SkillIds": [
+          "lep_withstand",
+          "lep_move",
+          "pass_stress"
+        ]
+      },
+      {
+        "Guid": 2227,
+        "Name": "Paracelsus",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 30.0,
+        "Hp": 30.0,
+        "HpPct": 1.0,
+        "BlockCount": 1,
+        "PositiveTokens": 1,
+        "Rank": 3,
+        "ClassId": "plague_doctor",
+        "Tokens": [
+          "block"
+        ],
+        "SkillIds": [
+          "pd_noxious_blast",
+          "pd_blinding_gas",
+          "pd_ounce_of_prevention",
+          "pd_move",
+          "pass_stress",
+          "pd_battlefield_medicine"
+        ]
+      }
+    ],
+    "Enemies": [
+      {
+        "Guid": 2232,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 1,
+        "HpMax": 13.0,
+        "Hp": 3.0,
+        "HpPct": 0.230769232,
+        "ClassId": "shared_lost_soul",
+        "Tokens": []
+      },
+      {
+        "Guid": 2234,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 1,
+        "HpMax": 13.0,
+        "Hp": 13.0,
+        "HpPct": 1.0,
+        "Rank": 1,
+        "ClassId": "shared_lost_soul",
+        "Tokens": []
+      },
+      {
+        "Guid": 2233,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 1,
+        "HpMax": 13.0,
+        "Hp": 13.0,
+        "HpPct": 1.0,
+        "Rank": 2,
+        "ClassId": "shared_lost_soul",
+        "Tokens": []
+      },
+      {
+        "Guid": 2231,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 1,
+        "HpMax": 13.0,
+        "Hp": 4.0,
+        "HpPct": 0.307692319,
+        "NextDot": 3.0,
+        "Rank": 3,
+        "ClassId": "shared_lost_soul",
+        "Tokens": []
+      }
+    ],
+    "Legal": [
+      {
+        "Skill": "hel_wicked_hack",
+        "Target": 2232,
+        "Preview": {
+          "Ok": true,
+          "Damage": 2.0,
+          "DamageHigh": 4.0,
+          "DamageValid": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2232
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.1,
+          "ResistBlight": 0.4,
+          "ResistBurn": 0.1,
+          "ResistStun": 0.2
+        }
+      },
+      {
+        "Skill": "hel_wicked_hack",
+        "Target": 2234,
+        "Preview": {
+          "Ok": true,
+          "Damage": 2.0,
+          "DamageHigh": 4.0,
+          "DamageValid": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2234
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.1,
+          "ResistBlight": 0.4,
+          "ResistBurn": 0.1,
+          "ResistStun": 0.2
+        }
+      },
+      {
+        "Skill": "hel_iron_swan",
+        "Target": 2231,
+        "Preview": {
+          "Ok": true,
+          "Damage": 2.0,
+          "DamageHigh": 4.0,
+          "DamageValid": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2231
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.1,
+          "ResistBlight": 0.4,
+          "ResistBurn": 0.1,
+          "ResistStun": 0.2
+        }
+      },
+      {
+        "Skill": "hel_toe_to_toe",
+        "Target": 2232,
+        "Preview": {
+          "Ok": true,
+          "Damage": 1.05,
+          "DamageHigh": 2.0,
+          "DamageValid": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [
+            "immobilize"
+          ],
+          "RemoveTarget": [],
+          "RemovePerformer": [
+            "hellion_winded",
+            "winded_p1",
+            "winded_p2"
+          ],
+          "HitGuids": [
+            2232,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.1,
+          "ResistBlight": 0.4,
+          "ResistBurn": 0.1,
+          "ResistStun": 0.2
+        }
+      },
+      {
+        "Skill": "hel_toe_to_toe",
+        "Target": 2234,
+        "Preview": {
+          "Ok": true,
+          "Damage": 1.05,
+          "DamageHigh": 2.0,
+          "DamageValid": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [
+            "immobilize"
+          ],
+          "RemoveTarget": [],
+          "RemovePerformer": [
+            "hellion_winded",
+            "winded_p1",
+            "winded_p2"
+          ],
+          "HitGuids": [
+            2234,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.1,
+          "ResistBlight": 0.4,
+          "ResistBurn": 0.1,
+          "ResistStun": 0.2
+        }
+      },
+      {
+        "Skill": "hel_move",
+        "Target": 2219,
+        "Preview": {
+          "Error": "preview_invalid",
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2219
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "pass_stress",
+        "Target": 2221,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2221
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      }
+    ],
+    "Skills": {
+      "hel_wicked_hack": {
+        "Id": "hel_wicked_hack",
+        "Tags": [
+          "melee",
+          "winded",
+          "hel_wicked_hack"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "hel_iron_swan": {
+        "Id": "hel_iron_swan",
+        "Tags": [
+          "melee",
+          "winded",
+          "hel_iron_swan"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "hel_toe_to_toe": {
+        "Id": "hel_toe_to_toe",
+        "Tags": [
+          "melee",
+          "winded",
+          "hel_toe_to_toe"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "hel_move": {
+        "Id": "hel_move",
+        "IsMove": true,
+        "Tags": [
+          "move"
+        ],
+        "Conditions": [],
+        "Role": {},
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "pass_stress": {
+        "Id": "pass_stress",
+        "Tags": [
+          "pass",
+          "stationary"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/2221": {
+        "Id": "~legacy_kit/2221",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 6.0,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/2219": {
+        "Id": "~legacy_kit/2219",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Heals": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 6.0,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/2224": {
+        "Id": "~legacy_kit/2224",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Heals": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 6.0,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/2227": {
+        "Id": "~legacy_kit/2227",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Heals": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 6.0,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      }
+    },
+    "RemainingTurns": [
+      2224,
+      2232,
+      2233,
+      2231
+    ],
+    "Memory": {
+      "Round": 2,
+      "ComboSpendersActed": [
+        2219,
+        2227
+      ],
+      "CrisisHealsThisRound": [],
+      "ReachWalkedThisRound": []
+    },
+    "Threats": [
+      {
+        "Guid": 2232,
+        "Name": "2232",
+        "ClassId": "shared_lost_soul",
+        "HpPct": 0.230769232,
+        "Size": 1
+      },
+      {
+        "Guid": 2234,
+        "Name": "2234",
+        "ClassId": "shared_lost_soul",
+        "HpPct": 1.0,
+        "Size": 1
+      },
+      {
+        "Guid": 2233,
+        "Name": "2233",
+        "ClassId": "shared_lost_soul",
+        "HpPct": 1.0,
+        "Size": 1
+      },
+      {
+        "Guid": 2231,
+        "Name": "2231",
+        "ClassId": "shared_lost_soul",
+        "HpPct": 0.307692319,
+        "Size": 1
+      }
+    ],
+    "SummonedClasses": [],
+    "ItemQty": {},
+    "CursedSkills": [],
+    "LimitedSkills": [],
+    "Degraded": [
+      "legacy_schema1",
+      "no_preview_hits",
+      "no_remove_target",
+      "no_equipped_skills",
+      "kit_from_names",
+      "no_turn_order",
+      "no_dot_split",
+      "no_debuff_move_resist",
+      "memory_inferred",
+      "skill_roles_ranks_missing",
+      "turn_order_from_action_results",
+      "hero_kits_from_fight_rows"
+    ]
+  }
+}

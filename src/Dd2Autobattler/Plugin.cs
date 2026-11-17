@@ -19,6 +19,7 @@ namespace Dd2Autobattler
 
         internal static ConfigEntry<bool> Enabled;
         internal static ConfigEntry<bool> ShadowMode;
+        internal static ConfigEntry<bool> LastEnemyRecovery;
         internal static ConfigEntry<bool> LogPreviews;
         internal static ConfigEntry<bool> ShowOverlay;
 
@@ -56,26 +57,34 @@ namespace Dd2Autobattler
                 "When true, the plugin scores hero turns. Auto plays them; Shadow only logs.");
             ShadowMode = Config.Bind("Combat", "ShadowMode", false,
                 "When true with Enabled, you click and the bot logs what it would have clicked. Toggle live from the overlay.");
+            LastEnemyRecovery = Config.Bind("Combat", "LastEnemyRecovery", true,
+                "When one safe enemy is left, a hero whose pick would be idle (pass, a losing support, a 0-damage click) heals HP, strips DoTs or heals stress instead. Never delays the kill. See notes/recovery.md.");
+            TurnDecider.LastEnemyRecovery = LastEnemyRecovery.Value;
+            LastEnemyRecovery.SettingChanged += (s, e) => TurnDecider.LastEnemyRecovery = LastEnemyRecovery.Value;
             LogPreviews = Config.Bind("Logging", "LogPreviews", true,
                 "Include per-action preview scores in the JSONL log.");
             ShowOverlay = Config.Bind("UI", "ShowOverlay", true,
                 "Show AUTO/SHADOW toggles and the last decision on screen.");
 
+            Search.SearchConfig.Bind(Config);
             DecisionLog.Init(Paths.BepInExRootPath, Logger);
             Harmony = new Harmony(PluginGuid);
             InputControllerPatches.Apply(Harmony);
+            OutcomeLog.Patch(Harmony);
             Logger.LogInfo($"{PluginName} {PluginVersion} loaded. Combat auto={IsAuto} shadow={IsShadow}.");
         }
 
         private void Start()
         {
             BattleLifecycle.Subscribe();
+            OutcomeLog.Subscribe();
             DecisionOverlay.Ensure();
         }
 
         private void OnDestroy()
         {
             BattleLifecycle.Unsubscribe();
+            OutcomeLog.Unsubscribe();
             Harmony?.UnpatchSelf();
         }
     }

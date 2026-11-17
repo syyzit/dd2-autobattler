@@ -62,6 +62,8 @@ namespace Dd2Autobattler.Combat
             CombatSource source = null;
             try { if (evt != null) source = evt.m_CombatSource; } catch { }
             CombatMemory.BeginBattle(id, source);
+            OutcomeLog.BeginFight();
+            AutobattlerApi.RaiseProgress("battle_begin");
             DecisionLog.BeginFight(id, new JObject
             {
                 ["index"] = evt != null ? evt.m_battleIndex : -1,
@@ -79,6 +81,7 @@ namespace Dd2Autobattler.Combat
             var round = 0;
             try { if (evt != null) round = evt.m_Round; } catch { }
             CombatMemory.NoteRound(round);
+            AutobattlerApi.RaiseProgress("round");
         }
 
         private static void OnBattleResult(EventBattleResult evt)
@@ -95,8 +98,10 @@ namespace Dd2Autobattler.Combat
                 }
             }
             catch { }
+            OutcomeLog.FillFightEnd(extra, evt != null ? evt.m_BattleResult : null);
             CombatMemory.ResetFight();
             DecisionLog.EndFight(extra);
+            OutcomeLog.NotifyFightEnded(extra);
         }
 
         private static void OnSkillTargetSelected(EventSkillTargetSelected evt)

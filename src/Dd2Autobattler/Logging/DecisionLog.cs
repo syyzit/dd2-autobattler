@@ -10,28 +10,117 @@ namespace Dd2Autobattler.Logging
     public static class DecisionLog
     {
         private static ManualLogSource _log;
+        private static string _bepInExRoot;
         private static string _runDir;
         private static string _jsonlPath;
         private static string _fightId = "none";
         private static int _turnIndex;
 
+        /// <summary>JSONL schema. 2 = adds turn snapshots, action_result, fight_end party/outcome.</summary>
+        public const int Schema = 2;
+
         public static string LastSummary { get; private set; } = "DD2 Autobattler idle";
         public static string LastRunnerUp { get; private set; } = "";
+        public static string JsonlPath { get { return _jsonlPath; } }
+        public static string SessionStamp { get; private set; }
+        public static string FightId { get { return _fightId; } }
 
         public static void Init(string bepInExRoot, ManualLogSource log)
         {
             _log = log;
+            _bepInExRoot = bepInExRoot;
             var stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
+            SessionStamp = stamp;
             _runDir = Path.Combine(bepInExRoot, "Dd2Autobattler", "logs", stamp);
             Directory.CreateDirectory(_runDir);
             _jsonlPath = Path.Combine(_runDir, "decisions.jsonl");
-            WriteLine(new JObject
+            WriteLine(SessionStartRecord(stamp, SafeGameVersion(), DateTime.UtcNow));
+            _log.LogInfo($"Decision log: BepInEx/{RelativeLogPath(stamp)} (commit {BuildInfo.GitCommit ?? "?"}{(BuildInfo.GitDirty ? "+dirty" : "")})");
+        }
+
+        /// <summary>
+        /// The decision log's location relative to the BepInEx folder, with forward slashes.
+        /// Players attach decisions.jsonl to bug reports, so no record carries the absolute
+        /// path (it holds the Windows user name and the install folder).
+        /// </summary>
+        internal static string RelativeLogPath(string stamp)
+        {
+            return "Dd2Autobattler/logs/" + stamp + "/decisions.jsonl";
+        }
+
+        internal static JObject SessionStartRecord(string stamp, string gameVersion, DateTime utc)
+        {
+            return new JObject
             {
                 ["type"] = "session_start",
-                ["utc"] = DateTime.UtcNow.ToString("o"),
-                ["path"] = _jsonlPath
-            });
-            _log.LogInfo($"Decision log: {_jsonlPath}");
+                ["schema"] = Schema,
+                ["session"] = stamp,
+                ["plugin_version"] = Plugin.PluginVersion,
+                ["git_commit"] = BuildInfo.GitCommit,
+                ["git_dirty"] = BuildInfo.GitDirty,
+                ["game_version"] = gameVersion,
+                ["utc"] = utc.ToString("o"),
+                ["path"] = RelativeLogPath(stamp)
+            };
+        }
+
+        /// <summary>
+        /// Takes local folders out of free text written to the log (exception messages can
+        /// name a file): the BepInEx folder becomes "BepInEx", the user profile "%USERPROFILE%".
+        /// </summary>
+        internal static string Scrub(string text, string bepInExRoot, string userProfile)
+        {
+            if (string.IsNullOrEmpty(text))
+                return text;
+            text = ReplaceFolder(text, bepInExRoot, "BepInEx");
+            text = ReplaceFolder(text, userProfile, "%USERPROFILE%");
+            return text;
+        }
+
+        private static string ReplaceFolder(string text, string folder, string token)
+        {
+            if (string.IsNullOrEmpty(folder))
+                return text;
+            folder = folder.TrimEnd('\\', '/');
+            if (folder.Length < 3)
+                return text;
+            var alt = folder.Replace('\\', '/');
+            text = ReplaceIgnoreCase(text, folder, token);
+            if (alt != folder)
+                text = ReplaceIgnoreCase(text, alt, token);
+            return text;
+        }
+
+        private static string ReplaceIgnoreCase(string text, string find, string token)
+        {
+            var i = text.IndexOf(find, StringComparison.OrdinalIgnoreCase);
+            while (i >= 0)
+            {
+                text = text.Substring(0, i) + token + text.Substring(i + find.Length);
+                i = text.IndexOf(find, i + token.Length, StringComparison.OrdinalIgnoreCase);
+            }
+            return text;
+        }
+
+        private static string SafeUserProfile()
+        {
+            try { return Environment.GetFolderPath(Environment.SpecialFolder.UserProfile); } catch { return null; }
+        }
+
+        /// <summary>Append any record (action_result, fight_end, ...). Adds fight and utc.</summary>
+        public static void Record(string type, JObject obj)
+        {
+            obj = obj ?? new JObject();
+            obj["type"] = type;
+            if (obj["fight"] == null)
+                obj["fight"] = _fightId;
+            obj["utc"] = DateTime.UtcNow.ToString("o");
+            WriteLine(obj);
+        }
+
+        private static string SafeGameVersion()
+        {
+            try { return UnityEngine.Application.version; } catch { return null; }
         }
 
         public static void BeginFight(string fightId, JObject extra)
@@ -50,6 +139,7 @@ namespace Dd2Autobattler.Logging
         {
             var obj = extra ?? new JObject();
             obj["type"] = "fight_end";
+            obj["schema"] = Schema;
             obj["fight"] = _fightId;
             obj["turns"] = _turnIndex;
             obj["utc"] = DateTime.UtcNow.ToString("o");
@@ -111,9 +201,9 @@ namespace Dd2Autobattler.Logging
                 ["type"] = "error",
                 ["fight"] = _fightId,
                 ["utc"] = DateTime.UtcNow.ToString("o"),
-                ["message"] = message,
+                ["message"] = Scrub(message, _bepInExRoot, SafeUserProfile()),
                 ["exception"] = ex != null ? ex.GetType().Name : null,
-                ["detail"] = ex != null ? ex.Message : null
+                ["detail"] = ex != null ? Scrub(ex.Message, _bepInExRoot, SafeUserProfile()) : null
             };
             WriteLine(obj);
         }

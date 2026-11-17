@@ -7,6 +7,10 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
   <ItemGroup>
+    <!-- Pinned real turns (Dd2Replay pin option), run by SnapshotReplayTests.GoldenCase. -->
+    <None Include="Golden\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\Dd2Autobattler\Dd2Autobattler.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.3.3" />
     <PackageReference Include="xunit" Version="2.4.2" />

@@ -101,9 +101,17 @@ namespace Dd2Autobattler.Tests
         public void Damage_into_a_0_hp_bar_is_a_kill()
         {
             var preview = new PreviewScore { Ok = true, Damage = 5f };
-            var armor = new TargetInfo { Guid = 3, Hp = 0f, DeathArmor = true };
-            TurnDecider.NoteKillFromHp(preview, armor, null);
+            var bare = new TargetInfo { Guid = 3, Hp = 0f };
+            TurnDecider.NoteKillFromHp(preview, bare, null);
             Assert.True(preview.Kills);
+
+            // Death's Door armor absorbs the hit, at 0 HP or on a lethal roll.
+            var absorbed = new PreviewScore { Ok = true, Damage = 5f, Kills = true };
+            TurnDecider.NoteKillFromHp(absorbed, new TargetInfo { Guid = 5, Hp = 0f, DeathArmor = true }, null);
+            Assert.False(absorbed.Kills);
+            var lethal = new PreviewScore { Ok = true, Damage = 9f };
+            TurnDecider.NoteKillFromHp(lethal, new TargetInfo { Guid = 6, Hp = 4f, DeathArmor = true }, null);
+            Assert.False(lethal.Kills);
 
             var tap = new PreviewScore { Ok = true, Damage = 0f };
             var root = new TargetInfo { Guid = 4, Hp = 0f, Healthless = true };

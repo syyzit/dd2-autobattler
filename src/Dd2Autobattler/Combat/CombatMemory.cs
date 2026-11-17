@@ -11,36 +11,41 @@ namespace Dd2Autobattler.Combat
     /// </summary>
     internal static class CombatMemory
     {
-        private static uint _lastEnemyGuid;
-        private static bool _setupSpent;
-        private static uint _itemActorGuid;
-        private static int _itemsUsedThisActorTurn;
-        private static int _round;
-        private static int _taprootHitsThisRound;
-        private static readonly HashSet<uint> _comboSpendersActed = new HashSet<uint>();
-        private static readonly HashSet<uint> _crisisHealsThisRound = new HashSet<uint>();
-        private static readonly HashSet<uint> _reachWalkedThisRound = new HashSet<uint>();
+        // Decider-visible state. Plain data so a turn snapshot can carry a copy.
+        private static MemoryState _state = new MemoryState();
 
         public static bool HandsOff { get; private set; }
+        /// <summary>Set through AutobattlerApi when nobody else will click, so story/shrine fights are played too.</summary>
+        public static bool PlayScriptedFights;
         public static string HandsOffReason { get; private set; }
         public static bool InCombat { get; private set; }
-        public static int Round { get { return _round; } }
-        public static int TaprootHitsThisRound { get { return _taprootHitsThisRound; } }
+        public static int Round { get { return _state.Round; } }
+        public static int TaprootHitsThisRound { get { return _state.TaprootHitsThisRound; } }
+
+        // Live state, read-only use (pure helpers fall back to it when no
+        // snapshot memory is passed, e.g. unit tests).
+        internal static MemoryState Live { get { return _state; } }
+
+        // Copy for a turn snapshot.
+        internal static MemoryState Capture()
+        {
+            return _state.Clone();
+        }
+
+        // Write back the state a decision probed / committed.
+        internal static void Restore(MemoryState state)
+        {
+            if (state != null)
+                _state = state.Clone();
+        }
+
         public static uint ShadowActor { get; private set; }
         public static ChosenAction ShadowBot { get; private set; }
         public static List<JObject> ShadowLegal { get; private set; }
 
         public static void ResetFight()
         {
-            _lastEnemyGuid = 0;
-            _setupSpent = false;
-            _itemActorGuid = 0;
-            _itemsUsedThisActorTurn = 0;
-            _round = 0;
-            _taprootHitsThisRound = 0;
-            _comboSpendersActed.Clear();
-            _crisisHealsThisRound.Clear();
-            _reachWalkedThisRound.Clear();
+            _state.ResetFight();
             HandsOff = false;
             HandsOffReason = null;
             InCombat = false;
@@ -49,14 +54,7 @@ namespace Dd2Autobattler.Combat
 
         public static void NoteRound(int round)
         {
-            if (round > 0)
-                _round = round;
-            else
-                _round++;
-            _taprootHitsThisRound = 0;
-            _comboSpendersActed.Clear();
-            _crisisHealsThisRound.Clear();
-            _reachWalkedThisRound.Clear();
+            _state.NoteRound(round);
             ClearShadow();
         }
 
@@ -76,52 +74,49 @@ namespace Dd2Autobattler.Combat
 
         public static void NoteReachWalk(uint actorGuid)
         {
-            if (actorGuid != 0)
-                _reachWalkedThisRound.Add(actorGuid);
+            _state.NoteReachWalk(actorGuid);
         }
 
         public static bool ReachWalkedThisRound(uint actorGuid)
         {
-            return actorGuid != 0 && _reachWalkedThisRound.Contains(actorGuid);
+            return _state.ReachWalked(actorGuid);
         }
 
         public static bool PartyReachWalkedThisRound()
         {
-            return _reachWalkedThisRound.Count > 0;
+            return _state.PartyReachWalked();
         }
 
         public static void NoteComboSpenderActed(uint actorGuid)
         {
-            if (actorGuid != 0)
-                _comboSpendersActed.Add(actorGuid);
+            _state.NoteComboSpenderActed(actorGuid);
         }
 
         public static bool ComboSpenderActedThisRound(uint actorGuid)
         {
-            return actorGuid != 0 && _comboSpendersActed.Contains(actorGuid);
+            return _state.ComboSpenderActed(actorGuid);
         }
 
         public static void NoteCrisisHeal(uint targetGuid)
         {
-            if (targetGuid != 0)
-                _crisisHealsThisRound.Add(targetGuid);
+            _state.NoteCrisisHeal(targetGuid);
         }
 
         public static bool CrisisHealThisRound(uint targetGuid)
         {
-            return targetGuid != 0 && _crisisHealsThisRound.Contains(targetGuid);
+            return _state.CrisisHealed(targetGuid);
         }
 
         public static void NoteTaprootHit()
         {
-            _taprootHitsThisRound++;
+            _state.NoteTaprootHit();
         }
 
         public static void BeginBattle(string fightId, CombatSource source)
         {
             ResetFight();
             InCombat = true;
-            HandsOff = IsScriptedStoryFight(fightId, source);
+            HandsOff = !PlayScriptedFights && IsScriptedStoryFight(fightId, source);
             if (HandsOff)
             {
                 HandsOffReason = "story/shrine: " + (fightId ?? "?");
@@ -147,53 +142,22 @@ namespace Dd2Autobattler.Combat
 
         public static bool CanSpendSetup(uint lastEnemyGuid)
         {
-            if (lastEnemyGuid == 0)
-                return false;
-            if (lastEnemyGuid != _lastEnemyGuid)
-            {
-                _lastEnemyGuid = lastEnemyGuid;
-                _setupSpent = false;
-            }
-            return !_setupSpent;
+            return _state.CanSpendSetup(lastEnemyGuid);
         }
 
         public static void NoteChosen(uint lastEnemyGuid, bool wasSetup)
         {
-            if (lastEnemyGuid == 0)
-                return;
-            if (lastEnemyGuid != _lastEnemyGuid)
-            {
-                _lastEnemyGuid = lastEnemyGuid;
-                _setupSpent = false;
-            }
-            if (wasSetup)
-                _setupSpent = true;
+            _state.NoteChosen(lastEnemyGuid, wasSetup);
         }
 
         public static bool CanSpendItem(uint actorGuid, bool crisis)
         {
-            if (actorGuid == 0)
-                return false;
-            if (actorGuid != _itemActorGuid)
-            {
-                _itemActorGuid = actorGuid;
-                _itemsUsedThisActorTurn = 0;
-            }
-            if (_itemsUsedThisActorTurn < 1)
-                return true;
-            return crisis && _itemsUsedThisActorTurn < 2;
+            return _state.CanSpendItem(actorGuid, crisis);
         }
 
         public static void NoteItemUsed(uint actorGuid)
         {
-            if (actorGuid == 0)
-                return;
-            if (actorGuid != _itemActorGuid)
-            {
-                _itemActorGuid = actorGuid;
-                _itemsUsedThisActorTurn = 0;
-            }
-            _itemsUsedThisActorTurn++;
+            _state.NoteItemUsed(actorGuid);
         }
     }
 }

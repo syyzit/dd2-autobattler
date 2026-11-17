@@ -16,7 +16,7 @@ namespace Dd2Autobattler.Combat
     {
         private const float SupportCap = 14f;
 
-        public static TokenEval Evaluate(SkillKind kind, bool enemyTarget, PreviewScore preview, TargetInfo target, int livingEnemies, PartyKit party, uint performerGuid, SkillRole role, TargetInfo performer = null, uint nextEnemyGuid = 0)
+        public static TokenEval Evaluate(SkillKind kind, bool enemyTarget, PreviewScore preview, TargetInfo target, int livingEnemies, PartyKit party, uint performerGuid, SkillRole role, TargetInfo performer = null, uint nextEnemyGuid = 0, MemoryState memory = null)
         {
             var eval = new TokenEval();
             if (preview == null || !preview.Ok || target == null)
@@ -30,7 +30,7 @@ namespace Dd2Autobattler.Combat
             var followUpCombo = party == null || party.FollowUpSpendsCombo(performerGuid);
             var partySpends = party != null && party.PartySpendsCombo;
             var partyAttacks = party == null || party.PartyAttacks;
-            var setup = EarlySetupScale(CombatMemory.Round, livingEnemies);
+            var setup = EarlySetupScale((memory ?? CombatMemory.Live).Round, livingEnemies);
             var bestReason = (string)null;
             var bestPart = 0f;
 
@@ -136,7 +136,7 @@ namespace Dd2Autobattler.Combat
             {
                 if (HasId(eval.Apply, "strength") && target.StrengthCount < 2)
                 {
-                    var allyAttacks = party == null || target.Actor == null || party.HeroAttacks(target.Actor.ActorGuid);
+                    var allyAttacks = party == null || target.Guid == 0 || party.HeroAttacks(target.Guid);
                     if (allyAttacks)
                         Add((target.StrengthCount == 0 ? 9f : 3f) * setup, "apply_strength");
                 }
@@ -145,7 +145,7 @@ namespace Dd2Autobattler.Combat
                 if (HasId(eval.Apply, "dodge") && target.DodgeCount < 2)
                     Add(5f, "apply_token");
                 if (HasId(eval.Apply, "riposte") && !target.Riposte)
-                    Add(target.Actor != null && target.Actor.TeamPosition <= 1 ? 8f : 4f, "apply_token");
+                    Add(target.Guid != 0 && target.Rank <= 1 ? 8f : 4f, "apply_token");
                 if (HasId(eval.Apply, "guard"))
                     Add((target.DeathsDoor || target.HpPct <= 0.45f ? 10f : 5f)
                         + (party != null ? party.ProtectBonus(target) * 0.35f : 0f), "apply_token");
@@ -170,16 +170,7 @@ namespace Dd2Autobattler.Combat
         {
             if (nextEnemyGuid == 0 || target == null)
                 return false;
-            if (target.Guid != 0)
-                return target.Guid == nextEnemyGuid;
-            try
-            {
-                return target.Actor != null && target.Actor.ActorGuid == nextEnemyGuid;
-            }
-            catch
-            {
-                return false;
-            }
+            return target.Guid == nextEnemyGuid;
         }
 
         private static void AddSelfTokens(List<string> apply, TargetInfo performer, float setup, Action<float, string> add)

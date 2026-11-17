@@ -1,0 +1,581 @@
+{
+  "name": "deaths_door_bandage_item",
+  "note": "Skill heal spent: a bandage that still heals fires on Death's Door (item_heal_dd).",
+  "source": "20260827-110739#2/t53 forest_dungeon_3 Paracelsus (logged bandages->2144 90.0 item_heal_dd)",
+  "expect": {
+    "Skill": "bandages",
+    "Target": 2144
+  },
+  "forbid": [],
+  "snap": {
+    "Schema": 1,
+    "PerformerGuid": 2067,
+    "Performer": {
+      "Guid": 2067,
+      "Name": "Paracelsus",
+      "Living": true,
+      "Size": 1,
+      "HpMax": 36.0,
+      "DeathsDoor": true,
+      "Stress": 1.0,
+      "Weak": true,
+      "Tangled": true,
+      "Rank": 3,
+      "ClassId": "plague_doctor",
+      "Tokens": [
+        "weak",
+        "taproot_tangle_b",
+        "weak"
+      ],
+      "SkillIds": [
+        "~legacy_kit/2067",
+        "pd_noxious_blast_p2",
+        "pd_blinding_gas",
+        "pd_ounce_of_prevention",
+        "pd_move",
+        "pass_stress",
+        "bandages"
+      ]
+    },
+    "Heroes": [
+      {
+        "Guid": 2141,
+        "Name": "Dismas",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 42.0,
+        "Hp": 21.0,
+        "HpPct": 0.5,
+        "Stress": 2.0,
+        "Tangled": true,
+        "ClassId": "highwayman",
+        "Tokens": [
+          "taproot_tangle_a"
+        ],
+        "SkillIds": [
+          "~legacy_kit/2141"
+        ]
+      },
+      {
+        "Guid": 2144,
+        "Name": "Barristan",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 55.0,
+        "DeathsDoor": true,
+        "Stress": 9.0,
+        "NextDot": 8.0,
+        "Tangled": true,
+        "TangledLock": true,
+        "Rank": 1,
+        "ClassId": "man_at_arms",
+        "Tokens": [
+          "taproot_tangle_c"
+        ],
+        "SkillIds": [
+          "~legacy_kit/2144"
+        ]
+      },
+      {
+        "Guid": 2139,
+        "Name": "Audrey",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 35.0,
+        "Hp": 26.0,
+        "HpPct": 0.742857158,
+        "Stress": 5.0,
+        "Tangled": true,
+        "Rank": 2,
+        "ClassId": "grave_robber",
+        "Tokens": [
+          "taproot_tangle_b"
+        ],
+        "SkillIds": [
+          "~legacy_kit/2139"
+        ]
+      },
+      {
+        "Guid": 2067,
+        "Name": "Paracelsus",
+        "Living": true,
+        "Size": 1,
+        "HpMax": 36.0,
+        "DeathsDoor": true,
+        "Stress": 1.0,
+        "Weak": true,
+        "Tangled": true,
+        "Rank": 3,
+        "ClassId": "plague_doctor",
+        "Tokens": [
+          "weak",
+          "taproot_tangle_b",
+          "weak"
+        ],
+        "SkillIds": [
+          "~legacy_kit/2067",
+          "pd_noxious_blast_p2",
+          "pd_blinding_gas",
+          "pd_ounce_of_prevention",
+          "pd_move",
+          "pass_stress",
+          "bandages"
+        ]
+      }
+    ],
+    "Enemies": [
+      {
+        "Guid": 2197,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 2,
+        "HpMax": 185.0,
+        "Hp": 7.0,
+        "HpPct": 0.0378378369,
+        "NextDot": 5.0,
+        "DeathArmor": true,
+        "ClassId": "lost_battalion_boss_dreaming_general",
+        "Tokens": [
+          "deaths_door_armor",
+          "deaths_door_armor",
+          "deaths_door_armor"
+        ]
+      },
+      {
+        "Guid": 2198,
+        "Name": "",
+        "Team": 1,
+        "Living": true,
+        "Size": 1,
+        "HpMax": 99.0,
+        "Hp": 99.0,
+        "HpPct": 1.0,
+        "Rank": 1,
+        "ClassId": "lost_battalion_boss_taproot",
+        "Healthless": true,
+        "Tokens": []
+      }
+    ],
+    "Legal": [
+      {
+        "Skill": "pd_noxious_blast_p2",
+        "Target": 2197,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2197,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 0.5,
+          "ResistBlight": 0.3,
+          "ResistBurn": 0.2,
+          "ResistStun": 2.0,
+          "ApplyBlight": 5.0
+        }
+      },
+      {
+        "Skill": "pd_blinding_gas",
+        "Target": 2197,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [
+            "logic_b"
+          ],
+          "ApplyPerformer": [
+            "combo"
+          ],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2197,
+            0,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 2.0,
+          "ResistBlight": 2.0,
+          "ResistBurn": 2.0,
+          "ResistStun": 2.0
+        }
+      },
+      {
+        "Skill": "pd_blinding_gas",
+        "Target": 2198,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [
+            "logic_b"
+          ],
+          "ApplyPerformer": [
+            "combo"
+          ],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2198,
+            0,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true,
+          "ResistBleed": 2.0,
+          "ResistBlight": 2.0,
+          "ResistBurn": 2.0,
+          "ResistStun": 2.0
+        }
+      },
+      {
+        "Skill": "pd_ounce_of_prevention",
+        "Target": 2141,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2141,
+            0,
+            0,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "pd_ounce_of_prevention",
+        "Target": 2144,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2144,
+            0,
+            0,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "pd_ounce_of_prevention",
+        "Target": 2139,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2139,
+            0,
+            0,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "pd_ounce_of_prevention",
+        "Target": 2067,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2067,
+            0,
+            0,
+            0
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "pd_move",
+        "Target": 2139,
+        "Preview": {
+          "Error": "preview_invalid",
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2139
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "pass_stress",
+        "Target": 2067,
+        "Preview": {
+          "Ok": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2067
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      },
+      {
+        "Skill": "bandages",
+        "Target": 2144,
+        "Preview": {
+          "Ok": true,
+          "Heal": 5.0,
+          "HealsDeathsDoor": true,
+          "HealValid": true,
+          "ConsumeTarget": [],
+          "ConsumePerformer": [],
+          "ApplyTarget": [],
+          "ApplyPerformer": [],
+          "RemoveTarget": [],
+          "RemovePerformer": [],
+          "HitGuids": [
+            2144
+          ],
+          "Hits": [],
+          "ResistOk": true
+        }
+      }
+    ],
+    "Skills": {
+      "pd_noxious_blast_p2": {
+        "Id": "pd_noxious_blast_p2",
+        "Tags": [
+          "ranged",
+          "pd_noxious_blast"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "pd_blinding_gas": {
+        "Id": "pd_blinding_gas",
+        "Tags": [
+          "ranged",
+          "pd_blinding_gas"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "pd_ounce_of_prevention": {
+        "Id": "pd_ounce_of_prevention",
+        "IsFriendly": true,
+        "Tags": [
+          "pd_ounce_of_prevention"
+        ],
+        "Conditions": [
+          "target_is_not_corpse_hidden"
+        ],
+        "Role": {},
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "pd_move": {
+        "Id": "pd_move",
+        "IsMove": true,
+        "Tags": [
+          "move"
+        ],
+        "Conditions": [],
+        "Role": {},
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "pass_stress": {
+        "Id": "pass_stress",
+        "Tags": [
+          "pass",
+          "stationary"
+        ],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "bandages": {
+        "Id": "bandages",
+        "IsItemSkill": true,
+        "IsFree": true,
+        "Tags": [
+          "heal",
+          "bandages",
+          "combat_item"
+        ],
+        "Conditions": [
+          "target_has_bleed_dot_hidden"
+        ],
+        "Role": {
+          "Attacks": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/2141": {
+        "Id": "~legacy_kit/2141",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Stuns": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 14.0,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/2144": {
+        "Id": "~legacy_kit/2144",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Heals": true,
+          "Stuns": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 14.0,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/2139": {
+        "Id": "~legacy_kit/2139",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Heals": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 14.0,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      },
+      "~legacy_kit/2067": {
+        "Id": "~legacy_kit/2067",
+        "Tags": [],
+        "Conditions": [],
+        "Role": {
+          "Attacks": true,
+          "Heals": true,
+          "SpendsCombo": true,
+          "ComboSpendValue": 14.0,
+          "Bleed": true,
+          "Blight": true
+        },
+        "OwnerSize": 1,
+        "MasksUnknown": true
+      }
+    },
+    "RemainingTurns": [],
+    "Memory": {
+      "LastEnemyGuid": 2197,
+      "ItemActorGuid": 2067,
+      "ItemsUsedThisActorTurn": 1,
+      "Round": 13,
+      "TaprootHitsThisRound": 1,
+      "ComboSpendersActed": [
+        2139,
+        2141
+      ],
+      "CrisisHealsThisRound": [],
+      "ReachWalkedThisRound": []
+    },
+    "Threats": [
+      {
+        "Guid": 2197,
+        "Name": "2197",
+        "ClassId": "lost_battalion_boss_dreaming_general",
+        "Boss": true,
+        "Add": true,
+        "HpPct": 0.0378378369,
+        "Size": 2
+      },
+      {
+        "Guid": 2198,
+        "Name": "2198",
+        "ClassId": "lost_battalion_boss_taproot",
+        "Boss": true,
+        "HpPct": 1.0,
+        "Size": 1
+      }
+    ],
+    "SummonedClasses": [],
+    "ItemQty": {
+      "bandages": 1
+    },
+    "CursedSkills": [
+      "pd_ounce_of_prevention"
+    ],
+    "LimitedSkills": [],
+    "Degraded": [
+      "legacy_schema1",
+      "no_preview_hits",
+      "no_remove_target",
+      "no_equipped_skills",
+      "kit_from_names",
+      "no_turn_order",
+      "no_dot_split",
+      "no_debuff_move_resist",
+      "memory_inferred",
+      "skill_roles_ranks_missing"
+    ]
+  }
+}

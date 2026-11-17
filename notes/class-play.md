@@ -41,5 +41,3 @@ Out of scope here: inn hire advice, trinket pairs, skill loadouts. A HUD line (�
 - **Phase 2:** Jester extra action (`the_last_laugh`), Vestal Conviction, DoT host, Runaway Hearthlight/Firestarter.
 - **Phase 3:** Duelist first stance pay, Abom form-match, heal classify for Comfort / Battle Heal / Cauterize / Absolution. Holy Lance is a back-rank attack that walks you forward once — no extra veto (launch ranks 3–4 drop it after the walk).
 - **Phase 4 (not done):** path HP thresholds, recruit overlay.
-
-Playtest one Confession region before the next phase. Restart the game after every build.

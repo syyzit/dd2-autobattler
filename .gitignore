@@ -18,3 +18,7 @@ Directory.Build.props.user
 *.dll
 *.pdb
 *.exe
+
+# Local tooling
+.claude/
+__pycache__/
